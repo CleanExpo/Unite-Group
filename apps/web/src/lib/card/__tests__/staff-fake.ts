@@ -21,7 +21,7 @@ export function makeStore() {
       if (!rows) throw new Error(`unexpected table ${name}`)
       const filters: Array<[string, unknown]> = []
       let patch: Row | null = null
-      const match = () => rows.filter((r) => filters.every(([k, v]) => r[k] === v))
+      const match = () => rows.filter((r) => filters.every(([k, v]) => (v === null ? r[k] == null : r[k] === v)))
       const run = () => {
         if (failReads.on) return { data: null, error: { message: 'read failed' } }
         const hit = match()
@@ -37,6 +37,10 @@ export function makeStore() {
       const query = {
         select: () => query,
         eq: (k: string, v: unknown) => {
+          filters.push([k, v])
+          return query
+        },
+        is: (k: string, v: unknown) => {
           filters.push([k, v])
           return query
         },

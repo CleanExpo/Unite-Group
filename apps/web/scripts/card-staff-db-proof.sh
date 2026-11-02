@@ -56,6 +56,8 @@ s/new\.token_hash := null;/null;/
 s/or new\.account_id is distinct from old\.account_id//
 s/or new\.card_slug is distinct from old\.card_slug//
 s/ or v_order\.tier <> 'extra_business'//
+s/raise exception 'card_provision_mode_mismatch';/null;/
+s/or new\.livemode is distinct from old\.livemode//
 s/generate_series\(1, v_order\.quantity\)/generate_series(1, least(v_order.quantity, 5))/
 s/on conflict \(order_id, seat_no\) do nothing//
 s/mobile, status, deactivated_at\)/mobile, status, deactivated_at, token_hash)/

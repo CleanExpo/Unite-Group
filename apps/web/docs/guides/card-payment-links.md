@@ -67,7 +67,8 @@ Limits:
 
 - The link is matched on email only. A different email, or two accounts on one email, is not guessed at: the order stays recorded and you get an alert. Link it by hand: `select public.card_provision_staff_cards('<order id>', '<account id>');`
 - A staff card bought before the Business Pack, on the same email, does not link itself later. Use the same call.
-- A lost owner link, or an account email that failed to send, needs a new token. Generate one on your own machine, store its sha256 hash in `owner_token_hash`, and send `https://unite-group.in/cards/manage#k=<token>`.
+- If an account email fails to send, the webhook answers 500 and each Stripe retry replaces the token and tries again, so nothing is needed unless Stripe runs out of retries. A lost owner link, or retries that ran out, needs a new token. Generate one on your own machine, store its sha256 hash in `owner_token_hash`, set `owner_link_sent_at` to now, and send `https://unite-group.in/cards/manage#k=<token>`.
+- Test and live payments never share an account. A staff card paid in one mode is not added to an account from the other; the founder is told instead.
 - Logos and photos are https links. There is no file upload.
 - Nothing in code stops a staff member typing a different person's name, or an owner handing a seat's new link to someone else. "Not transferable" is a term of sale backed by deactivation and the one-way status, not a technical lock.
 

@@ -27,6 +27,10 @@ create table if not exists public.card_business_accounts (
   updated_at timestamptz not null default now(),
   founder_id uuid not null references auth.users(id) on delete cascade,
   order_id uuid not null unique references public.card_orders(id) on delete cascade,
+  -- a test payment and a live payment never share an account
+  livemode boolean not null,
+  -- null until the owner's link email is confirmed sent; while null a webhook retry replaces the token and sends again
+  owner_link_sent_at timestamptz,
   owner_email text not null check (char_length(owner_email) <= 254 and owner_email = lower(owner_email) and owner_email ~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$'),
   owner_token_hash text not null unique check (owner_token_hash ~ '^[0-9a-f]{64}$'),
   rounds_included integer not null default 10 check (rounds_included >= 0),
@@ -68,6 +72,7 @@ create or replace function public.card_business_accounts_guard() returns trigger
 language plpgsql as $$
 begin
   if new.founder_id is distinct from old.founder_id or new.order_id is distinct from old.order_id
+     or new.livemode is distinct from old.livemode
      or new.created_at is distinct from old.created_at then
     raise exception 'card_business_account_identity_is_fixed';
   end if;
@@ -112,7 +117,7 @@ alter table public.card_staff_cards force row level security;
 revoke all on table public.card_business_accounts from public, anon, authenticated;
 revoke all on table public.card_staff_cards from public, anon, authenticated;
 -- The founder reads their own rows, token hashes excluded. Nobody but service_role writes, and nobody deletes.
-grant select (id, created_at, updated_at, founder_id, order_id, owner_email, rounds_included, business_name, logo_url, phone, email, website, address, offer)
+grant select (id, created_at, updated_at, founder_id, order_id, livemode, owner_link_sent_at, owner_email, rounds_included, business_name, logo_url, phone, email, website, address, offer)
   on table public.card_business_accounts to authenticated;
 grant select (id, created_at, updated_at, founder_id, account_id, order_id, seat_no, card_slug, rounds_included, staff_name, photo_url, mobile, status, deactivated_at)
   on table public.card_staff_cards to authenticated;
@@ -134,15 +139,19 @@ language plpgsql as $$
 declare
   v_order public.card_orders%rowtype;
   v_account_founder uuid;
+  v_account_livemode boolean;
   v_added integer;
 begin
   select * into v_order from public.card_orders where id = p_order_id;
   if not found or v_order.tier <> 'extra_business' then
     raise exception 'card_provision_not_a_staff_card_order';
   end if;
-  select founder_id into v_account_founder from public.card_business_accounts where id = p_account_id;
+  select founder_id, livemode into v_account_founder, v_account_livemode from public.card_business_accounts where id = p_account_id;
   if not found or v_account_founder <> v_order.founder_id then
     raise exception 'card_provision_account_mismatch';
+  end if;
+  if v_account_livemode <> v_order.livemode then
+    raise exception 'card_provision_mode_mismatch';
   end if;
   if exists (select 1 from public.card_staff_cards where order_id = p_order_id and account_id <> p_account_id) then
     raise exception 'card_provision_order_already_linked';

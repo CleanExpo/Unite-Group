@@ -13,11 +13,12 @@ insert into auth.users (id) values ('00000000-0000-0000-0000-00000000000f'), ('0
 insert into public.card_orders (id, founder_id, reference, stripe_session_id, stripe_event_id, tier, amount_total, currency, livemode, quantity) values
   ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000f', 'a', 'cs_a', 'ev_a', 'custom', 44900, 'aud', false, 1),
   ('10000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-00000000000f', 'b', 'cs_b', 'ev_b', 'extra_business', 139300, 'aud', false, 7),
-  ('10000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-00000000000f', 'c', 'cs_c', 'ev_c', 'ready', 24900, 'aud', false, 1);
+  ('10000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-00000000000f', 'c', 'cs_c', 'ev_c', 'ready', 24900, 'aud', false, 1),
+  ('10000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-00000000000f', 'd', 'cs_d', 'ev_d', 'extra_business', 19900, 'aud', true, 1);
 -- Everything the app does below runs as service_role, the role it really has: a grant it lacks fails here, not in production.
 set role service_role;
-insert into public.card_business_accounts (id, founder_id, order_id, owner_email, owner_token_hash, business_name, phone) values
-  ('20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000f', '10000000-0000-0000-0000-000000000001', 'owner@example.invalid', repeat('a', 64), 'First Name Pty', '0400 000 000');
+insert into public.card_business_accounts (id, founder_id, order_id, livemode, owner_email, owner_token_hash, business_name, phone) values
+  ('20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000f', '10000000-0000-0000-0000-000000000001', false, 'owner@example.invalid', repeat('a', 64), 'First Name Pty', '0400 000 000');
 
 -- Seats: one per card bought, seven proves the old cap of five is gone, safe to re-run, only from a staff-card order.
 do $$ declare n int; begin
@@ -30,6 +31,8 @@ do $$ declare n int; begin
 end $$;
 reset role;
 select pg_temp.expect_error($$select public.card_provision_staff_cards('10000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000001')$$, 'card_provision_not_a_staff_card_order', 'seats from a non staff-card order');
+select pg_temp.expect_error($$select public.card_provision_staff_cards('10000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000001')$$, 'card_provision_mode_mismatch', 'live seats on a test account');
+select pg_temp.expect_error($$update public.card_business_accounts set livemode = true$$, 'card_business_account_identity_is_fixed', 'changing an account payment mode');
 
 set role service_role;
 update public.card_staff_cards set staff_name = 'Alex', mobile = '0411 111 111', token_hash = repeat('b', 64) where seat_no = 1;

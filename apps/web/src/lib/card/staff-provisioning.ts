@@ -7,7 +7,7 @@ import { leadAlertEmailTo, mailtrapFromEmail, sendEmail } from '@/lib/integratio
 
 import { manageLink, newCardToken, type Admin } from './staff-actions'
 
-export type ProvisionOutcome = 'account_created' | 'account_exists' | 'seats_added' | 'seats_exist' | 'unlinked' | 'skipped_no_email' | 'not_applied'
+export type ProvisionOutcome = 'account_created' | 'account_link_replaced' | 'account_exists' | 'seats_added' | 'seats_exist' | 'unlinked' | 'skipped_no_email' | 'not_applied'
 
 /** PostgREST and Postgres codes for a table or function that does not exist yet, meaning the founder-gated migration is not applied. */
 const NOT_APPLIED = new Set(['42P01', '42883', 'PGRST202', 'PGRST205'])
@@ -35,16 +35,46 @@ async function mail(to: string, fromName: string, subject: string, lines: string
 const tellFounder = (order: OrderRow, line: string) =>
   mail(leadAlertEmailTo(), 'Unite-Group orders', `${order.livemode ? '' : '[TEST] '}Card order needs you`, [`Order ${order.id}: ${line}`], 'card-order-link-alert')
 
+/** The founder must hear about a paid order nothing was set up for. If this alert fails too, throw so Stripe retries. */
+async function alertOrThrow(order: OrderRow, line: string): Promise<void> {
+  if (!(await tellFounder(order, line))) throw new Error(`card order alert failed for order ${order.id}`)
+}
+
+/**
+ * Only the hash is stored, so a link that was never delivered cannot be sent again. While owner_link_sent_at is null nobody
+ * holds a working link, so a retry can safely replace the token and try again. The filter means a link already delivered
+ * is never replaced by a late retry.
+ */
+async function replaceUndeliveredLink(admin: Admin, order: OrderRow, email: string): Promise<ProvisionOutcome> {
+  const { token, hash } = newCardToken()
+  const replaced = await admin
+    .from('card_business_accounts')
+    .update({ owner_token_hash: hash })
+    .eq('order_id', order.id)
+    .eq('founder_id', order.founder_id)
+    .is('owner_link_sent_at', null)
+    .select('id')
+  if (replaced.error) throw new Error(`card account link replace failed: ${replaced.error.message}`)
+  if (!replaced.data?.length) return 'account_exists'
+  await deliverOwnerLink(admin, order, email, token)
+  return 'account_link_replaced'
+}
+
 async function openAccount(admin: Admin, order: OrderRow, email: string): Promise<ProvisionOutcome> {
   const { token, hash } = newCardToken()
   const { error } = await admin
     .from('card_business_accounts')
-    .insert({ founder_id: order.founder_id, order_id: order.id, owner_email: email, owner_token_hash: hash })
+    .insert({ founder_id: order.founder_id, order_id: order.id, livemode: order.livemode, owner_email: email, owner_token_hash: hash })
   if (error) {
     if (isNotApplied(error)) return 'not_applied'
-    if ((error as { code?: string }).code === '23505') return 'account_exists'
+    if ((error as { code?: string }).code === '23505') return replaceUndeliveredLink(admin, order, email)
     throw new Error(`card account insert failed: ${error.message}`)
   }
+  await deliverOwnerLink(admin, order, email, token)
+  return 'account_created'
+}
+
+async function deliverOwnerLink(admin: Admin, order: OrderRow, email: string, token: string): Promise<void> {
   const sent = await mail(
     email,
     'Margot at Unite-Group',
@@ -58,9 +88,13 @@ async function openAccount(admin: Admin, order: OrderRow, email: string): Promis
     ],
     'card-account-link',
   )
-  // The token is not stored, so a failed send needs a new one. The alert carries the order id, never the link.
-  if (!sent) await tellFounder(order, 'the Business Pack account link email did not send. Set a new owner link (docs/guides/card-payment-links.md).')
-  return 'account_created'
+  if (!sent) {
+    // The alert carries the order id, never the link. Throwing makes the webhook answer 500, so Stripe retries with a new token.
+    await tellFounder(order, 'the Business Pack account link email did not send. Stripe will retry; if it runs out of retries, set a new owner link (docs/guides/card-payment-links.md).')
+    throw new Error(`card account link email failed for order ${order.id}`)
+  }
+  const marked = await admin.from('card_business_accounts').update({ owner_link_sent_at: new Date().toISOString() }).eq('order_id', order.id)
+  if (marked.error) throw new Error(`card account link mark failed: ${marked.error.message}`)
 }
 
 async function addSeats(admin: Admin, order: OrderRow, email: string): Promise<ProvisionOutcome> {
@@ -69,12 +103,13 @@ async function addSeats(admin: Admin, order: OrderRow, email: string): Promise<P
     .select('id')
     .eq('founder_id', order.founder_id)
     .eq('owner_email', email)
+    .eq('livemode', order.livemode)
   if (error) {
     if (isNotApplied(error)) return 'not_applied'
     throw new Error(`card account lookup failed: ${error.message}`)
   }
   if (!matches || matches.length !== 1) {
-    await tellFounder(order, `${order.quantity ?? 1} staff card(s) paid, but ${matches?.length ?? 0} Business Pack accounts match the buyer's email. Link it by hand (docs/guides/card-payment-links.md).`)
+    await alertOrThrow(order, `${order.quantity ?? 1} staff card(s) paid, but ${matches?.length ?? 0} Business Pack accounts match the buyer's email. Link it by hand (docs/guides/card-payment-links.md).`)
     return 'unlinked'
   }
   const added = await admin.rpc('card_provision_staff_cards', { p_order_id: order.id, p_account_id: matches[0].id })
@@ -83,7 +118,7 @@ async function addSeats(admin: Admin, order: OrderRow, email: string): Promise<P
     throw new Error(`staff card provision failed: ${added.error.message}`)
   }
   if (!added.data) return 'seats_exist'
-  await mail(
+  const told = await mail(
     email,
     'Margot at Unite-Group',
     `${order.livemode ? '' : '[TEST] '}Your staff cards are ready to set up`,
@@ -94,6 +129,8 @@ async function addSeats(admin: Admin, order: OrderRow, email: string): Promise<P
     ],
     'card-staff-seats',
   )
+  // The seats are saved and show on the owner's account, and a retry would find nothing new to announce, so tell the founder.
+  if (!told) await tellFounder(order, `${added.data} staff card(s) were added, but the email telling the owner did not send.`)
   return 'seats_added'
 }
 
@@ -113,7 +150,7 @@ export async function provisionCardOrder(admin: Admin, stripeSessionId: string):
   if (order.tier !== 'custom' && order.tier !== 'extra_business') return 'none'
   const email = order.customer_email?.trim().toLowerCase()
   if (!email) {
-    await tellFounder(order, 'Stripe recorded no buyer email, so no account or staff card was set up.')
+    await alertOrThrow(order, 'Stripe recorded no buyer email, so no account or staff card was set up.')
     return 'skipped_no_email'
   }
   const outcome = order.tier === 'custom' ? await openAccount(admin, order, email) : await addSeats(admin, order, email)
