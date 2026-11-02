@@ -12,7 +12,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { sendEmail } from '@/lib/integrations/mailtrap'
 import { POST } from '../route'
 
-const ORDER = { id: 'order-1', founder_id: 'founder-1', customer_email: 'sample@example.invalid', tier: 'ready' }
+const ORDER = { id: 'order-1', founder_id: 'founder-1', customer_email: 'sample@example.invalid', tier: 'ready', livemode: false }
 const BODY = {
   session_id: 'cs_test_a1',
   film: 'forge',
@@ -33,7 +33,16 @@ const req = (body: unknown, raw = false) =>
   })
 
 /** card_orders: select().eq().limit() resolves to `orders`; card_order_intakes: insert() resolves to `insert`. */
-function mockDb(orders: { data: unknown[] | null; error?: unknown }, insertResult: { error?: unknown } = { error: null }, existing: unknown[] = []) {
+function mockDb(
+  orders: { data: unknown[] | null; error?: unknown },
+  insertResult: { error?: unknown } = { error: null },
+  existing: unknown[] = [],
+  extras: { data: unknown[] | null; error?: unknown; hang?: boolean } = { data: [] },
+) {
+  // The extra-business read: select('customer_email, quantity').eq()....ilike() resolves to `extras`.
+  const extrasEq = vi.fn(() => extrasChain)
+  const extrasIlike = vi.fn(() => (extras.hang ? new Promise(() => {}) : Promise.resolve({ error: null, ...extras })))
+  const extrasChain = { eq: extrasEq, ilike: extrasIlike }
   const eq = vi.fn(() => ({ limit: vi.fn(async () => ({ error: null, ...orders })) }))
   // insert(row).select('id').single(): the claim insert returns the new row id (or the error).
   const insert = vi.fn(() => ({
@@ -42,9 +51,13 @@ function mockDb(orders: { data: unknown[] | null; error?: unknown }, insertResul
   const existingEq = vi.fn(() => ({ limit: vi.fn(async () => ({ error: null, data: existing })) }))
   const update = vi.fn(() => ({ eq: vi.fn(async () => ({ error: null })) }))
   ;(createServiceClient as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
-    from: vi.fn((t: string) => (t === 'card_orders' ? { select: vi.fn(() => ({ eq })) } : { insert, update, select: vi.fn(() => ({ eq: existingEq })) })),
+    from: vi.fn((t: string) =>
+      t === 'card_orders'
+        ? { select: vi.fn((cols: string) => (cols.includes('quantity') ? extrasChain : { eq })) }
+        : { insert, update, select: vi.fn(() => ({ eq: existingEq })) },
+    ),
   })
-  return { eq, insert, update }
+  return { eq, insert, update, extrasEq, extrasIlike }
 }
 
 /**
@@ -306,5 +319,97 @@ describe('POST /api/cards/intake', () => {
     expect((await POST(req(BODY))).status).toBe(500)
     mockDb({ data: [ORDER] }, { error: { code: '57P01', message: 'down' } })
     expect((await POST(req(BODY))).status).toBe(500)
+  })
+})
+
+describe('POST /api/cards/intake: extra businesses in the alert email', () => {
+  beforeEach(() => vi.clearAllMocks())
+  afterEach(() => vi.restoreAllMocks())
+
+  const EMAIL = 'sample@example.invalid'
+  const alert = () => (sendEmail as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0] as { text: string; html: string }
+
+  it('shows the businesses and payments for this buyer, adding up quantity', async () => {
+    const db = mockDb({ data: [ORDER] }, undefined, [], {
+      data: [
+        { customer_email: EMAIL, quantity: 2 },
+        { customer_email: 'Sample@Example.Invalid', quantity: 1 },
+      ],
+    })
+    expect((await POST(req(BODY))).status).toBe(201)
+    expect(alert().text).toContain('Extra businesses paid with this email: 3 (2 payments)')
+    expect(alert().html).toContain('Extra businesses paid with this email: 3 (2 payments)')
+    expect(db.extrasEq).toHaveBeenCalledWith('founder_id', 'founder-1')
+    expect(db.extrasEq).toHaveBeenCalledWith('tier', 'extra_business')
+    expect(db.extrasEq).toHaveBeenCalledWith('livemode', false)
+    expect(db.extrasIlike).toHaveBeenCalledWith('customer_email', EMAIL)
+  })
+
+  it('says one payment in the singular, and a plain 0 when there are none', async () => {
+    mockDb({ data: [ORDER] }, undefined, [], { data: [{ customer_email: EMAIL, quantity: 4 }] })
+    await POST(req(BODY))
+    expect(alert().text).toContain('Extra businesses paid with this email: 4 (1 payment)')
+    vi.clearAllMocks()
+    mockDb({ data: [ORDER] })
+    await POST(req(BODY))
+    expect(alert().text).toContain('Extra businesses paid with this email: 0')
+  })
+
+  it('counts live payments only for a live order', async () => {
+    const db = mockDb({ data: [{ ...ORDER, livemode: true }] })
+    await POST(req(BODY))
+    expect(db.extrasEq).toHaveBeenCalledWith('livemode', true)
+  })
+
+  it('treats _ and % in an email as plain characters, not wildcards', async () => {
+    const paid = 'a_b%c@example.invalid'
+    const db = mockDb({ data: [{ ...ORDER, customer_email: paid }] }, undefined, [], {
+      // What an unescaped pattern would also have matched: another buyer. Must not be counted.
+      data: [
+        { customer_email: paid, quantity: 1 },
+        { customer_email: 'axbyc@example.invalid', quantity: 5 },
+      ],
+    })
+    await POST(req({ ...BODY, email: paid }))
+    expect(db.extrasIlike).toHaveBeenCalledWith('customer_email', 'a\\_b\\%c@example.invalid')
+    expect(alert().text).toContain('Extra businesses paid with this email: 1 (1 payment)')
+  })
+
+  it('uses the submitted email when Stripe recorded none', async () => {
+    const db = mockDb({ data: [{ ...ORDER, customer_email: null }] })
+    await POST(req({ ...BODY, email: ' Other@Example.Invalid ' }))
+    expect(db.extrasIlike).toHaveBeenCalledWith('customer_email', 'other@example.invalid')
+  })
+
+  it('a failed lookup says so, not 0, and the alert still goes', async () => {
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mockDb({ data: [ORDER] }, undefined, [], { data: null, error: { message: 'boom' } })
+    expect((await POST(req(BODY))).status).toBe(201)
+    expect(alert().text).toContain('Extra businesses paid with this email: could not be checked')
+    expect(alert().text).not.toContain('with this email: 0')
+    quiet.mockRestore()
+  })
+
+  it('a lookup that never answers still lets the alert go, and records it sent', async () => {
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    try {
+      const db = mockDb({ data: [ORDER] }, undefined, [], { data: null, hang: true })
+      const pending = POST(req(BODY))
+      await vi.advanceTimersByTimeAsync(3_000)
+      expect((await pending).status).toBe(201)
+      expect(alert().text).toContain('Extra businesses paid with this email: could not be checked')
+      expect(db.update).toHaveBeenCalledWith(expect.objectContaining({ delivery_state: 'sent' }))
+    } finally {
+      vi.useRealTimers()
+      quiet.mockRestore()
+    }
+  })
+
+  it('does not read extras at all when the claim is lost', async () => {
+    const db = mockDb({ data: [ORDER] }, { error: { code: '23505' } })
+    expect((await POST(req(BODY))).status).toBe(409)
+    expect(db.extrasIlike).not.toHaveBeenCalled()
+    expect(sendEmail).not.toHaveBeenCalled()
   })
 })

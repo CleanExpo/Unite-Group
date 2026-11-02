@@ -44,7 +44,7 @@ export const GROW_CARD_OFFERS: readonly GrowCardOffer[] = [
     paymentLinkEnv: custom.paymentLinkEnv,
     poster: media('unite-nexus-u-reveal-poster-9x16.jpg'),
     posterAlt: 'Still from the Signature card film',
-    benefits: ['Made only for your business', 'A private proof to approve first', 'Can include extra businesses'],
+    benefits: ['Made only for your business', 'A private proof to approve first', 'One business per card; extras are priced separately'],
     recommended: true,
   },
   {
@@ -55,7 +55,7 @@ export const GROW_CARD_OFFERS: readonly GrowCardOffer[] = [
     paymentLinkEnv: CARD_EXTRA_BUSINESS.paymentLinkEnv,
     poster: media('edition-constellation-poster.jpg'),
     posterAlt: 'Still from the Constellation card film',
-    benefits: ['One card for several businesses', 'Each business gets its own details', 'Priced per business'],
+    benefits: ['Paid separately from your card', 'Each business gets its own details', 'Priced per business'],
   },
   {
     id: 'nfc_tap',
