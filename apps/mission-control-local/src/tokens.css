@@ -1,0 +1,40 @@
+/* Palette values copied from the Command Deck
+   (apps/web/src/app/(founder)/founder/command-centre/command-deck.module.css).
+   Copied, not imported: this app shares no build with apps/web. */
+:root {
+  --deck-action: #ff3b5c;
+  --deck-action-text: #ff5c77;
+  --deck-go: #00d97e;
+  --deck-amber: #ff8a1f;
+  --deck-abort: #e5484d;
+  --deck-abort-text: #f87171;
+  --deck-line: #2e3542;
+  --deck-ground: #0e1014;
+  --deck-panel: #191e26;
+  --deck-panel-hi: #232934;
+  --deck-text: #f4f5f7;
+  --deck-muted: #a7adba;
+  --deck-dim: #9aa3b1;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--deck-ground);
+  color: var(--deck-text);
+  font: 14px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* The grid library's resize handle and drop shadow, in deck colours. */
+.react-grid-item.react-grid-placeholder {
+  background: var(--deck-action);
+  opacity: 0.18;
+  border-radius: 6px;
+}
+
+.react-grid-item > .react-resizable-handle::after {
+  border-color: var(--deck-muted);
+}

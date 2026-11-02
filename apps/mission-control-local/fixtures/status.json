@@ -1,0 +1,115 @@
+{
+  "capturedAt": 1800000000000,
+  "controller": { "id": "mac-mini", "tailscaleIp": "100.64.0.1" },
+  "machines": [
+    {
+      "machineId": "mac-mini",
+      "label": "Mac Mini (fixture)",
+      "tailscaleIp": "100.64.0.1",
+      "lastSeen": 1799999995000,
+      "hostname": "fixture-mini.local",
+      "platform": "darwin",
+      "node": "v24.0.0",
+      "state": "idle",
+      "capabilities": { "claude": true, "codex": true, "verify": true, "jev": false },
+      "repos": {
+        "unite-group": {
+          "available": true,
+          "headSha": "1111111122222222333333334444444455555555",
+          "refs": ["1111111122222222333333334444444455555555", "aaaaaaaabbbbbbbbccccccccddddddddeeeeeeee"],
+          "root": "/opt/fixture/Unite-Group"
+        },
+        "pi-dev-ops": {
+          "available": true,
+          "headSha": "2222222233333333444444445555555566666666",
+          "refs": [],
+          "root": "/opt/fixture/Pi-Dev-Ops"
+        }
+      },
+      "freeCpu": 4,
+      "freeMemoryMb": 719,
+      "fresh": true
+    },
+    {
+      "machineId": "macbook-pro",
+      "label": "MacBook Pro (fixture)",
+      "tailscaleIp": "100.64.0.2",
+      "lastSeen": 1799999880000,
+      "hostname": "fixture-mbp.local",
+      "platform": "darwin",
+      "node": "v24.0.0",
+      "state": "working",
+      "capabilities": { "claude": true, "codex": true, "verify": true, "jev": false },
+      "repos": {
+        "unite-group": {
+          "available": true,
+          "headSha": "3333333344444444555555556666666677777777",
+          "refs": [],
+          "root": "/opt/fixture/Unite-Group"
+        },
+        "pi-dev-ops": { "available": false, "refs": [] }
+      },
+      "freeCpu": 6,
+      "freeMemoryMb": 135,
+      "fresh": false
+    },
+    {
+      "machineId": "windows-pc",
+      "label": "Windows PC (fixture)",
+      "tailscaleIp": "100.64.0.3",
+      "lastSeen": 1799998800000,
+      "hostname": "fixture-pc",
+      "platform": "win32",
+      "node": "v24.0.0",
+      "state": "idle",
+      "capabilities": { "claude": true, "codex": false, "verify": true, "jev": false },
+      "repos": {
+        "unite-group": {
+          "available": true,
+          "headSha": "4444444455555555666666667777777788888888",
+          "refs": [],
+          "root": "D:\\fixture\\Unite-Group"
+        }
+      },
+      "freeCpu": 20,
+      "freeMemoryMb": 24453,
+      "fresh": false
+    }
+  ],
+  "jobs": [
+    {
+      "id": "aaaa1111-0000-4000-8000-000000000001",
+      "machineId": "mac-mini",
+      "type": "spm-harness",
+      "status": "running",
+      "attempt": 1,
+      "createdAt": 1799999940000,
+      "result": { "proof": "not for the browser" }
+    },
+    {
+      "id": "aaaa2222-0000-4000-8000-000000000002",
+      "machineId": "macbook-pro",
+      "type": "spm-harness",
+      "status": "pending",
+      "attempt": 1,
+      "createdAt": 1799999700000
+    },
+    {
+      "id": "aaaa3333-0000-4000-8000-000000000003",
+      "machineId": "windows-pc",
+      "type": "probe",
+      "status": "completed",
+      "attempt": 1,
+      "createdAt": 1799996400000,
+      "completedAt": 1799996410000,
+      "result": { "proof": "not for the browser" }
+    },
+    {
+      "id": "aaaa4444-0000-4000-8000-000000000004",
+      "type": "spm-harness",
+      "status": "failed",
+      "attempt": 2,
+      "createdAt": 1799913600000
+    }
+  ]
+}

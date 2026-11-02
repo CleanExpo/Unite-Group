@@ -1,0 +1,135 @@
+.screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--deck-panel);
+  border-bottom: 1px solid var(--deck-line);
+}
+
+.title {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.screenId {
+  color: var(--deck-muted);
+}
+
+.brokerOk,
+.brokerBad {
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+  border: 1px solid var(--deck-line);
+}
+
+.brokerOk {
+  color: var(--deck-go);
+}
+
+.brokerBad {
+  color: var(--deck-abort-text);
+  border-color: var(--deck-abort);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.addLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--deck-muted);
+}
+
+.addLabel select,
+.button {
+  padding: 5px 10px;
+  background: var(--deck-panel-hi);
+  color: var(--deck-text);
+  border: 1px solid var(--deck-line);
+  border-radius: 4px;
+  font: inherit;
+  font-size: 12px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.notice {
+  margin: 10px 14px 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--deck-amber);
+  background: var(--deck-panel-hi);
+}
+
+.empty {
+  margin: 24px 14px 0;
+  color: var(--deck-muted);
+}
+
+.grid {
+  flex: 1;
+  padding: 0 4px;
+}
+
+.widget {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--deck-panel);
+  border: 1px solid var(--deck-line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.widgetHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--deck-panel-hi);
+  cursor: grab;
+}
+
+.widgetHead h2 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.remove {
+  padding: 1px 6px;
+  background: transparent;
+  color: var(--deck-muted);
+  border: 1px solid transparent;
+  border-radius: 3px;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.remove:hover,
+.remove:focus-visible {
+  color: var(--deck-action-text);
+  border-color: var(--deck-line);
+}
+
+.widgetBody {
+  flex: 1;
+  min-height: 0;
+  padding: 10px 12px;
+  overflow: auto;
+}
