@@ -13,12 +13,12 @@ export function BookCall({ bookingUrl }: { bookingUrl: string | null }) {
       </>
     )
   }
-  const mailto = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent('Book a call about my new website')}`
+  const mailto = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent('A call about my new website')}`
   return (
     <>
-      <p>If you asked for a call on the form, we will contact you to confirm a time. To ask for one now or change the time, email us two times that suit you.</p>
+      <p>Your call has not been booked yet. If you asked for a call on the form, we will contact you to confirm a time. To ask for one now or change the time, email us two times that suit you.</p>
       <div className={m.actions}>
-        <a href={mailto} className={m.btnPrimary}>Book a call by email</a>
+        <a href={mailto} className={m.btnPrimary}>Email us about a call</a>
       </div>
     </>
   )

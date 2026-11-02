@@ -140,7 +140,7 @@ export function IntakeForm() {
       <Choice name="budget_band" label="Your budget" options={BUDGET_BANDS} />
       <Choice name="timeline" label="When do you want it live?" options={TIMELINES} />
       <div className={f.wide}>
-        <Choice name="call_time" label="Would you like to book a call with us?" options={CALL_TIMES} />
+        <Choice name="call_time" label="Would you like a call with us?" options={CALL_TIMES} />
       </div>
 
       <label className={`${f.wide} ${f.consent}`}>

@@ -5,7 +5,7 @@ export const INTAKE_SOURCE = 'website_intake'
 export const PAGE_PATH = '/get-a-website'
 export const THANKS_PATH = '/get-a-website/thanks'
 
-/** The live booking page. While this is null, the thank-you page offers the call by email instead. */
+/** Stage 1 has no booking page: the visitor picks a preferred time and we contact them to confirm it. Adding a booking link later is a one-line change here. */
 export const BOOKING_URL: string | null = null
 
 /**
@@ -33,7 +33,7 @@ export const THANKS_IMAGE: ImageSlot = {
 export const STEPS = [
   { title: 'Tell us about your business', body: 'Answer the questions below. Most of them take a line or two.' },
   { title: 'We read your answers', body: 'We look at your business and your current website, if you have one.' },
-  { title: 'We talk it through', body: 'Book a call or reply to our email. You get a clear plan and a quote before anything starts.' },
+  { title: 'We talk it through', body: 'Ask for a call or reply to our email. You get a clear plan and a quote before anything starts.' },
 ] as const
 
 export const PHOTO_OPTIONS = [

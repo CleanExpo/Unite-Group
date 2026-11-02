@@ -10,7 +10,7 @@ import GetAWebsitePage, { metadata } from '../page'
 import GetAWebsiteThanksPage, { metadata as thanksMetadata } from '../thanks/page'
 import { BookCall } from '../book-call'
 import { buildIntakeBody } from '../intake-form'
-import { BUDGET_BANDS, CALL_TIMES, HERO_IMAGE, PHOTO_OPTIONS, STEPS, TIMELINES, type ImageSlot } from '../offer'
+import { BOOKING_URL, BUDGET_BANDS, CALL_TIMES, HERO_IMAGE, PHOTO_OPTIONS, STEPS, TIMELINES, type ImageSlot } from '../offer'
 import { SlotImage } from '../slot-image'
 
 const html = renderToStaticMarkup(createElement(GetAWebsitePage))
@@ -149,9 +149,19 @@ describe('/get-a-website/thanks', () => {
   it('confirms the answers arrived and offers a call', () => {
     expect(words(thanksHtml)).toContain('We have your answers.')
     expect(words(thanksHtml)).toContain('Nothing has been charged.')
-    expect(words(thanksHtml)).toContain('Book a call')
     expect(words(thanksHtml)).toContain('we will contact you to confirm a time')
     expect(thanksHtml).toContain('mailto:contact@unite-group.in')
+  })
+
+  it('never implies a call is already booked while there is no booking link', () => {
+    expect(BOOKING_URL).toBeNull()
+    expect(words(thanksHtml)).toContain('Your call has not been booked yet.')
+    const claims = /\bbook(ed|ing)?\b/gi
+    const stripped = words(thanksHtml.slice(thanksHtml.indexOf('<main'), thanksHtml.indexOf('</main>'))).replace('Your call has not been booked yet.', '')
+    expect(stripped).not.toMatch(claims)
+    expect(String(thanksMetadata.description)).not.toMatch(claims)
+    expect(STEPS.map((step) => step.body).join(' ')).not.toMatch(claims)
+    expect(words(html)).not.toContain('book a call')
   })
 
   it('offers the booking page instead of email once a link is set', () => {

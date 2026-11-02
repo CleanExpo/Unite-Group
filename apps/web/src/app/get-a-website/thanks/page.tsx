@@ -13,7 +13,7 @@ import s from '../get-a-website.module.css'
 
 export const metadata: Metadata = {
   title: 'Thank you | Unite Group',
-  description: 'We have your answers. Book a call to talk through your new website.',
+  description: 'We have your answers and will contact you about your new website.',
   robots: { index: false, follow: false },
 }
 
@@ -34,7 +34,7 @@ export default function GetAWebsiteThanksPage() {
                   lead="We will read them and contact you about your new website. Nothing has been charged."
                 />
                 <div className={s.bookCall}>
-                  <h2 className={s.bookTitle}>Book a call</h2>
+                  <h2 className={s.bookTitle}>A call with us</h2>
                   <BookCall bookingUrl={BOOKING_URL} />
                 </div>
               </div>
