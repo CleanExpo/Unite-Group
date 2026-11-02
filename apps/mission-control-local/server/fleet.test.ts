@@ -49,7 +49,7 @@ test('head SHA is cut to 8 characters and a non-SHA is dropped', () => {
   const view = toFleetView(fixture, NOW);
   assert.equal(view?.machines[0]?.repos[0]?.headSha, '11111111');
   const odd = toFleetView(
-    { machines: [{ machineId: 'mac-mini', repos: { r: { available: true, headSha: 'not a sha' } } }], jobs: [] },
+    { machines: [{ machineId: 'mac-mini', repos: { 'unite-group': { available: true, headSha: 'not a sha' } } }], jobs: [] },
     NOW,
   );
   assert.equal(odd?.machines[0]?.repos[0]?.headSha, null);
@@ -102,12 +102,16 @@ test('real broker names pass the name rule unchanged', () => {
   assert.deepEqual(view?.jobs[0], { id: 'cbeaca5e', machineId: 'macbook-pro', type: 'probe', status: 'completed', createdAt: null, ageMs: null });
 });
 
-test('a secret-shaped short name is still scrubbed by the second layer', () => {
-  const planted = 's' + 'k-' + 'x'.repeat(16);
-  const view = toFleetView({ machines: [], jobs: [{ id: 'abc', type: planted, status: 'queued' }] }, NOW);
-  const out = JSON.stringify(view);
-  assert.ok(!out.includes(planted));
-  assert.ok(out.includes('[secret]'));
+test('a short unprefixed token in a named field does not reach the browser', () => {
+  const planted = 'Qwerty1234567890AbCd';
+  const view = toFleetView(
+    {
+      machines: [{ machineId: 'mac-mini', state: planted, capabilities: { [planted]: true }, repos: { [planted]: {} } }],
+      jobs: [{ id: planted, machineId: planted, type: planted, status: planted }],
+    },
+    NOW,
+  );
+  assert.ok(!JSON.stringify(view).includes(planted));
 });
 
 test('redaction covers each rule and leaves plain words alone', () => {
@@ -166,6 +170,10 @@ test('a payload of the wrong shape is a failure, not an empty fleet', () => {
     { machines: [null], jobs: [] },
     { machines: [{ label: 'no id' }], jobs: [] },
     { machines: [machine, 'x'], jobs: [] },
+    { machines: [{ ...machine, capabilities: 'invalid' }], jobs: [] },
+    { machines: [{ ...machine, capabilities: { claude: 'yes' } }], jobs: [] },
+    { machines: [{ ...machine, repos: 'invalid' }], jobs: [] },
+    { machines: [{ ...machine, repos: { 'unite-group': 'invalid' } }], jobs: [] },
     { machines: [], jobs: [null] },
     { machines: [], jobs: [{ status: 'no id' }] },
     { machines: [], jobs: [job, 5] },

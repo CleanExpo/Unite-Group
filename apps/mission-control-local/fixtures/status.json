@@ -38,7 +38,7 @@
       "hostname": "fixture-mbp.local",
       "platform": "darwin",
       "node": "v24.0.0",
-      "state": "busy",
+      "state": "working",
       "capabilities": { "claude": true, "codex": true, "verify": true, "jev": false },
       "repos": {
         "unite-group": {
@@ -80,7 +80,7 @@
     {
       "id": "aaaa1111-0000-4000-8000-000000000001",
       "machineId": "mac-mini",
-      "type": "verify",
+      "type": "spm-harness",
       "status": "running",
       "attempt": 1,
       "createdAt": 1799999940000,
@@ -89,8 +89,8 @@
     {
       "id": "aaaa2222-0000-4000-8000-000000000002",
       "machineId": "macbook-pro",
-      "type": "build",
-      "status": "queued",
+      "type": "spm-harness",
+      "status": "pending",
       "attempt": 1,
       "createdAt": 1799999700000
     },
@@ -106,7 +106,7 @@
     },
     {
       "id": "aaaa4444-0000-4000-8000-000000000004",
-      "type": "build",
+      "type": "spm-harness",
       "status": "failed",
       "attempt": 2,
       "createdAt": 1799913600000
