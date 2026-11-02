@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
-import { openCheckoutUrl, testModeStripe } from '@/lib/proposals/checkout'
+import { CheckoutPendingError, openCheckoutUrl, testModeStripe } from '@/lib/proposals/checkout'
 import { lookupProposal } from '@/lib/proposals/store'
 import { createServiceClient } from '@/lib/supabase/service'
 
@@ -52,11 +52,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: 'unavailable' }, { status: 503 })
   }
 
-  const page = `${request.nextUrl.origin}/proposal/${token}`
+  // The return page carries no proposal token: the link is a bearer credential and must never be handed to Stripe.
+  const returnPage = `${request.nextUrl.origin}/proposal/return`
   let checkout: { url: string; sessionId: string }
   try {
-    checkout = await openCheckoutUrl(stripe, proposal, { success: `${page}?from=stripe`, cancel: page })
+    checkout = await openCheckoutUrl(stripe, proposal, {
+      success: `${returnPage}?session_id={CHECKOUT_SESSION_ID}`,
+      cancel: returnPage,
+    })
   } catch (err) {
+    if (err instanceof CheckoutPendingError) return NextResponse.json({ error: 'payment_pending' }, { status: 409 })
     console.error('[proposals] checkout failed:', err instanceof Error ? err.message : err)
     return NextResponse.json({ error: 'checkout_failed' }, { status: 502 })
   }

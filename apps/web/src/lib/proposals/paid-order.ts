@@ -2,9 +2,9 @@
 // proposal becomes paid: the browser's return from Stripe proves nothing. UNIQUE(proposal_id) and
 // UNIQUE(stripe_session_id) make a redelivered event a no-op. Sends no messages.
 //
-// A paid session that cannot become an order (wrong amount, live mode, unknown proposal, or a proposal that already
-// has a different order) is not retried, because a retry cannot fix it. It is written to stripe_events.processing_error
-// and logged as an error for the founder to resolve, since money may need refunding.
+// A paid session that cannot become an order (wrong amount, live mode, unknown or withdrawn proposal, or a proposal that
+// already has a different order) is not retried once recorded, because a retry cannot fix it. It is written to
+// stripe_events.processing_error and logged as an error for the founder to resolve, since money may need refunding.
 
 import type Stripe from 'stripe'
 
@@ -25,7 +25,8 @@ export type ProposalOrderOutcome = 'created' | 'duplicate' | 'ignored' | 'flagge
 async function flag(admin: Admin, event: Stripe.Event, problem: string): Promise<'flagged'> {
   console.error(`[proposals] paid session needs the founder (event ${event.id}): ${problem}`)
   const { error } = await admin.from('stripe_events').update({ processing_error: problem }).eq('stripe_event_id', event.id)
-  if (error) console.error('[proposals] could not record the problem on stripe_events:', error.message)
+  // The marker is the founder's only durable notice. Throw so the webhook answers 500 and Stripe retries.
+  if (error) throw new Error(`could not record the problem on stripe_events: ${error.message}`)
   return 'flagged'
 }
 
@@ -49,6 +50,11 @@ export async function recordPaidProposalOrder(admin: Admin, event: Stripe.Event)
 
   if (session.amount_total !== proposal.amount_cents || session.currency?.toLowerCase() !== proposal.currency) {
     return flag(admin, event, `paid ${session.amount_total} ${session.currency}, proposal ${proposal.id} asks ${proposal.amount_cents} ${proposal.currency}`)
+  }
+
+  // Withdrawal closes the open Checkout, but that can fail or lose a race. A withdrawn offer never becomes an order.
+  if (proposal.withdrawn_at) {
+    return flag(admin, event, `session ${session.id} paid after proposal ${proposal.id} was withdrawn; check for a refund`)
   }
 
   const { error } = await admin.from('website_orders').insert({

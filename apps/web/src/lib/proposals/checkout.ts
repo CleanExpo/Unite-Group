@@ -13,8 +13,39 @@ export function testModeStripe(env: NodeJS.ProcessEnv = process.env): Stripe | n
   return getStripe()
 }
 
+/** A saved session has been completed at Stripe, and its signed webhook has not yet written the order. */
+export class CheckoutPendingError extends Error {
+  constructor() {
+    super('The saved Checkout session is complete; waiting for its webhook')
+    this.name = 'CheckoutPendingError'
+  }
+}
+
+/** Whether this Checkout was finished at Stripe. Stripe faults throw: an unknown answer must not read as "no". */
+export async function checkoutIsComplete(stripe: Stripe, sessionId: string): Promise<boolean> {
+  return (await stripe.checkout.sessions.retrieve(sessionId)).status === 'complete'
+}
+
 /**
- * The hosted Checkout URL for this proposal. A session still open is reused. The idempotency key is built from the
+ * Closes a Checkout that must no longer be payable. Returns false if it may still be open, so the caller can say so.
+ * Payment after this point is still caught by the webhook, which flags it for a refund.
+ */
+export async function closeCheckout(sessionId: string | null): Promise<boolean> {
+  if (!sessionId) return true
+  try {
+    const stripe = testModeStripe()
+    if (!stripe) return false
+    await stripe.checkout.sessions.expire(sessionId)
+    return true
+  } catch (err) {
+    console.warn('[proposals] could not expire the open Checkout:', err instanceof Error ? err.message : err)
+    return false
+  }
+}
+
+/**
+ * The hosted Checkout URL for this proposal. A session still open is reused, and a completed one is never replaced,
+ * because that is how a client pays twice while the webhook is on its way. The idempotency key is built from the
  * session it replaces, so a double click or two tabs share one session, and an expired one can still be replaced.
  */
 export async function openCheckoutUrl(
@@ -24,6 +55,7 @@ export async function openCheckoutUrl(
 ): Promise<{ url: string; sessionId: string }> {
   if (proposal.stripe_session_id) {
     const existing = await stripe.checkout.sessions.retrieve(proposal.stripe_session_id)
+    if (existing.status === 'complete') throw new CheckoutPendingError()
     if (existing.status === 'open' && existing.url) return { url: existing.url, sessionId: existing.id }
   }
 

@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
-import { testModeStripe } from '@/lib/proposals/checkout'
+import { checkoutIsComplete, closeCheckout, testModeStripe } from '@/lib/proposals/checkout'
 import { lookupProposal } from '@/lib/proposals/store'
 import { hashCompCode } from '@/lib/proposals/tokens'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -33,6 +33,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (found.state === 'ordered') return NextResponse.json({ error: 'already_ordered' }, { status: 409 })
   if (found.state !== 'open') return NextResponse.json({ error: 'closed' }, { status: 410 })
 
+  // A finished Checkout whose webhook is on its way must not be overtaken by a code, or the client has paid for nothing.
+  const sessionId = found.proposal.stripe_session_id
+  if (sessionId) {
+    const stripe = testModeStripe()
+    if (!stripe) return NextResponse.json({ error: 'unavailable' }, { status: 503 })
+    try {
+      if (await checkoutIsComplete(stripe, sessionId)) {
+        return NextResponse.json({ error: 'payment_pending' }, { status: 409 })
+      }
+    } catch (err) {
+      console.error('[proposals] checkout status read failed:', err instanceof Error ? err.message : err)
+      return NextResponse.json({ error: 'unavailable' }, { status: 503 })
+    }
+  }
+
   const { data, error } = await admin.rpc('redeem_website_comp_code', {
     p_proposal_id: found.proposal.id,
     p_code_hash: hashCompCode(parsed.data.code),
@@ -46,14 +61,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   if (data === 'redeemed') {
     // A Checkout left open could still be paid. Close it; if that fails the webhook flags the payment for a refund.
-    const sessionId = found.proposal.stripe_session_id
-    if (sessionId) {
-      try {
-        await testModeStripe()?.checkout.sessions.expire(sessionId)
-      } catch (err) {
-        console.warn('[proposals] could not expire the open Checkout:', err instanceof Error ? err.message : err)
-      }
-    }
+    await closeCheckout(sessionId)
     return NextResponse.json({ redeemed: true })
   }
   if (data === 'already_ordered') return NextResponse.json({ error: 'already_ordered' }, { status: 409 })

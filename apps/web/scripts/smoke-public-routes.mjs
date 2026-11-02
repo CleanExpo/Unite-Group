@@ -69,6 +69,8 @@ export const SMOKE_PATHS = Object.freeze([
   { path: '/c', pattern: null, status: 307, location: LOGIN_PATH, note: 'bare /c stays private' },
   // A client proposal. Supabase is refused here, so this must show the honest outage message, never "not found".
   { path: `/proposal/${'a'.repeat(43)}`, pattern: '/proposal/[token]', status: 200, bodyIncludes: 'could not load this proposal', note: 'valid-shaped link during an outage' },
+  { path: '/proposal/return', pattern: '/proposal/return', status: 200, bodyIncludes: 'not been charged', note: 'left Stripe without paying' },
+  { path: '/proposal/return?session_id=cs_test_x', pattern: '/proposal/return', status: 200, bodyIncludes: 'could not check your payment', note: 'during an outage it must never say paid' },
   { path: '/proposal', pattern: null, status: 307, location: LOGIN_PATH, note: 'bare /proposal stays private' },
   { path: '/proposal/short', pattern: null, status: 307, location: LOGIN_PATH, note: 'a link of the wrong shape stays private' },
   { path: '/privacy-policy', pattern: '/privacy-policy', status: 200 },

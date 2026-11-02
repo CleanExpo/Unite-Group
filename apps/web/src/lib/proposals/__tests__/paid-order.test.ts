@@ -166,6 +166,24 @@ describe('recordPaidProposalOrder', () => {
     expect(malformed.orders).toEqual([])
   })
 
+  it('flags a payment on a withdrawn proposal for a refund and creates no order', async () => {
+    const fake = fakeAdmin({ proposal: { ...PROPOSAL, withdrawn_at: '2026-11-02T00:00:00.000Z' } })
+    await expect(recordPaidProposalOrder(fake.admin, paidEvent())).resolves.toBe('flagged')
+    expect(fake.orders).toEqual([])
+    expect(fake.flagged[0].problem).toContain('withdrawn')
+  })
+
+  it('throws when the problem cannot be recorded, so Stripe retries and the marker is not lost', async () => {
+    const fake = fakeAdmin()
+    const failing = {
+      from: (table: string) =>
+        table === 'stripe_events'
+          ? { update: () => ({ eq: async () => ({ error: { message: 'marker write failed' } }) }) }
+          : (fake.admin as unknown as { from: (t: string) => unknown }).from(table),
+    } as unknown as Admin
+    await expect(recordPaidProposalOrder(failing, paidEvent({ event: { livemode: true } }))).rejects.toThrow('marker write failed')
+  })
+
   it('throws on a database fault so Stripe retries, rather than losing the payment', async () => {
     await expect(recordPaidProposalOrder(fakeAdmin({ readError: 'down' }).admin, paidEvent())).rejects.toThrow('down')
     await expect(

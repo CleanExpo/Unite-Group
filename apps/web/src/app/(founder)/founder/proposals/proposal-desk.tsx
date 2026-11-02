@@ -64,10 +64,10 @@ export function ProposalDesk({ plans, leads }: { plans: Plan[]; leads: Lead[] })
     setError(null)
     try {
       await action()
-      await refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'That did not work. Please try again.')
     }
+    await refresh()
   }
 
   return (
@@ -158,7 +158,10 @@ export function ProposalDesk({ plans, leads }: { plans: Plan[]; leads: Lead[] })
                           className={s.link}
                           type="button"
                           onClick={() => void run(async () => {
-                            await send(`/api/founder/proposals/${row.id}`, 'PATCH')
+                            const json = (await send(`/api/founder/proposals/${row.id}`, 'PATCH')) as unknown as { checkoutClosed: boolean }
+                            if (!json.checkoutClosed) {
+                              throw new Error('Withdrawn, but its Stripe payment page could not be closed. If it is paid, the payment will be flagged for a refund.')
+                            }
                           })}
                         >
                           Withdraw

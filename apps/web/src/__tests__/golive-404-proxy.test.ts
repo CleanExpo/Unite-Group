@@ -60,6 +60,7 @@ describe('D11: real protected routes still require sign-in', () => {
     '/c/some-slug/other',
     '/proposal',
     '/proposal/too-short',
+    '/proposal/return/deeper',
     `/proposal/${'a'.repeat(44)}`,
     `/proposal/${'a'.repeat(43)}/deeper`,
     `/api/proposals/${'a'.repeat(43)}/other`,
@@ -80,7 +81,7 @@ describe('D11: real protected routes still require sign-in', () => {
   })
 
   it('leaves public pages alone', async () => {
-    for (const p of ['/', '/cards', '/cards/order', '/cards/terms', '/grow', '/privacy-policy', '/terms-of-service', '/solutions/visibility', '/c/phill-mcgurk', `/proposal/${'a'.repeat(43)}`, `/api/proposals/${'a'.repeat(43)}/checkout`, `/api/proposals/${'a'.repeat(43)}/redeem`]) {
+    for (const p of ['/', '/cards', '/cards/order', '/cards/terms', '/grow', '/privacy-policy', '/terms-of-service', '/solutions/visibility', '/c/phill-mcgurk', '/proposal/return', `/proposal/${'a'.repeat(43)}`, `/api/proposals/${'a'.repeat(43)}/checkout`, `/api/proposals/${'a'.repeat(43)}/redeem`]) {
       const res = await get(p)
       expect(res.headers.get('location'), p).toBeNull()
       expect(res.headers.get('x-middleware-rewrite'), p).toBeNull()

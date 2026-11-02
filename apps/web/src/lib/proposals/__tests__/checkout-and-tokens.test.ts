@@ -3,7 +3,9 @@ import type Stripe from 'stripe'
 
 vi.mock('@/lib/integrations/stripe/client', () => ({ getStripe: vi.fn(() => ({ marker: 'stripe' })) }))
 
-import { openCheckoutUrl, testModeStripe } from '../checkout'
+import { CheckoutPendingError, openCheckoutUrl, testModeStripe } from '../checkout'
+import { returnStateFor } from '../return-state'
+import type { Admin } from '../store'
 import type { ProposalRow } from '../store'
 import { hashCompCode, isProposalToken, newCompCode, newProposalToken, normaliseCompCode } from '../tokens'
 
@@ -72,11 +74,41 @@ describe('openCheckoutUrl', () => {
     expect(create).not.toHaveBeenCalled()
   })
 
+  it('never replaces a completed session while its webhook is on the way', async () => {
+    const { stripe, create } = fakeStripe({ status: 'complete', url: null, id: 'cs_old' })
+    await expect(openCheckoutUrl(stripe, { ...PROPOSAL, stripe_session_id: 'cs_old' }, URLS)).rejects.toBeInstanceOf(CheckoutPendingError)
+    expect(create).not.toHaveBeenCalled()
+  })
+
   it('replaces an expired session under a new idempotency key', async () => {
     const { stripe, create } = fakeStripe({ status: 'expired', url: null, id: 'cs_old' })
     await openCheckoutUrl(stripe, { ...PROPOSAL, stripe_session_id: 'cs_old' }, URLS)
     const [, options] = create.mock.calls[0] as unknown as [unknown, { idempotencyKey: string }]
     expect(options.idempotencyKey).toBe('proposal:p1:cs_old')
+  })
+})
+
+describe('returnStateFor', () => {
+  const adminWith = (result: { data: unknown; error: { message: string } | null }) =>
+    ({ from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => result }) }) }) }) as unknown as Admin
+
+  it('says confirmed only when the webhook has written the order', async () => {
+    await expect(returnStateFor(adminWith({ data: { id: 'o1' }, error: null }), 'cs_test_1')).resolves.toBe('confirmed')
+  })
+
+  it('says confirming when a session id arrives with no order: the redirect alone proves nothing', async () => {
+    await expect(returnStateFor(adminWith({ data: null, error: null }), 'cs_test_1')).resolves.toBe('confirming')
+  })
+
+  it('says unavailable, never confirming, when the read fails', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    await expect(returnStateFor(adminWith({ data: null, error: { message: 'down' } }), 'cs_test_1')).resolves.toBe('unavailable')
+  })
+
+  it('says cancelled with no session id, without reading anything', async () => {
+    const from = vi.fn()
+    await expect(returnStateFor({ from } as unknown as Admin, null)).resolves.toBe('cancelled')
+    expect(from).not.toHaveBeenCalled()
   })
 })
 

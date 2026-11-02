@@ -53,17 +53,8 @@ function Notice({ title, body }: { title: string; body: string }) {
   )
 }
 
-type SearchParams = Record<string, string | string[] | undefined>
-
-export default async function ProposalPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ token: string }>
-  searchParams: Promise<SearchParams>
-}) {
+export default async function ProposalPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
-  const { from } = await searchParams
   const found = await load(token)
 
   if (found.state === 'not_found') notFound()
@@ -83,8 +74,6 @@ export default async function ProposalPage({
       <Notice title="Thank you, you are all set" body="Your code has been accepted. We will be in touch about the next steps." />
     )
   }
-  // Coming back from Stripe proves nothing. Only the signed webhook creates an order, so until then say exactly that.
-  const returningFromStripe = from === 'stripe'
 
   const { proposal } = found
   const monthly = proposal.billing_interval === 'month'
@@ -95,12 +84,6 @@ export default async function ProposalPage({
         <h1 className={s.title}>The {proposal.plan_name} plan</h1>
         <p className={s.lead}>Hello {proposal.client_name}. Here is what we will do for you, what it costs, and how to say yes.</p>
       </section>
-
-      {returningFromStripe ? (
-        <p className={s.confirming} role="status">
-          We are waiting for Stripe to confirm your payment. This usually takes a moment, so please refresh this page shortly.
-        </p>
-      ) : null}
 
       <div className={s.columns}>
         <div>

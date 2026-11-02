@@ -2,7 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn() }))
 vi.mock('@/lib/supabase/service', () => ({ createServiceClient: vi.fn() }))
+vi.mock('@/lib/integrations/stripe/client', () => ({ getStripe: vi.fn() }))
 
+import { getStripe } from '@/lib/integrations/stripe/client'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getUser } from '@/lib/supabase/server'
 import { GET, POST } from '../route'
@@ -153,6 +155,44 @@ describe('founder proposal routes', () => {
     const { inserts } = setup({ proposal: null })
     expect((await makeCode(json({}), idParams())).status).toBe(404)
     expect(inserts).toEqual([])
+  })
+
+  describe('withdrawing with a Checkout already open', () => {
+    const originalKey = process.env.STRIPE_SECRET_KEY
+    const expire = vi.fn(async () => ({}))
+    beforeEach(() => {
+      expire.mockReset()
+      process.env.STRIPE_SECRET_KEY = 'sk_test_placeholder'
+      ;(getStripe as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ checkout: { sessions: { expire } } })
+    })
+    afterEach(() => {
+      if (originalKey === undefined) delete process.env.STRIPE_SECRET_KEY
+      else process.env.STRIPE_SECRET_KEY = originalKey
+    })
+
+    it('closes it after marking the proposal withdrawn', async () => {
+      const { updates } = setup({ proposal: { id: PROPOSAL, stripe_session_id: 'cs_open' } })
+      const res = await withdraw(new Request('http://x'), idParams())
+      expect(await res.json()).toEqual({ withdrawn: true, checkoutClosed: true })
+      expect(updates).toHaveLength(1)
+      expect(expire).toHaveBeenCalledWith('cs_open')
+    })
+
+    it('says so when it could not be closed, and stays withdrawn', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {})
+      expire.mockRejectedValueOnce(new Error('stripe down'))
+      const { updates } = setup({ proposal: { id: PROPOSAL, stripe_session_id: 'cs_open' } })
+      const res = await withdraw(new Request('http://x'), idParams())
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual({ withdrawn: true, checkoutClosed: false })
+      expect(updates).toHaveLength(1)
+    })
+
+    it('finds nothing to withdraw outside this founder', async () => {
+      const { updates } = setup({ proposal: null })
+      expect((await withdraw(new Request('http://x'), idParams())).status).toBe(404)
+      expect(updates).toEqual([])
+    })
   })
 
   it('scopes withdraw and revoke to the founder', async () => {

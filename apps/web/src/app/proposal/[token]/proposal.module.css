@@ -61,14 +61,6 @@
   color: var(--pub-muted);
 }
 
-.confirming {
-  margin: 0 0 2.5rem;
-  padding: 1rem 1.25rem;
-  border: 1px solid var(--pub-accent);
-  border-radius: var(--pub-radius);
-  line-height: 1.5;
-}
-
 .columns {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(19rem, 24rem);

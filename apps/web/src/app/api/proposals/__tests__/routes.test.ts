@@ -57,10 +57,11 @@ function setup({ proposal = PROPOSAL, order = null, proposalError, rpc }: Setup 
 function stripeMock() {
   const create = vi.fn(async () => ({ id: 'cs_1', url: 'https://checkout.example.test/1' }))
   const expire = vi.fn(async () => ({}))
+  const retrieve = vi.fn(async (): Promise<object> => ({ id: 'cs_open', status: 'open', url: 'https://checkout.example.test/open' }))
   ;(getStripe as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
-    checkout: { sessions: { create, expire, retrieve: vi.fn() } },
+    checkout: { sessions: { create, expire, retrieve } },
   })
-  return { create, expire }
+  return { create, expire, retrieve }
 }
 
 const post = (path: string, body: unknown) =>
@@ -96,6 +97,25 @@ describe('POST /api/proposals/[token]/checkout', () => {
     expect(updates[1]).toEqual({ stripe_session_id: 'cs_1' })
     const [stripeParams] = create.mock.calls[0] as unknown as [{ line_items: { price_data: { unit_amount: number } }[] }]
     expect(stripeParams.line_items[0].price_data.unit_amount).toBe(200000)
+  })
+
+  it('never hands the link token to Stripe', async () => {
+    setup()
+    const { create } = stripeMock()
+    await checkout(post('checkout', ACCEPT), params())
+    const sent = JSON.stringify(create.mock.calls[0])
+    expect(sent).not.toContain(TOKEN)
+    expect(sent).toContain('/proposal/return?session_id={CHECKOUT_SESSION_ID}')
+  })
+
+  it('answers payment_pending and opens nothing new when the saved session is already complete', async () => {
+    setup({ proposal: { ...PROPOSAL, stripe_session_id: 'cs_done' } })
+    const { create, retrieve } = stripeMock()
+    retrieve.mockResolvedValueOnce({ id: 'cs_done', status: 'complete', url: null })
+    const res = await checkout(post('checkout', ACCEPT), params())
+    expect(res.status).toBe(409)
+    expect((await res.json()).error).toBe('payment_pending')
+    expect(create).not.toHaveBeenCalled()
   })
 
   it('refuses a live key before touching the database or Stripe', async () => {
@@ -172,6 +192,24 @@ describe('POST /api/proposals/[token]/redeem', () => {
     const res = await redeem(post('redeem', CODE), params())
     expect(res.status).toBe(200)
     expect(expire).toHaveBeenCalledWith('cs_open')
+  })
+
+  it('will not let a code overtake a finished payment whose webhook is on the way', async () => {
+    const { rpcCall } = setup({ proposal: { ...PROPOSAL, stripe_session_id: 'cs_done' }, rpc: { data: 'redeemed' } })
+    const { retrieve } = stripeMock()
+    retrieve.mockResolvedValueOnce({ id: 'cs_done', status: 'complete', url: null })
+    const res = await redeem(post('redeem', CODE), params())
+    expect(res.status).toBe(409)
+    expect((await res.json()).error).toBe('payment_pending')
+    expect(rpcCall).not.toHaveBeenCalled()
+  })
+
+  it('redeems nothing when the Checkout status cannot be read', async () => {
+    const { rpcCall } = setup({ proposal: { ...PROPOSAL, stripe_session_id: 'cs_x' }, rpc: { data: 'redeemed' } })
+    const { retrieve } = stripeMock()
+    retrieve.mockRejectedValueOnce(new Error('stripe down'))
+    expect((await redeem(post('redeem', CODE), params())).status).toBe(503)
+    expect(rpcCall).not.toHaveBeenCalled()
   })
 
   it('gives every refused code the same answer', async () => {
