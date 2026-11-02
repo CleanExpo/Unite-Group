@@ -157,6 +157,15 @@ select pg_temp.expect_raise($$select public.portal_save_connection('facebook', '
 select pg_temp.expect_raise($$select public.portal_save_connection('facebook', 'https://www.facebook.com/', null, null)$$, 'portal_bad_input', 'Facebook home page refused');
 select pg_temp.expect_raise($$select public.portal_save_connection('facebook', 'https://www.facebook.com?ref=home', null, null)$$, 'portal_bad_input', 'Facebook link with no path refused');
 select pg_temp.expect_raise($$select public.portal_save_connection('gbp', 'https://www.google.com/search?q=brii', null, null)$$, 'portal_bad_input', 'Google search link refused as a business profile');
+-- forms a browser rewrites before it reads the path (dot segments, backslashes) or that no profile link needs
+-- (a port, a trailing-dot host) are refused outright, so the database never judges a different path from the app
+select pg_temp.expect_raise($$select public.portal_save_connection('facebook', 'https://www.facebook.com/.', null, null)$$, 'portal_bad_input', 'single-dot path refused');
+select pg_temp.expect_raise($$select public.portal_save_connection('facebook', 'https://www.facebook.com/brii/%2E%2e', null, null)$$, 'portal_bad_input', 'encoded double-dot path refused');
+select pg_temp.expect_raise($$select public.portal_save_connection('gbp', 'https://www.google.com/maps/../search?q=brii', null, null)$$, 'portal_bad_input', 'Maps path climbing out with .. refused');
+select pg_temp.expect_raise($$select public.portal_save_connection('gbp', 'https://www.google.com/maps\..\search', null, null)$$, 'portal_bad_input', 'backslash path refused');
+select pg_temp.expect_raise($$select public.portal_save_connection('facebook', 'https://www.facebook.com:99999/brii', null, null)$$, 'portal_bad_input', 'out-of-range port refused');
+select pg_temp.expect_raise($$select public.portal_save_connection('facebook', 'https://www.facebook.com:443/brii', null, null)$$, 'portal_bad_input', 'any port refused');
+select pg_temp.expect_raise($$select public.portal_save_connection('facebook', 'https://www.facebook.com./brii', null, null)$$, 'portal_bad_input', 'trailing-dot host refused');
 select pg_temp.expect_value($$select public.portal_save_connection('gbp', 'https://www.google.com.au/maps/place/Brii', null, null)$$, 'link_saved', 'A Google Maps place link is a business profile');
 -- TikTok and YouTube handles carry @ in the path; that is a real profile link, not a login
 select pg_temp.expect_value($$select public.portal_save_connection('tiktok', 'https://www.tiktok.com/@brii.training', null, null)$$, 'link_saved', 'A saves a TikTok @handle link');

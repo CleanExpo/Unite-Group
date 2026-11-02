@@ -30,6 +30,16 @@ describe('the database holds the same host rules as the app', () => {
     expect(quoted(match![1])).toEqual([...GOOGLE_MAPS_ONLY].sort())
   })
 
+  it('the database refuses the same link shapes as the app: plain host, no rewritten path', () => {
+    // every https shape in the migration uses the plain-host pattern (no login, port or trailing dot)
+    const plainHost = 'https://[A-Za-z0-9-]+([.][A-Za-z0-9-]+)+(/[^[:space:]]*)?'
+    // every regex naming a host, minus the one helper that only cuts the path out of an already-checked link
+    const shapes = MIGRATION.split('https://[').length - MIGRATION.split('https://[^/?#]+(/[^?#]*)').length
+    expect(shapes).toBeGreaterThanOrEqual(4)
+    expect(MIGRATION.split(plainHost).length - 1).toBe(shapes)
+    expect(MIGRATION).toContain("p_url !~* '\\\\|/([.]|%2e){1,2}([/?#]|$)'")
+  })
+
   it('portal_save_connection checks every profile link with portal_connection_link_ok', () => {
     expect(MIGRATION).toContain('not public.portal_connection_link_ok(p_kind, p_profile_url)')
     expect(MIGRATION).toContain('check (profile_url is null or public.portal_connection_link_ok(kind, profile_url))')
@@ -69,6 +79,13 @@ describe('connection link validation', () => {
     ['instagram', 'https://www.facebook.com/brii', 'right site for a different item'],
     ['facebook', 'https://www.facebook.com/', 'home page, not her page'],
     ['gbp', 'https://www.google.com/search?q=brii', 'Google search, not a Maps profile'],
+    ['facebook', 'https://www.facebook.com/.', 'single-dot path (the browser reads it as the home page)'],
+    ['facebook', 'https://www.facebook.com/brii/%2E%2e', 'encoded double-dot path'],
+    ['gbp', 'https://www.google.com/maps/../search?q=brii', 'Maps path climbing out with ..'],
+    ['gbp', 'https://www.google.com/maps\\..\\search', 'backslash path'],
+    ['facebook', 'https://www.facebook.com:99999/brii', 'out-of-range port'],
+    ['facebook', 'https://www.facebook.com:443/brii', 'any port'],
+    ['facebook', 'https://www.facebook.com./brii', 'trailing-dot host'],
     ['facebook', 'javascript:alert(1)', 'script link'],
     ['facebook', 'https://www.facebook.com/brii page', 'space inside'],
     ['facebook', `https://www.facebook.com/${'a'.repeat(300)}`, 'too long'],

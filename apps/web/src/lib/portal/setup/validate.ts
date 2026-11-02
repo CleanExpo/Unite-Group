@@ -24,8 +24,10 @@ export const ALLOWED_HOSTS: Record<Exclude<ConnectionKind, 'gsc' | 'bing'>, read
 /** On these Google hosts only a Maps link is a business profile; a search or home link is not. */
 export const GOOGLE_MAPS_ONLY = new Set(['www.google.com', 'google.com', 'www.google.com.au', 'google.com.au'])
 
-/** Same shape the database enforces: https, no "@" or space in the host part, "@" allowed in the path. */
-const HTTPS_SHAPE = /^https:\/\/[^/\s@]+(\/\S*)?$/
+/** Same shape the database enforces: https and a plain host (no login, port or trailing dot); "@" allowed in the path. */
+const HTTPS_SHAPE = /^https:\/\/[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+(\/\S*)?$/
+/** A backslash or a "." / ".." segment (plain or %2e): the browser rewrites these, so the path read is not the path pasted. */
+const REWRITTEN_PATH = /\\|\/(\.|%2e){1,2}([/?#]|$)/i
 const SC_DOMAIN = /^sc-domain:[a-z0-9.-]{1,253}$/
 /** A long unbroken run of key-like characters. Notes that look like a key or token are refused. */
 export const KEY_SHAPED = /[A-Za-z0-9_+/=-]{32,}/
@@ -52,6 +54,7 @@ export function validateConnectionValue(kind: ConnectionKind, raw: unknown): Che
   }
 
   if (kind === 'gsc' || kind === 'bing') return { ok: true, value: { profileUrl: null, propertyId: text } }
+  if (REWRITTEN_PATH.test(text)) return { ok: false, error: 'Please paste the link exactly as your browser shows it.' }
 
   const host = url.hostname.toLowerCase()
   if (!ALLOWED_HOSTS[kind].includes(host)) return { ok: false, error: wrongSiteMessage(kind) }
