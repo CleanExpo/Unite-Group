@@ -39,7 +39,7 @@ export function CollectionNotice({
           <p className={s.lead}>
             {COMPANY_NAME} collects the information you provide {COLLECTION_PURPOSES[form]}.
           </p>
-          <p className={s.detail}>{COLLECTION_RECIPIENTS}</p>
+          <p className={s.detail}>{COLLECTION_RECIPIENTS[form]}</p>
           <p className={s.detail}>
             {COLLECTION_ACCESS} {COLLECTION_POLICY_LEAD}{' '}
             <a href={PRIVACY_POLICY_PATH}>{COLLECTION_POLICY_LINK_TEXT}</a>
@@ -59,7 +59,7 @@ export function CollectionNotice({
       <p className={s.lead}>
         {COMPANY_NAME} collects the information you provide {COLLECTION_PURPOSES[form]}.
       </p>
-      <p className={s.detail}>{COLLECTION_RECIPIENTS}</p>
+      <p className={s.detail}>{COLLECTION_RECIPIENTS[form]}</p>
       <p className={s.detail}>
         {COLLECTION_ACCESS} {COLLECTION_POLICY_LEAD}{' '}
         <a href={PRIVACY_POLICY_PATH}>{COLLECTION_POLICY_LINK_TEXT}</a>

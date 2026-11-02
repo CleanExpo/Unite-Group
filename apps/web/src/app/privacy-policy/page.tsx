@@ -297,9 +297,13 @@ export default function PrivacyPolicyPage() {
             </li>
             <li>Supabase, which hosts our database.</li>
             <li>Vercel, which hosts the website and keeps request logs.</li>
-            <li>SendGrid, which delivers the emails our system sends.</li>
             <li>
-              Mailtrap, which delivers the emails sent when you buy a card: our order alert and your welcome email. When a
+              SendGrid, which delivers the enquiry alert we receive when you send an enquiry through a website form (your
+              first name, business name and the package requested), and any marketing email you have agreed to receive.
+            </li>
+            <li>
+              Mailtrap, which delivers the emails sent when you buy a card: our order alert, your welcome email, any
+              reminder about your order, and the email that passes us the details you give on the thank-you page. When a
               card&#8217;s enquiry form is switched on, Mailtrap also delivers the email that passes an enquiry to the card
               owner, and a short alert to us with the card, the first name given and the reference.
             </li>

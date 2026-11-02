@@ -23,8 +23,10 @@ describe('/cards/thanks intake form: APP 5 collection notice', () => {
 
   it('names the company, the purpose, the recipients and the privacy contact', () => {
     const text = decode(notice().replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' '))
-    for (const w of ['Unite-Group Nexus Pty Ltd', COLLECTION_PURPOSES['card-intake'], 'Supabase', 'SendGrid', 'contact@unite-group.in'])
+    for (const w of ['Unite-Group Nexus Pty Ltd', COLLECTION_PURPOSES['card-intake'], 'Supabase', 'Mailtrap delivers the emails about your card order', 'contact@unite-group.in'])
       expect(text, w).toContain(w)
+    // Card order emails go through Mailtrap (src/app/api/cards/intake/route.ts), never SendGrid (UNI-3179).
+    expect(text).not.toContain('SendGrid')
   })
 
   it('links to the privacy policy', () => {

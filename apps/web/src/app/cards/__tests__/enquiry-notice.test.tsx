@@ -33,7 +33,10 @@ describe('/cards/order enquiry form collection notice (APP 5)', () => {
     expect(COMPANY_NAME).toBe('Unite-Group Nexus Pty Ltd')
     expect(t).toContain(COLLECTION_PURPOSES['card-enquiry'])
     expect(t).toContain('Supabase')
-    expect(t).toContain('SendGrid')
+    // This form posts to /api/leads, whose alert to us goes through SendGrid, not Mailtrap (UNI-3179).
+    expect(t).toContain('SendGrid delivers the enquiry alert we receive')
+    expect(t).not.toContain('Mailtrap')
+    expect(t).not.toContain('Email we send you')
     expect(t).toContain(PRIVACY_CONTACT_EMAIL)
   })
 
