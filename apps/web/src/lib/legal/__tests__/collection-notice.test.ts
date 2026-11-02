@@ -22,6 +22,14 @@ const decode = (s: string) =>
   s.replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
 const policy = decode(renderToStaticMarkup(createElement(PrivacyPolicyPage)).replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ')
 
+/** The purpose cell of the section 6 table row whose provider cell is exactly `provider`. */
+const section6Purpose = (provider: string): string => {
+  const rows = [...renderToStaticMarkup(createElement(PrivacyPolicyPage)).matchAll(/<tr><td>([^<]*)<\/td><td>([^<]*)<\/td>/g)]
+  const matches = rows.filter((row) => row[1] === provider)
+  expect(matches, `section 6 rows for ${provider}`).toHaveLength(1)
+  return decode(matches[0][2])
+}
+
 const forms = Object.keys(COLLECTION_PURPOSES) as CollectionNoticeForm[]
 
 /** The policy wording that backs each form's purpose (sections 10 and 13.1). */
@@ -99,15 +107,22 @@ describe('collection notice parity with the privacy policy', () => {
       'Mailtrap, which delivers the emails sent when you buy a card: our order alert, your welcome email, any reminder about your order, and the email that passes us the details you give on the thank-you page.',
     )
     expect(policy).not.toContain('SendGrid, which delivers the emails our system sends')
-    // Section 6 must give the same purposes for each provider as 13.2.
-    expect(policy).toContain(
-      'Enquiry alert emails (first name, business name and package requested) and any marketing email you have agreed to receive (your name and email address)',
-    )
-    expect(policy).toContain('where the card has an email address for its owner, the email passing a card enquiry to the card owner')
     expect(policy).toContain('owner, where the card has an email address for them, and, unless that email already comes to us, a short alert')
-    expect(policy).toContain('and, unless that email already comes to us, our short alert')
     expect(policy).toContain('We do not sell')
     expect(policy).toMatch(/see, correct or delete|access, correct or delete/)
+  })
+
+  it('section 6 gives each provider its own purposes, in that provider\'s table row', () => {
+    const sendgrid = section6Purpose('Twilio SendGrid')
+    expect(sendgrid).toContain('Enquiry alert emails (first name, business name and package requested)')
+    expect(sendgrid).toContain('any marketing email you have agreed to receive (your name and email address)')
+    expect(sendgrid).not.toContain('card')
+
+    const mailtrap = section6Purpose('Mailtrap')
+    expect(mailtrap).toContain('Living card order emails')
+    expect(mailtrap).toContain('where the card has an email address for its owner, the email passing a card enquiry to the card owner')
+    expect(mailtrap).toContain('and, unless that email already comes to us, our short alert')
+    expect(mailtrap).not.toContain('marketing')
   })
 
   it('covers every form in the backing table, and the policy backs each purpose', () => {
