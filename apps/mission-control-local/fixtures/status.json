@@ -84,6 +84,8 @@
       "status": "running",
       "attempt": 1,
       "createdAt": 1799999940000,
+      "claimedAt": 1799999950000,
+      "leaseUntil": 1800003550000,
       "result": { "proof": "not for the browser" }
     },
     {
@@ -110,6 +112,25 @@
       "status": "failed",
       "attempt": 2,
       "createdAt": 1799913600000
+    },
+    {
+      "id": "aaaa5555-0000-4000-8000-000000000005",
+      "machineId": "windows-pc",
+      "type": "spm-harness",
+      "status": "running",
+      "attempt": 1,
+      "createdAt": 1799998000000,
+      "claimedAt": 1799998100000,
+      "leaseUntil": 1800005300000
+    },
+    {
+      "id": "aaaa6666-0000-4000-8000-000000000006",
+      "machineId": "macbook-pro",
+      "type": "probe",
+      "status": "blocked",
+      "attempt": 2,
+      "blockedReason": "lease_expired_twice",
+      "createdAt": 1799990000000
     }
   ]
 }

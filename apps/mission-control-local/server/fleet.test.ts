@@ -71,6 +71,8 @@ test('a broker value that is not a short name never reaches the browser, whateve
         machines: [
           {
             machineId: 'mac-mini',
+            // A fresh heartbeat, so the state word is sent and the name rule is what decides it.
+            lastSeen: NOW - 1_000,
             label: bad,
             state: bad,
             capabilities: { [bad]: true, claude: true },
@@ -85,14 +87,14 @@ test('a broker value that is not a short name never reaches the browser, whateve
     assert.equal(view?.machines[0]?.state, 'unknown');
     assert.deepEqual(view?.machines[0]?.capabilities, [{ name: 'claude', enabled: true }]);
     assert.deepEqual(view?.machines[0]?.repos.map((r) => r.name), ['unite-group']);
-    assert.deepEqual(view?.jobs[0], { id: 'unknown', type: 'unknown', status: 'unknown', machineId: null, createdAt: null, ageMs: null });
+    assert.deepEqual(view?.jobs[0], { id: 'unknown', type: 'unknown', status: 'unknown', phase: 'unknown', machineId: null, createdAt: null, ageMs: null, phaseAgeMs: null });
   }
 });
 
 test('real broker names pass the name rule unchanged', () => {
   const view = toFleetView(
     {
-      machines: [{ machineId: 'mac-mini', state: 'idle', capabilities: { workspaceGuard: true }, repos: { 'pi-dev-ops': { available: true } } }],
+      machines: [{ machineId: 'mac-mini', lastSeen: NOW - 1_000, state: 'idle', capabilities: { workspaceGuard: true }, repos: { 'pi-dev-ops': { available: true } } }],
       jobs: [{ id: 'cbeaca5e-e8ec-4ff6-a292-9aaa3a2ade51', machineId: 'macbook-pro', type: 'probe', status: 'completed' }],
     },
     NOW,
@@ -100,14 +102,14 @@ test('real broker names pass the name rule unchanged', () => {
   assert.equal(view?.machines[0]?.state, 'idle');
   assert.equal(view?.machines[0]?.capabilities[0]?.name, 'workspaceGuard');
   assert.equal(view?.machines[0]?.repos[0]?.name, 'pi-dev-ops');
-  assert.deepEqual(view?.jobs[0], { id: 'cbeaca5e', machineId: 'macbook-pro', type: 'probe', status: 'completed', createdAt: null, ageMs: null });
+  assert.deepEqual(view?.jobs[0], { id: 'cbeaca5e', machineId: 'macbook-pro', type: 'probe', status: 'completed', phase: 'done', createdAt: null, ageMs: null, phaseAgeMs: null });
 });
 
 test('a short unprefixed token in a named field does not reach the browser', () => {
   const planted = 'Qwerty1234567890AbCd';
   const view = toFleetView(
     {
-      machines: [{ machineId: 'mac-mini', state: planted, capabilities: { [planted]: true }, repos: { [planted]: {} } }],
+      machines: [{ machineId: 'mac-mini', lastSeen: NOW - 1_000, state: planted, capabilities: { [planted]: true }, repos: { [planted]: {} } }],
       jobs: [{ id: planted, machineId: planted, type: planted, status: planted }],
     },
     NOW,

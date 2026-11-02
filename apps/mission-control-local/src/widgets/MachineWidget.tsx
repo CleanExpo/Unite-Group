@@ -1,30 +1,37 @@
-import { formatAge } from '../../shared/format.ts';
-import type { MachineHealth, MachineId } from '../../shared/types.ts';
+import { machineCardText } from '../../shared/machine-card.ts';
+import type { CardTone } from '../../shared/machine-card.ts';
+import type { MachineId } from '../../shared/types.ts';
+import { useNow } from '../useNow.ts';
 import { FleetGate } from './FleetGate.tsx';
 import styles from './widgets.module.css';
 
-const HEALTH: Record<MachineHealth, { label: string; led: string | undefined }> = {
-  online: { label: 'Online', led: styles.ledGo },
-  stale: { label: 'Stale', led: styles.ledAmber },
-  offline: { label: 'Offline', led: styles.ledAbort },
-  'not-reporting': { label: 'Not reporting', led: styles.ledAbort },
+const LED: Record<CardTone, string | undefined> = {
+  go: styles.ledGo,
+  amber: styles.ledAmber,
+  abort: styles.ledAbort,
 };
 
 export function MachineWidget({ machineId }: { machineId: MachineId }) {
+  // Re-renders every second, so a card turns Stale at 45 seconds between polls too.
+  const now = useNow();
   return (
     <FleetGate>
-      {(fleet) => {
+      {(fleet, startedAt) => {
         const machine = fleet.machines.find((m) => m.id === machineId);
         if (!machine) return <p className={styles.down}>No record for {machineId}.</p>;
-        const health = HEALTH[machine.health];
+        // Every word below comes from machineCardText, which the tests check.
+        const card = machineCardText(machine, now - startedAt);
+        const { fresh } = card;
         return (
           <div className={styles.machine}>
             <div className={styles.machineHead}>
-              <span className={`${styles.led} ${health.led ?? ''}`} aria-hidden="true" />
-              <strong>{health.label}</strong>
-              <span className={styles.muted}>{machine.state}</span>
-              <span className={styles.push}>seen {formatAge(machine.ageMs)}</span>
+              <span className={`${styles.led} ${LED[card.tone] ?? ''}`} aria-hidden="true" />
+              <strong>{card.health}</strong>
+              <span className={styles.push}>{card.heartbeat}</span>
             </div>
+            <div className={fresh ? undefined : styles.warn}>{card.state}</div>
+            <div className={fresh || !machine.currentJob ? styles.muted : styles.warn}>{card.job}</div>
+            {card.warning ? <div className={styles.warn}>{card.warning}</div> : null}
             {machine.tailscaleIp ? <div className={styles.muted}>{machine.tailscaleIp}</div> : null}
             <ul className={styles.chips} aria-label="Capabilities">
               {machine.capabilities.map((c) => (

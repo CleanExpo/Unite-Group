@@ -69,42 +69,61 @@ async function readFixture(path: string, now: number): Promise<unknown> {
   return {
     ...parsed,
     machines: parsed.machines.map((m) => ({ ...m, lastSeen: moved(m.lastSeen) })),
-    jobs: parsed.jobs.map((j) => ({ ...j, createdAt: moved(j.createdAt) })),
+    jobs: parsed.jobs.map((j) => ({
+      ...j,
+      createdAt: moved(j.createdAt),
+      claimedAt: moved(j.claimedAt),
+      completedAt: moved(j.completedAt),
+    })),
   };
 }
+
+type BrokerRead = { readAt: number } & ({ ok: true; payload: unknown } | { ok: false; reason: BrokerFailure });
 
 export function createFleetSource(options: FleetSourceOptions = {}): () => Promise<FleetSnapshot> {
   const now = options.now ?? Date.now;
   const port = options.brokerPort ?? BROKER_PORT;
-  let cached: { at: number; snapshot: FleetSnapshot } | null = null;
-  let inflight: Promise<FleetSnapshot> | null = null;
+  const source = options.fixturePath ? ('fixture' as const) : ('broker' as const);
+  let cached: { at: number; read: BrokerRead } | null = null;
+  let inflight: Promise<BrokerRead> | null = null;
   let lastGoodAt: number | null = null;
 
-  async function read(): Promise<FleetSnapshot> {
-    const at = now();
+  async function read(): Promise<BrokerRead> {
+    const readAt = now();
     try {
       const payload = options.fixturePath
-        ? await readFixture(options.fixturePath, at)
+        ? await readFixture(options.fixturePath, readAt)
         : await readBroker(port);
-      const view = toFleetView(payload, at, { showTailscaleIp: options.showTailscaleIp });
-      if (!view) throw new ReadFailure('bad-payload');
-      lastGoodAt = at;
-      const source = options.fixturePath ? ('fixture' as const) : ('broker' as const);
-      return { status: 'live', source, fetchedAt: at, ...view };
+      return { readAt, ok: true, payload };
     } catch (err) {
       // The class of failure only: broker bodies and error text never reach the browser.
-      const reason = err instanceof ReadFailure ? err.reason : 'bad-payload';
-      return { status: 'down', reason, fetchedAt: at, lastGoodAt };
+      return { readAt, ok: false, reason: err instanceof ReadFailure ? err.reason : 'bad-payload' };
     }
   }
 
-  return () => {
-    if (cached && now() - cached.at < CACHE_MS) return Promise.resolve(cached.snapshot);
-    inflight ??= read().then((snapshot) => {
-      cached = { at: now(), snapshot };
-      inflight = null;
-      return snapshot;
-    });
-    return inflight;
+  // Only the broker's reply is cached. Ages and health are worked out each time this
+  // answers, so a cached reply can never hold a machine Online past 45 seconds.
+  function answer(r: BrokerRead): FleetSnapshot {
+    const at = now();
+    if (r.ok) {
+      const view = toFleetView(r.payload, at, { showTailscaleIp: options.showTailscaleIp });
+      if (view) {
+        lastGoodAt = Math.max(lastGoodAt ?? r.readAt, r.readAt);
+        return { status: 'live', source, fetchedAt: at, ...view };
+      }
+    }
+    return { status: 'down', reason: r.ok ? 'bad-payload' : r.reason, fetchedAt: at, lastGoodAt };
+  }
+
+  return async () => {
+    if (!cached || now() - cached.at >= CACHE_MS) {
+      inflight ??= read().then((r) => {
+        cached = { at: now(), read: r };
+        inflight = null;
+        return r;
+      });
+      return answer(await inflight);
+    }
+    return answer(cached.read);
   };
 }
