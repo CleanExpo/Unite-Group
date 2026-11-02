@@ -15,7 +15,16 @@ type Enrolment = { factorId: string; qrCode: string; secret: string }
  * Step 3: confirm it is you with an authenticator app (Supabase MFA, TOTP). This lifts the session to aal2.
  * An owner with a confirmed app enters a code; an owner without one sets it up first.
  */
-export function SecondFactorStep({ email }: { email: string | null }) {
+export function SecondFactorStep({
+  email,
+  title = REDEEM_COPY.needs_second_factor.title,
+  body = REDEEM_COPY.needs_second_factor.body,
+}: {
+  email: string | null
+  /** Wording for where the step is shown. Defaults to the invite-claim wording; /portal/verify passes its own. */
+  title?: string
+  body?: string
+}) {
   const router = useRouter()
   const [mode, setMode] = useState<Mode>('loading')
   const [factorId, setFactorId] = useState<string | null>(null)
@@ -90,10 +99,10 @@ export function SecondFactorStep({ email }: { email: string | null }) {
 
   return (
     <>
-      <h2 id="join-step">{REDEEM_COPY.needs_second_factor.title}</h2>
+      <h2 id="join-step">{title}</h2>
       <p className={styles.body}>
         {email ? <>You are signed in as <strong>{email}</strong>. </> : null}
-        {REDEEM_COPY.needs_second_factor.body}
+        {body}
       </p>
       {mode === 'loading' && <p role="status" className={styles.body}>Checking your sign-in…</p>}
       {mode === 'error' && <p role="alert" className={styles.problem}>We could not check your sign-in. Please refresh the page.</p>}

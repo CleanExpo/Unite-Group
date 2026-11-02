@@ -74,3 +74,7 @@ export const PLAN_LABEL: Record<'comp' | 'paid' | 'none', string> = {
   paid: 'Paid plan',
   none: 'No plan yet',
 }
+
+/** /portal/verify: the authenticator step for an owner signed in with the emailed link only. */
+export const VERIFY_STEP_TITLE = 'Your authenticator code'
+export const VERIFY_STEP_BODY = 'Enter the code from your authenticator app, then we take you straight back.'

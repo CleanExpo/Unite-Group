@@ -130,7 +130,15 @@ describe('coverage guard', () => {
 
   test('a fully listed fixture passes', () => {
     const result = checkCoverage({ discovered: discoverRoutes(fixture(BASE_FILES)), entries: full, excluded: [] });
-    assert.deepEqual(result, { uncovered: [], stale: [], mismatched: [], ok: true });
+    assert.deepEqual(result, { uncovered: [], stale: [], mismatched: [], conflicted: [], ok: true });
+  });
+
+  test('a route both smoked and inside an excluded subtree FAILS (its two checks contradict each other)', () => {
+    const root = fixture([...BASE_FILES, 'portal/page.tsx', 'portal/join/page.tsx'])
+    const entries = [...full, entry('/portal/join', '/portal/join')]
+    const result = checkCoverage({ discovered: discoverRoutes(root), entries, excluded: [{ pattern: '/portal/**', reason: 'x' }] });
+    assert.equal(result.ok, false);
+    assert.deepEqual(result.conflicted, ['route /portal/join is both smoked and excluded']);
   });
 
   test('a NEW page added to the app and absent from the smoke list FAILS coverage', () => {
@@ -263,7 +271,11 @@ describe('the shipped list against the real apps/web', () => {
     const discovered = discoverRoutes(realAppDir);
     assert.ok(discovered.length > 20, `discovery found only ${discovered.length} routes`);
     const result = checkCoverage({ discovered, entries: SMOKE_PATHS, excluded: EXCLUDED, publicDir: join(realAppDir, 'public') });
-    assert.deepEqual({ uncovered: result.uncovered, stale: result.stale, mismatched: result.mismatched }, { uncovered: [], stale: [], mismatched: [] });
+    assert.deepEqual(
+      { uncovered: result.uncovered, stale: result.stale, mismatched: result.mismatched, conflicted: result.conflicted },
+      { uncovered: [], stale: [], mismatched: [], conflicted: [] },
+    );
+    assert.equal(result.ok, true);
   });
 
   test('every public sitemap route in lib/public-site.ts is smoked with a 200 expectation', () => {

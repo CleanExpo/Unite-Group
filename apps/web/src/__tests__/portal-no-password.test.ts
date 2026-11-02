@@ -24,6 +24,12 @@ import { FORBIDDEN } from './portal-forbidden-words'
 
 const SRC = join(__dirname, '..')
 const PORTAL_ROOTS = [join(SRC, 'app', '(portal)'), join(SRC, 'components', 'portal')]
+// Copy modules outside those folders whose words the portal pages render (Codex review 03/11/2026: the setup checklist
+// lives in lib/portal/setup/items.ts and was outside the scan). They get the same strict rules.
+const PORTAL_COPY_FILES = [join(SRC, 'lib', 'portal', 'setup', 'items.ts'), join(SRC, 'lib', 'portal', 'invites', 'outcomes.ts')]
+// Everything else in lib/portal is logic (validators with regex escapes, URL parsing), so the strict escape rules do
+// not fit it. What it can put on screen is its string literals; each one is checked for password wording instead.
+const PORTAL_LIB = join(SRC, 'lib', 'portal')
 
 function files(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -108,7 +114,23 @@ function findings(source: string): string[] {
 }
 
 function scanRoots(): { file: string; problems: string[] }[] {
-  return PORTAL_ROOTS.flatMap(files).map((file) => ({ file, problems: findings(readFileSync(file, 'utf8')) }))
+  return [...PORTAL_ROOTS.flatMap(files), ...PORTAL_COPY_FILES].map((file) => ({ file, problems: findings(readFileSync(file, 'utf8')) }))
+}
+
+/** Quoted string literals in a source file: '...', "..." and template text. */
+function literals(source: string): string[] {
+  return source.match(/'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`/g) ?? []
+}
+
+/** Password wording in any string literal of a lib/portal module (tests and fixtures excluded). */
+function libLiteralFindings(): { file: string; literal: string; word: string }[] {
+  const libFiles = files(PORTAL_LIB).filter((f) => !f.includes('__fixtures__') && /\.tsx?$/.test(f))
+  return libFiles.flatMap((file) =>
+    literals(readFileSync(file, 'utf8')).flatMap((literal) => {
+      const letters = decode(literal).split(NO_PASSWORD_LINE).join(' ').toLowerCase().replace(/[^a-z]/g, '')
+      return FORBIDDEN.filter((w) => letters.includes(w) || [...letters].reverse().join('').includes(w)).map((word) => ({ file, literal, word }))
+    }),
+  )
 }
 
 const ch = (code: number) => String.fromCodePoint(code)
@@ -206,5 +228,27 @@ describe('the portal never asks for a password', () => {
       }
     })
     expect(scanRoots().filter((r) => r.problems.length > 0)).toEqual([])
+  })
+
+  it('reads the portal copy modules in lib/portal too (positive control)', () => {
+    const scanned = scanRoots().map((r) => relative(SRC, r.file))
+    expect(scanned).toContain(join('lib', 'portal', 'setup', 'items.ts'))
+    expect(scanned).toContain(join('lib', 'portal', 'invites', 'outcomes.ts'))
+  })
+
+  it('finds no password wording in any string literal under lib/portal', () => {
+    expect(libLiteralFindings()).toEqual([])
+  })
+
+  it('catches password wording planted in a lib/portal string literal, and leaves code names alone', () => {
+    const tag = `zz-plant-${process.pid}-${Date.now()}`
+    const path = join(PORTAL_LIB, 'setup', `${tag}.ts`)
+    writeFileSync(path, "export const STEP = 'Enter your password below.'\nconst ok = new URL('https://x').password\n", { flag: 'wx' })
+    try {
+      expect(libLiteralFindings().map((f) => [relative(SRC, f.file), f.word])).toEqual([[relative(SRC, path), 'password']])
+    } finally {
+      rmSync(path, { force: true })
+    }
+    expect(libLiteralFindings()).toEqual([])
   })
 })
