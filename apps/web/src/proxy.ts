@@ -125,7 +125,9 @@ export function isPublicPath(pathname: string): boolean {
 // (go-live audit D11: /about, /contact, /terms, /zzz all landed on a Google sign-in wall). The not-found answer is a
 // rewrite made here, so it fails closed: even if a real private route were missed from this list, the visitor would
 // see a 404, never the route. src/__tests__/golive-404-proxy.test.ts scans src/app so a new private root cannot be missed.
-const PROTECTED_ROOTS: ReadonlySet<string> = new Set(['founder', 'api', 'docs', 'preview', 'c']);
+// 'portal' (UNI-3168): owner portal pages. Signed-out owners are sent to sign in. The founder allow-list below still
+// applies to every signed-in user; letting portal owners past it is the portal foundation's job (S1), not this list's.
+const PROTECTED_ROOTS: ReadonlySet<string> = new Set(['founder', 'api', 'docs', 'preview', 'c', 'portal']);
 
 function isProtectedRoot(pathname: string): boolean {
   return PROTECTED_ROOTS.has(pathname.split('/')[1] ?? '');

@@ -89,6 +89,8 @@ export const SMOKE_PATHS = Object.freeze([
   // Private by the proxy: anything not public redirects to the login page.
   { path: '/docs', pattern: '/docs', status: 307, location: LOGIN_PATH, note: 'private' },
   { path: '/preview/knowledge-console', pattern: '/preview/knowledge-console', status: 307, location: LOGIN_PATH, note: 'public only when KNOWLEDGE_CONSOLE_PREVIEW=1' },
+  { path: '/portal/changes', pattern: '/portal/changes', status: 307, location: LOGIN_PATH, note: 'owner portal (UNI-3168): signed-out owners sign in first' },
+  { path: '/portal/setup', pattern: '/portal/setup', status: 307, location: LOGIN_PATH, note: 'owner portal (UNI-3168): signed-out owners sign in first' },
   // Metadata files from the brand pack beside the root layout.
   { path: '/icon.png', pattern: '/icon.png', status: 200 },
   { path: '/apple-icon.png', pattern: '/apple-icon.png', status: 200 },

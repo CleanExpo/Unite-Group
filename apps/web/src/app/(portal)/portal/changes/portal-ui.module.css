@@ -1,0 +1,181 @@
+/* Owner portal pages (/portal/changes, /portal/setup). Public tokens and fonts; layout from marketing-page.module.css. */
+
+.head { max-width: 46rem; }
+
+.eyebrow {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pub-accent);
+}
+
+.title {
+  margin: 0.5rem 0 0;
+  font-family: var(--pub-display);
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--pub-ink);
+}
+
+.lede { margin: 0.75rem 0 0; font-size: 16px; line-height: 1.55; color: var(--pub-ink-soft); }
+
+.promise {
+  margin: 1.25rem 0 0;
+  padding: 0.875rem 1rem;
+  border-left: 3px solid var(--pub-accent);
+  background: var(--pub-accent-soft);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pub-ink);
+}
+
+.panel {
+  margin-top: 2rem;
+  padding: clamp(18px, 3vw, 28px);
+  border: 1px solid var(--pub-line);
+  border-radius: var(--pub-radius-xl);
+  background: var(--pub-surface);
+}
+
+.panelTitle { margin: 0 0 1rem; font-family: var(--pub-display); font-size: 1.2rem; font-weight: 600; color: var(--pub-ink); }
+
+.form { display: grid; gap: 16px; }
+
+.label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: 600; color: var(--pub-ink-soft); }
+.hint { margin: 6px 0 0; font-size: 13px; color: var(--pub-muted); }
+
+.field {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--pub-line-strong);
+  border-radius: var(--pub-radius);
+  background: var(--pub-bg);
+  color: var(--pub-ink);
+  font: inherit;
+  font-size: 15px;
+}
+
+.field:focus-visible, .btn:focus-visible, .btnGhost:focus-visible, .videoLink:focus-visible {
+  outline: 3px solid var(--pub-focus);
+  outline-offset: 2px;
+}
+
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.actionsTop { margin-top: 1rem; }
+
+.btn, .btnGhost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 20px;
+  border: 1px solid var(--pub-accent);
+  border-radius: var(--pub-radius);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn { background: var(--pub-accent); color: var(--pub-accent-ink); }
+.btn:hover { background: var(--pub-accent-strong); border-color: var(--pub-accent-strong); }
+.btnGhost { background: transparent; color: var(--pub-ink); border-color: var(--pub-line-strong); }
+.btnGhost:hover { border-color: var(--pub-accent); }
+.btn:disabled, .btnGhost:disabled { opacity: 0.6; cursor: progress; }
+/* public.module.css colours every `.page a` orange; a link styled as a button keeps the button's own ink. */
+a.btn[href], a.btn[href]:hover { color: var(--pub-accent-ink); text-decoration: none; }
+a.btnGhost[href], a.btnGhost[href]:hover { color: var(--pub-ink); text-decoration: none; }
+
+.ok { margin: 0; font-size: 14px; color: var(--pub-ink); }
+.err { margin: 0; font-size: 14px; color: var(--pub-danger); }
+
+.list { margin: 0; padding: 0; list-style: none; display: grid; gap: 14px; }
+
+.item {
+  padding: 18px;
+  border: 1px solid var(--pub-line);
+  border-radius: var(--pub-radius-lg);
+  background: var(--pub-bg-alt);
+}
+
+.itemWaiting { border-color: var(--pub-accent); }
+
+.itemHead { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: baseline; }
+.itemTitle { margin: 0; font-size: 16px; font-weight: 600; color: var(--pub-ink); }
+.meta { margin: 4px 0 0; font-size: 13px; color: var(--pub-muted); }
+.body { margin: 10px 0 0; font-size: 15px; line-height: 1.5; color: var(--pub-ink-soft); white-space: pre-wrap; }
+
+.chip {
+  display: inline-block;
+  padding: 3px 10px;
+  border: 1px solid var(--pub-line-strong);
+  border-radius: var(--pub-radius);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pub-ink-soft);
+}
+
+.chipActive { border-color: var(--pub-accent); color: var(--pub-accent-strong); }
+
+.empty { margin: 0; font-size: 15px; color: var(--pub-muted); }
+
+.grid { display: grid; gap: 18px; margin-top: 2rem; }
+
+@media (min-width: 900px) {
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: clamp(18px, 3vw, 24px);
+  border: 1px solid var(--pub-line);
+  border-radius: var(--pub-radius-xl);
+  background: var(--pub-surface);
+}
+
+.cardDone { border-color: rgba(236, 123, 65, 0.45); }
+
+.steps { margin: 0; padding-left: 1.25rem; font-size: 15px; line-height: 1.55; color: var(--pub-ink-soft); }
+.steps li + li { margin-top: 4px; }
+
+.videoLink {
+  display: grid;
+  grid-template-columns: 132px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid var(--pub-line);
+  border-radius: var(--pub-radius-lg);
+  color: var(--pub-ink);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.videoLink:hover { border-color: var(--pub-accent); }
+
+.thumb { width: 132px; height: 74px; object-fit: cover; border-radius: var(--pub-radius); display: block; }
+/* On a phone the thumbnail sits above the title, so the title is not squeezed into a narrow column. */
+@media (max-width: 520px) {
+  .videoLink { grid-template-columns: 1fr; }
+  .thumb { width: 100%; height: auto; aspect-ratio: 16 / 9; }
+}
+
+.progressRow { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 1.25rem; }
+/* accent-color alone leaves Chromium's native green bar, so the track and fill are styled directly. */
+.progress {
+  width: min(320px, 100%); height: 10px; appearance: none; border: 0; border-radius: 999px; overflow: hidden;
+  background: var(--pub-line); accent-color: var(--pub-accent);
+}
+.progress::-webkit-progress-bar { background: var(--pub-line); border-radius: 999px; }
+.progress::-webkit-progress-value { background: var(--pub-accent); border-radius: 999px; }
+.progress::-moz-progress-bar { background: var(--pub-accent); border-radius: 999px; }
+.progressText { margin: 0; font-size: 15px; font-weight: 600; color: var(--pub-ink); }
+.next { margin: 0.5rem 0 0; font-size: 15px; color: var(--pub-ink-soft); }
