@@ -5,6 +5,8 @@ import { describe, expect, it } from 'vitest'
 
 import { NO_PASSWORD_LINE } from '@/components/portal/portal-copy'
 
+import { FORBIDDEN } from './portal-forbidden-words'
+
 // The portal promise is "You never give us your password." This test holds the code to it: no file in the portal
 // route group or the portal components may ask an owner for a password or their login details.
 //
@@ -57,8 +59,6 @@ function decode(source: string): string {
   return text.normalize('NFKC').replace(INVISIBLE, '')
 }
 
-// Joined-letter forms of words that ask for a secret sign-in value.
-const FORBIDDEN = ['password', 'passwd', 'passcode', 'passphrase', 'logindetails', 'signindetails', 'logondetails', 'credential']
 
 const ALLOWED = [NO_PASSWORD_LINE, 'NO_PASSWORD_LINE']
 
@@ -88,6 +88,15 @@ function findings(source: string): string[] {
   // (Codex review, 02/11/2026: pass&shy;word got past a decoder that knew only those six.)
   const entity = [source, decoded].join('\n').match(/(?<!&)&(?!&)([A-Za-z][A-Za-z0-9]*);?/g)?.find((m) => !Object.hasOwn(NAMED, m.replace(/^&|;$/g, '')) || !m.endsWith(';'))
   if (entity) out.push(`HTML entity not allowed: ${entity}`)
+
+  // No escape mechanism of any kind, so the bytes in a portal file are the text it shows. Every layer has its own
+  // escapes (JS w, CSS \77, numeric &#119;), and a decoder that knows some of them will miss the next one.
+  // (Codex review, 02/11/2026: CSS content "pass\77 ord" got past a decoder that knew HTML and JS escapes.)
+  if (source.includes('\\')) out.push('backslash escape')
+  if (/&#/.test(source)) out.push('numeric HTML entity')
+  // CSS generated text is not in the rendered HTML, so the rendered check cannot see it: no letters in content.
+  const generated = source.match(/(?<![-\w])content\s*:[^;}]*/gi)?.find((m) => /[A-Za-z]/.test(m.replace(/^content\s*:/i, '')))
+  if (generated) out.push(`CSS generated text: ${generated.trim()}`)
 
   if (/\b(?:atob|btoa|fromCharCode|fromCodePoint|decodeURI(?:Component)?|unescape|TextDecoder)\b|Buffer\s*\.\s*from/.test(text)) {
     out.push('string-decoding helper')
@@ -143,6 +152,10 @@ const SAMPLES: [string, string][] = [
   ['base64', "const s = atob('cGFzc3dvcmQ=')"],
   ['char codes', 'const s = String.fromCharCode(112, 97, 115, 115)'],
   ['CSS content', ".x::before { content: 'Password' }"],
+  ['CSS escape in content', '.x::after { content: "Enter your Google pass\\77 ord" }'],
+  ['CSS escape in a selector', '.pass\\77 ord { color: red }'],
+  ['CSS attr text', '.x::after { content: attr(data-hint) }'],
+  ['backslash in a string', "const s = 'pass\\word'"],
   ['zero-width space', `<p>pass${ch(0x200b)}word</p>`],
   ['Cyrillic a', `<p>p${ch(0x430)}ssword</p>`],
   ['full-width letters', `<p>${'password'.split('').map((c) => ch(c.charCodeAt(0) + 0xfee0)).join('')}</p>`],
@@ -167,7 +180,7 @@ describe('the portal never asks for a password', () => {
     expect(findings(`export const NO_PASSWORD_LINE = "${NO_PASSWORD_LINE}"`)).toEqual([])
     expect(findings('<p>{NO_PASSWORD_LINE}</p>')).toEqual([])
     expect(findings('<p>You never give us your password.</p>').length).toBeGreaterThan(0)
-    expect(findings('/* —— Brand bar —— */ .a { content: “ok” }')).toEqual([])
+    expect(findings('/* —— Brand bar —— */ .a { justify-content: space-between } .b::after { content: "" }')).toEqual([])
     expect(findings('{a && b ? <p>Tom &amp; Sam&apos;s&nbsp;shop</p> : null}')).toEqual([])
   })
 
@@ -180,7 +193,7 @@ describe('the portal never asks for a password', () => {
     // A unique name per run, and 'wx' refuses to overwrite: a plant must never replace or delete a real file.
     const tag = `zz-plant-${process.pid}-${Date.now()}`
     SAMPLES.forEach(([name, body], index) => {
-      const path = join(root, `${tag}-${index}.${name === 'CSS content' ? 'css' : 'tsx'}`)
+      const path = join(root, `${tag}-${index}.${name.startsWith('CSS') ? 'css' : 'tsx'}`)
       writeFileSync(path, `${body}\n`, { flag: 'wx' })
       try {
         const hit = scanRoots().find((r) => r.file === path)
