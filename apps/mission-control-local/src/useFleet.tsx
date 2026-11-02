@@ -2,6 +2,7 @@
 // scheduling the next, so a slow server never builds up a pile of requests.
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
+import { readFleet } from '../shared/fleet-poll.ts';
 import type { FleetSnapshot } from '../shared/types.ts';
 import { signIn } from './session.ts';
 
@@ -26,17 +27,11 @@ export function FleetProvider({ children }: { children: ReactNode }) {
     let live = true;
     let timer: ReturnType<typeof setTimeout>;
     const tick = async () => {
-      let next: FleetState = { kind: 'server-unreachable' };
-      try {
-        const res = await fetch('/api/fleet', { cache: 'no-store' });
-        if (res.status === 401) {
-          // Leaves for the login page, unless this window holds an unsaved layout change.
-          if (signIn.signedOut()) return;
-          next = { kind: 'signed-out' };
-        } else if (res.ok) next = { kind: 'snapshot', snapshot: (await res.json()) as FleetSnapshot };
-      } catch {
-        // Stays server-unreachable, which the widgets show as its own state.
-      }
+      // Settles within FLEET_TIMEOUT_MS. A hung or failed read is server-unreachable,
+      // which the widgets show as its own state, never as the last good snapshot.
+      const next: FleetState = await readFleet((url, init) => fetch(url, init));
+      // Leaves for the login page, unless this window holds an unsaved layout change.
+      if (next.kind === 'signed-out' && signIn.signedOut()) return;
       if (!live) return;
       setState(next);
       timer = setTimeout(tick, POLL_MS);

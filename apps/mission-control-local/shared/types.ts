@@ -17,25 +17,49 @@ export interface RepoView {
   headSha: string | null;
 }
 
+/** The job the broker shows as claimed (status running) by one machine. */
+export interface ClaimedJobView {
+  id: string;
+  type: string;
+  /** Time since the machine claimed it, or null when the broker gave no claim time. */
+  claimedAgeMs: number | null;
+}
+
 export interface MachineView {
   id: string;
-  state: string;
+  /**
+   * The broker's word (idle, working) only while the heartbeat is fresh. Null when
+   * health is not online, because then the broker is repeating an old report.
+   */
+  state: string | null;
   health: MachineHealth;
+  /** Null when the broker gave no heartbeat time, or one that is in the future. */
   lastSeenAt: number | null;
   ageMs: number | null;
+  /** Newest job claimed by this machine, chosen from every job, not only the ones shown. */
+  currentJob: ClaimedJobView | null;
+  /** How many jobs the broker shows as claimed by this machine. More than 1 is not normal. */
+  claimedJobs: number;
   capabilities: { name: string; enabled: boolean }[];
   repos: RepoView[];
   /** Present only when the operator opted in with MC_SHOW_TAILSCALE_IP=1. */
   tailscaleIp?: string;
 }
 
+/** queued = pending, claimed = running, done = completed, failed or blocked. */
+export type JobPhase = 'queued' | 'claimed' | 'done' | 'unknown';
+export const JOB_PHASES: readonly JobPhase[] = ['queued', 'claimed', 'done', 'unknown'];
+
 export interface JobView {
   id: string;
   type: string;
   status: string;
+  phase: JobPhase;
   machineId: string | null;
   createdAt: number | null;
   ageMs: number | null;
+  /** Time in the current phase: since created, claimed or completed. Null when the broker gave no time. */
+  phaseAgeMs: number | null;
 }
 
 export type BrokerFailure = 'unreachable' | 'timeout' | 'bad-status' | 'bad-payload' | 'too-large';
@@ -49,6 +73,8 @@ export type FleetSnapshot =
       machines: MachineView[];
       jobs: JobView[];
       jobsTotal: number;
+      /** Counted over every job, not only the newest ones sent. */
+      jobCounts: Record<JobPhase, number>;
     }
   | {
       status: 'down';

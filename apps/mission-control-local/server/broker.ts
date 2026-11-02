@@ -69,7 +69,12 @@ async function readFixture(path: string, now: number): Promise<unknown> {
   return {
     ...parsed,
     machines: parsed.machines.map((m) => ({ ...m, lastSeen: moved(m.lastSeen) })),
-    jobs: parsed.jobs.map((j) => ({ ...j, createdAt: moved(j.createdAt) })),
+    jobs: parsed.jobs.map((j) => ({
+      ...j,
+      createdAt: moved(j.createdAt),
+      claimedAt: moved(j.claimedAt),
+      completedAt: moved(j.completedAt),
+    })),
   };
 }
 

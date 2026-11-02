@@ -46,6 +46,14 @@ The bind address has no setting.
 
 A machine shows stale after 45 seconds without a heartbeat, matching the broker's own freshness window, and offline after 5 minutes. A failed broker read shows "Broker down" on every fleet widget, never an empty list.
 
+The age decides, not the broker. The broker keeps the last state word a machine sent, so a machine that went off while idle still reads "idle" in `/status`. This server sends that word to the browser only while the heartbeat is under 45 seconds old. A stale, offline or silent machine never shows Online, idle or working. A heartbeat time more than 5 seconds in the future counts as no heartbeat, because it would otherwise read as fresh. `shared/machine-card.ts` decides every word a machine card shows, and the tests check those words.
+
+Each machine card shows its current job: the job the broker shows as claimed (status `running`) by that machine. It is chosen from every job, not only the 50 newest that the queue shows. When the machine has no fresh heartbeat, the card labels that job "not confirmed running".
+
+The job queue shows each job's phase and how long it has been in it. Queued is `pending`, timed from creation. Claimed is `running`, timed from `claimedAt`. Done is `completed`, `failed` or `blocked`, timed from `completedAt`. A blocked job has no completion time, so its time shows as unknown. The counts above the table cover every job. Lease times, attempt counts and block reasons stay on the server.
+
+Each browser read of `/api/fleet` gives up after 8 seconds. A server that stops answering then shows "Mission Control server is not answering", not the last reading frozen on screen.
+
 ## Add a widget
 
 1. Add a row to `WIDGET_CATALOGUE` in `shared/widget-catalogue.ts`.
