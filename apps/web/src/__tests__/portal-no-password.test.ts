@@ -47,7 +47,7 @@ function decode(source: string): string {
     const next = text
       .replace(/&#x([0-9a-f]+);?/gi, (_m, hex: string) => codePoint(parseInt(hex, 16)))
       .replace(/&#(\d+);?/g, (_m, dec: string) => codePoint(Number(dec)))
-      .replace(/&([a-z]+);/gi, (m, name: string) => NAMED[name.toLowerCase()] ?? m)
+      .replace(/&([a-z]+);/gi, (m, name: string) => (Object.hasOwn(NAMED, name) ? NAMED[name] : m))
       .replace(/\\u\{([0-9a-f]+)\}/gi, (_m, hex: string) => codePoint(parseInt(hex, 16)))
       .replace(/\\u([0-9a-f]{4})/gi, (_m, hex: string) => codePoint(parseInt(hex, 16)))
       .replace(/\\x([0-9a-f]{2})/gi, (_m, hex: string) => codePoint(parseInt(hex, 16)))
@@ -82,6 +82,12 @@ function findings(source: string): string[] {
     else if (streams.some((s) => [...s].reverse().join('').includes(word))) out.push(`password wording, reversed: ${word}`)
   }
   if (/\bpwd\b/i.test(text)) out.push('password wording: pwd')
+
+  // HTML has over 2,000 named entities, several of them invisible (&shy;, &ZeroWidthSpace;, &NoBreak;), and some
+  // still render without the semicolon. Rather than decode every one, portal source may use only the six above.
+  // (Codex review, 02/11/2026: pass&shy;word got past a decoder that knew only those six.)
+  const entity = [source, decoded].join('\n').match(/(?<!&)&(?!&)([A-Za-z][A-Za-z0-9]*);?/g)?.find((m) => !Object.hasOwn(NAMED, m.replace(/^&|;$/g, '')) || !m.endsWith(';'))
+  if (entity) out.push(`HTML entity not allowed: ${entity}`)
 
   if (/\b(?:atob|btoa|fromCharCode|fromCodePoint|decodeURI(?:Component)?|unescape|TextDecoder)\b|Buffer\s*\.\s*from/.test(text)) {
     out.push('string-decoding helper')
@@ -120,7 +126,14 @@ const SAMPLES: [string, string][] = [
   ['hex entity', '<p>Enter your pass&#x77;ord</p>'],
   ['nested entity', '<p>Enter your pass&amp;#119;ord</p>'],
   ['entity look-alike letter', '<p>Enter your p&#1072;ssword</p>'],
-  ['JS escape', "const s = 'pass\\u0077ord'"],
+  ['soft-hyphen entity', '<p>Enter your Google pass&shy;word to continue.</p>'],
+  ['soft hyphen, no semicolon', '<p>Enter your pass&shyword</p>'],
+  ['zero-width entity', '<p>Enter your pass&ZeroWidthSpace;word</p>'],
+  ['joiner entity', '<p>Enter your pass&zwj;word</p>'],
+  ['no-break entity', '<p>Enter your pass&NoBreak;word</p>'],
+  ['prototype-name entity', '<p>pass&constructor;word</p>'],
+  ['nested named entity', '<p>Enter your pass&amp;shy;word</p>'],
+  ['JS escape',"const s = 'pass\\u0077ord'"],
   ['JS brace escape', "const s = 'pass\\u{77}ord'"],
   ['JS hex escape', "const s = 'pass\\x77ord'"],
   ['JSX split', "<p>pass{''}word</p>"],
@@ -155,6 +168,7 @@ describe('the portal never asks for a password', () => {
     expect(findings('<p>{NO_PASSWORD_LINE}</p>')).toEqual([])
     expect(findings('<p>You never give us your password.</p>').length).toBeGreaterThan(0)
     expect(findings('/* —— Brand bar —— */ .a { content: “ok” }')).toEqual([])
+    expect(findings('{a && b ? <p>Tom &amp; Sam&apos;s&nbsp;shop</p> : null}')).toEqual([])
   })
 
   it.each(SAMPLES)('catches %s', (_name, sample) => {
