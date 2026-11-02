@@ -15,6 +15,7 @@ import { BIND_HOST, createApp, listen } from './app.ts';
 import { createAuth, loadPasscode, LOCKOUT_MS, MAX_FAILURES, PasscodeConfigError, readCookie } from './auth.ts';
 import { readConfig } from './config.ts';
 import { createLayoutStore } from './layouts.ts';
+import { LOOPBACK, memoryConnection, NEEDS_SOCKET } from './test-transport.ts';
 
 const PASSCODE = 'test-only-passcode';
 const APP_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -49,8 +50,9 @@ function send(
   return new Promise((resolve, reject) => {
     const req = request(
       {
-        host: '127.0.0.1',
-        port,
+        ...(LOOPBACK
+          ? { host: '127.0.0.1', port }
+          : { createConnection: () => memoryConnection(server) }),
         method,
         path,
         headers: {
@@ -79,8 +81,12 @@ before(async () => {
     fleet: async () => fleetReply,
     clientDir,
   });
-  await listen(server, 0);
-  port = (server.address() as AddressInfo).port;
+  if (LOOPBACK) {
+    await listen(server, 0);
+    port = (server.address() as AddressInfo).port;
+  } else {
+    port = 0; // An in-memory stream has no local port, and the app reads it as 0.
+  }
   const login = await send('POST', '/login', { body: `passcode=${PASSCODE}` });
   assert.equal(login.status, 303);
   cookie = String(login.headers['set-cookie']).split(';')[0] ?? '';
@@ -91,7 +97,12 @@ after(async () => {
   await new Promise((resolve) => server.close(resolve));
 });
 
-test('the server is bound to 127.0.0.1 and nothing else', async () => {
+test('socket tests skip only when sockets were refused, and never in CI', () => {
+  assert.equal(Boolean(NEEDS_SOCKET), !LOOPBACK);
+  if (process.env.CI) assert.equal(LOOPBACK, true);
+});
+
+test('the server is bound to 127.0.0.1 and nothing else', { skip: NEEDS_SOCKET }, async () => {
   assert.equal(BIND_HOST, '127.0.0.1');
   assert.deepEqual(server.address(), { address: '127.0.0.1', family: 'IPv4', port });
   // Behaviour, not just the reported address: other interfaces on this host refuse.
@@ -354,7 +365,7 @@ test('loadPasscode fails closed on missing, short and open-permission sources', 
   assert.equal(loadPasscode({}, dir), PASSCODE);
 });
 
-test('the real entry point refuses to start with no passcode, and does not print one when set', async () => {
+test('the real entry point refuses to start with no passcode, and does not print one when set', { skip: NEEDS_SOCKET }, async () => {
   const run = (env: NodeJS.ProcessEnv) =>
     new Promise<{ code: number | null; output: string }>((resolve) => {
       const child = spawn(process.execPath, [join(APP_ROOT, 'server', 'main.ts')], {

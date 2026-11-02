@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { BROKER_HOST, BROKER_PATH, BROKER_PORT, createFleetSource } from './broker.ts';
 import { healthFor, MAX_JOBS, OFFLINE_AFTER_MS, STALE_AFTER_MS, toFleetView } from './fleet.ts';
 import { redactDeep, redactText } from './redact.ts';
+import { NEEDS_SOCKET } from './test-transport.ts';
 
 const FIXTURE_PATH = fileURLToPath(new URL('../fixtures/status.json', import.meta.url));
 const fixture = JSON.parse(readFileSync(FIXTURE_PATH, 'utf8'));
@@ -148,7 +149,7 @@ test('an opted-in tailscaleIp that is not a bare IP is dropped', () => {
   assert.ok(!JSON.stringify(view).includes('illustrative-value'));
 });
 
-test('a malformed record reads as a failed broker, through to the snapshot', async () => {
+test('a malformed record reads as a failed broker, through to the snapshot', { skip: NEEDS_SOCKET }, async () => {
   await withBroker(
     (_url, res) => res.end('{"machines":[null],"jobs":[null]}'),
     async (brokerPort) => {
@@ -206,7 +207,7 @@ async function withBroker(
   }
 }
 
-test('the proxy only ever sends GET /status, and repeat reads inside the cache cost nothing', async () => {
+test('the proxy only ever sends GET /status, and repeat reads inside the cache cost nothing', { skip: NEEDS_SOCKET }, async () => {
   await withBroker(
     (_url, res) => res.end(JSON.stringify(fixture)),
     async (brokerPort, calls) => {
@@ -224,7 +225,7 @@ test('the proxy only ever sends GET /status, and repeat reads inside the cache c
   );
 });
 
-test('concurrent reads share one broker request', async () => {
+test('concurrent reads share one broker request', { skip: NEEDS_SOCKET }, async () => {
   await withBroker(
     (_url, res) => res.end(JSON.stringify(fixture)),
     async (brokerPort, calls) => {
@@ -235,7 +236,7 @@ test('concurrent reads share one broker request', async () => {
   );
 });
 
-test('each broker failure is reported by class and holds no broker text', async () => {
+test('each broker failure is reported by class and holds no broker text', { skip: NEEDS_SOCKET }, async () => {
   const cases: [(res: import('node:http').ServerResponse) => void, string][] = [
     [(res) => { res.statusCode = 500; res.end('internal detail'); }, 'bad-status'],
     [(res) => res.end('internal detail, not json'), 'bad-payload'],
@@ -255,7 +256,7 @@ test('each broker failure is reported by class and holds no broker text', async 
   }
 });
 
-test('broker down is a down snapshot, and lastGoodAt survives the fall', async () => {
+test('broker down is a down snapshot, and lastGoodAt survives the fall', { skip: NEEDS_SOCKET }, async () => {
   let clock = NOW;
   let read: ReturnType<typeof createFleetSource> | undefined;
   await withBroker(
@@ -273,7 +274,7 @@ test('broker down is a down snapshot, and lastGoodAt survives the fall', async (
   assert.equal(snapshot.status === 'down' && snapshot.lastGoodAt, NOW);
 });
 
-test('a dead broker with no history reports no last good reading', async () => {
+test('a dead broker with no history reports no last good reading', { skip: NEEDS_SOCKET }, async () => {
   const server = createServer();
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   const brokerPort = (server.address() as AddressInfo).port;
