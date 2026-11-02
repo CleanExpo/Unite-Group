@@ -40,6 +40,15 @@ export const DEFAULT_LAYOUTS: Record<ScreenId, readonly LayoutItem[]> = {
   ],
 };
 
+/**
+ * What the Add menu offers. Empty until the saved layout has loaded: the first
+ * change writes the whole screen, so editing an unread layout would overwrite it.
+ */
+export function addableWidgets(loaded: boolean, items: readonly LayoutItem[]) {
+  if (!loaded) return [];
+  return WIDGET_CATALOGUE.filter((w) => !items.some((box) => box.i === w.id));
+}
+
 /** Returns the valid layout, or null. Rejects unknown widgets, duplicates and off-grid boxes. */
 export function parseLayoutItems(value: unknown): LayoutItem[] | null {
   if (!Array.isArray(value) || value.length > WIDGET_CATALOGUE.length) return null;

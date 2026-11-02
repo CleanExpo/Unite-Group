@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { formatAge } from './format.ts';
 import { createLatestWins } from './latest-wins.ts';
-import { DEFAULT_LAYOUTS, GRID_COLS, parseLayoutItems } from './widget-catalogue.ts';
+import { addableWidgets, DEFAULT_LAYOUTS, GRID_COLS, parseLayoutItems, WIDGET_CATALOGUE } from './widget-catalogue.ts';
 
 function harness() {
   const calls: string[] = [];
@@ -86,6 +86,14 @@ test('parseLayoutItems refuses bad layouts', () => {
   assert.equal(parseLayoutItems([{ ...box, x: GRID_COLS }]), null);
   assert.equal(parseLayoutItems([{ ...box, w: 1.5 }]), null);
   assert.equal(parseLayoutItems([{ ...box, h: 0 }]), null);
+});
+
+test('nothing can be added until the saved layout has loaded', () => {
+  assert.deepEqual(addableWidgets(false, []), []);
+  const onScreen = [{ i: 'clock', x: 0, y: 0, w: 2, h: 2 }];
+  const offered = addableWidgets(true, onScreen).map((w) => w.id as string);
+  assert.equal(offered.length, WIDGET_CATALOGUE.length - 1);
+  assert.ok(!offered.includes('clock'));
 });
 
 test('parseLayoutItems drops extra fields', () => {

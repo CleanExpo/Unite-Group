@@ -25,7 +25,6 @@ export function MachineWidget({ machineId }: { machineId: MachineId }) {
               <span className={styles.muted}>{machine.state}</span>
               <span className={styles.push}>seen {formatAge(machine.ageMs)}</span>
             </div>
-            <div className={styles.muted}>{machine.label}</div>
             {machine.tailscaleIp ? <div className={styles.muted}>{machine.tailscaleIp}</div> : null}
             <ul className={styles.chips} aria-label="Capabilities">
               {machine.capabilities.map((c) => (

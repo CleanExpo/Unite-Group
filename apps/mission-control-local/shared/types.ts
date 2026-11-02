@@ -19,7 +19,6 @@ export interface RepoView {
 
 export interface MachineView {
   id: string;
-  label: string;
   state: string;
   health: MachineHealth;
   lastSeenAt: number | null;

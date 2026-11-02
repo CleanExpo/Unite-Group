@@ -60,18 +60,53 @@ test('tailscaleIp appears only on opt-in', () => {
   assert.equal(toFleetView(fixture, NOW, { showTailscaleIp: true })?.machines[0]?.tailscaleIp, '100.64.0.1');
 });
 
-test('secret-shaped text in a passed-through field is scrubbed', () => {
-  const planted = 's' + 'k-' + 'x'.repeat(24);
+test('a broker value that is not a short name never reaches the browser, whatever its format', () => {
+  // A long token no scrubber rule knows, in every field the broker names.
+  const planted = 'Unknownprefix' + 'x'.repeat(30);
+  const spaced = 'run 10.1.2.3';
+  for (const bad of [planted, spaced]) {
+    const view = toFleetView(
+      {
+        machines: [
+          {
+            machineId: 'mac-mini',
+            label: bad,
+            state: bad,
+            capabilities: { [bad]: true, claude: true },
+            repos: { [bad]: { available: true }, 'unite-group': { available: true } },
+          },
+        ],
+        jobs: [{ id: bad, machineId: bad, type: bad, status: bad }],
+      },
+      NOW,
+    );
+    assert.ok(!JSON.stringify(view).includes(bad), bad);
+    assert.equal(view?.machines[0]?.state, 'unknown');
+    assert.deepEqual(view?.machines[0]?.capabilities, [{ name: 'claude', enabled: true }]);
+    assert.deepEqual(view?.machines[0]?.repos.map((r) => r.name), ['unite-group']);
+    assert.deepEqual(view?.jobs[0], { id: 'unknown', type: 'unknown', status: 'unknown', machineId: null, createdAt: null, ageMs: null });
+  }
+});
+
+test('real broker names pass the name rule unchanged', () => {
   const view = toFleetView(
     {
-      machines: [{ machineId: 'mac-mini', label: `box ${planted} 10.1.2.3`, state: 'idle' }],
-      jobs: [{ id: 'j1', type: `run ${planted}`, status: 'queued' }],
+      machines: [{ machineId: 'mac-mini', state: 'idle', capabilities: { workspaceGuard: true }, repos: { 'pi-dev-ops': { available: true } } }],
+      jobs: [{ id: 'cbeaca5e-e8ec-4ff6-a292-9aaa3a2ade51', machineId: 'macbook-pro', type: 'probe', status: 'completed' }],
     },
     NOW,
   );
+  assert.equal(view?.machines[0]?.state, 'idle');
+  assert.equal(view?.machines[0]?.capabilities[0]?.name, 'workspaceGuard');
+  assert.equal(view?.machines[0]?.repos[0]?.name, 'pi-dev-ops');
+  assert.deepEqual(view?.jobs[0], { id: 'cbeaca5e', machineId: 'macbook-pro', type: 'probe', status: 'completed', createdAt: null, ageMs: null });
+});
+
+test('a secret-shaped short name is still scrubbed by the second layer', () => {
+  const planted = 's' + 'k-' + 'x'.repeat(16);
+  const view = toFleetView({ machines: [], jobs: [{ id: 'abc', type: planted, status: 'queued' }] }, NOW);
   const out = JSON.stringify(view);
   assert.ok(!out.includes(planted));
-  assert.ok(!out.includes('10.1.2.3'));
   assert.ok(out.includes('[secret]'));
 });
 
@@ -91,11 +126,11 @@ test('redaction covers each rule and leaves plain words alone', () => {
 });
 
 test('jobs come newest first and are capped, with the true total kept', () => {
-  const jobs = Array.from({ length: MAX_JOBS + 5 }, (_, n) => ({ id: `job-${n}`, createdAt: 1000 + n }));
+  const jobs = Array.from({ length: MAX_JOBS + 5 }, (_, n) => ({ id: `${n}`.padStart(8, '0'), createdAt: 1000 + n }));
   const view = toFleetView({ machines: [], jobs }, NOW);
   assert.equal(view?.jobs.length, MAX_JOBS);
   assert.equal(view?.jobsTotal, MAX_JOBS + 5);
-  assert.equal(view?.jobs[0]?.id, `job-${MAX_JOBS + 4}`.slice(0, 8));
+  assert.equal(view?.jobs[0]?.id, `${MAX_JOBS + 4}`.padStart(8, '0'));
 });
 
 test('an opted-in tailscaleIp that is not a bare IP is dropped', () => {

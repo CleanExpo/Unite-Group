@@ -30,7 +30,7 @@ The bind address has no setting.
 
 ## Fleet data
 
-`server/broker.ts` is the only code that talks to the broker, and it sends one request: `GET http://127.0.0.1:42137/status`. `server/fleet.ts` copies named fields into the view in `shared/types.ts`, so hostnames, paths, refs and job results stay on the server, and anything new the broker adds stays out until someone adds it. `server/redact.ts` then scrubs the text that remains.
+`server/broker.ts` is the only code that talks to the broker, and it sends one request: `GET http://127.0.0.1:42137/status`. `server/fleet.ts` copies named fields into the view in `shared/types.ts`, so hostnames, paths, refs and job results stay on the server, and anything new the broker adds stays out until someone adds it. Names the broker supplies (state, job type, repo, capability) must be short plain words or they are dropped, and `server/redact.ts` then scrubs what remains.
 
 A machine shows stale after 60 seconds without a heartbeat and offline after 5 minutes. A failed broker read shows "Broker down" on every fleet widget, never an empty list.
 

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import ReactGridLayout, { useContainerWidth } from 'react-grid-layout';
 import { createLatestWins } from '../shared/latest-wins.ts';
 import type { LayoutItem, LayoutResponse, ScreenId } from '../shared/types.ts';
-import { GRID_COLS, WIDGET_CATALOGUE } from '../shared/widget-catalogue.ts';
+import { addableWidgets, GRID_COLS, WIDGET_CATALOGUE } from '../shared/widget-catalogue.ts';
 import type { WidgetId } from '../shared/widget-catalogue.ts';
 import { WIDGET_COMPONENTS } from './registry.tsx';
 import { useFleet } from './useFleet.tsx';
@@ -109,7 +109,8 @@ export function Screen({ screen }: { screen: ScreenId }) {
 
   const remove = (id: string) => save(items.filter((box) => box.i !== id));
 
-  const available = WIDGET_CATALOGUE.filter((w) => !items.some((box) => box.i === w.id));
+  const loaded = load === 'ready';
+  const available = addableWidgets(loaded, items);
   const other = screen === '1' ? '2' : '1';
   const onStop = (layout: readonly GridBox[]) => save(plain(layout));
 
@@ -129,7 +130,9 @@ export function Screen({ screen }: { screen: ScreenId }) {
             disabled={available.length === 0}
             onChange={(event) => add(event.target.value)}
           >
-            <option value="">{available.length === 0 ? 'All on screen' : 'Choose'}</option>
+            <option value="">
+              {!loaded ? 'Layout not loaded' : available.length === 0 ? 'All on screen' : 'Choose'}
+            </option>
             {available.map((w) => (
               <option key={w.id} value={w.id}>
                 {w.title}
@@ -137,7 +140,7 @@ export function Screen({ screen }: { screen: ScreenId }) {
             ))}
           </select>
         </label>
-        <button type="button" className={styles.button} onClick={reset}>
+        <button type="button" className={styles.button} onClick={reset} disabled={!loaded}>
           Reset to default
         </button>
         <a className={styles.button} href={`/screen/${other}`}>

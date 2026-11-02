@@ -12,7 +12,12 @@ export const MAX_JOBS = 50;
 type Dict = Record<string, unknown>;
 
 const isDict = (v: unknown): v is Dict => typeof v === 'object' && v !== null && !Array.isArray(v);
-const text = (v: unknown, fallback: string): string => (typeof v === 'string' && v ? v : fallback);
+// Everything the broker names (state, type, repo, capability) is a short word. Holding
+// those fields to that shape is what keeps a stray value out; the scrubber only backs it up.
+const SAFE_NAME = /^[A-Za-z][A-Za-z0-9_-]{0,23}$/;
+const JOB_ID = /^[0-9a-f-]{1,36}$/i;
+const isSafeName = (v: unknown): v is string => typeof v === 'string' && SAFE_NAME.test(v);
+const text = (v: unknown, fallback: string): string => (isSafeName(v) ? v : fallback);
 const time = (v: unknown): number | null =>
   typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : null;
 const age = (at: number | null, now: number): number | null =>
@@ -30,7 +35,7 @@ function shortSha(v: unknown): string | null {
 
 function repoViews(v: unknown): RepoView[] {
   if (!isDict(v)) return [];
-  return Object.entries(v).map(([name, repo]) => ({
+  return Object.entries(v).filter(([name]) => isSafeName(name)).map(([name, repo]) => ({
     name,
     available: isDict(repo) && repo.available === true,
     headSha: isDict(repo) ? shortSha(repo.headSha) : null,
@@ -42,13 +47,14 @@ function machineView(raw: Dict, now: number, showIp: boolean): MachineView {
   const ageMs = age(lastSeenAt, now);
   const view: MachineView = {
     id: text(raw.machineId, 'unknown'),
-    label: text(raw.label, text(raw.machineId, 'unknown')),
     state: text(raw.state, 'unknown'),
     health: healthFor(ageMs),
     lastSeenAt,
     ageMs,
     capabilities: isDict(raw.capabilities)
-      ? Object.entries(raw.capabilities).map(([name, on]) => ({ name, enabled: on === true }))
+      ? Object.entries(raw.capabilities)
+          .filter(([name]) => isSafeName(name))
+          .map(([name, on]) => ({ name, enabled: on === true }))
       : [],
     repos: repoViews(raw.repos),
   };
@@ -62,10 +68,10 @@ function machineView(raw: Dict, now: number, showIp: boolean): MachineView {
 function jobView(raw: Dict, now: number): JobView {
   const createdAt = time(raw.createdAt);
   return {
-    id: text(raw.id, 'unknown').slice(0, 8),
+    id: typeof raw.id === 'string' && JOB_ID.test(raw.id) ? raw.id.slice(0, 8) : 'unknown',
     type: text(raw.type, 'unknown'),
     status: text(raw.status, 'unknown'),
-    machineId: typeof raw.machineId === 'string' ? raw.machineId : null,
+    machineId: isSafeName(raw.machineId) ? raw.machineId : null,
     createdAt,
     ageMs: age(createdAt, now),
   };
