@@ -95,6 +95,60 @@ describe('a Business Pack order', () => {
     expect(mails()).toHaveLength(1)
   })
 
+  it('leaves a link being emailed alone: an overlapping retry throws and the first link stays the working one', async () => {
+    store.tables.card_orders.push(order({}))
+    let release: (v: string) => void = () => {}
+    sendEmail.mockImplementationOnce(() => new Promise<string>((r) => { release = r }))
+    const first = provisionCardOrder(store.admin, 'cs_test_1')
+    await vi.waitFor(() => expect(sendEmail).toHaveBeenCalledTimes(1))
+    await expect(provisionCardOrder(store.admin, 'cs_test_1')).rejects.toThrow('in progress')
+    release('msg-1')
+    expect(await first).toBe('account_created')
+    const raw = /cards\/manage#k=([A-Za-z0-9_-]{43})/.exec(mails()[0].text)?.[1] as string
+    expect(store.tables.card_business_accounts[0].owner_token_hash).toBe(hashCardToken(raw))
+    expect(mails()).toHaveLength(1)
+  })
+
+  it('takes over a claim left by a dead request once its lease is out', async () => {
+    store.tables.card_orders.push(order({}))
+    store.tables.card_business_accounts.push({ id: 'a', order_id: 'order-1', founder_id: 'f', owner_token_hash: 'old', owner_link_claimed_at: new Date(Date.now() - 11 * 60 * 1000).toISOString() })
+    expect(await provisionCardOrder(store.admin, 'cs_test_1')).toBe('account_link_replaced')
+    expect(store.tables.card_business_accounts[0].owner_token_hash).not.toBe('old')
+  })
+
+  it('waits while a claim is just inside its lease', async () => {
+    store.tables.card_orders.push(order({}))
+    store.tables.card_business_accounts.push({ id: 'a', order_id: 'order-1', founder_id: 'f', owner_token_hash: 'old', owner_link_claimed_at: new Date(Date.now() - 9 * 60 * 1000).toISOString() })
+    await expect(provisionCardOrder(store.admin, 'cs_test_1')).rejects.toThrow('in progress')
+    expect(store.tables.card_business_accounts[0].owner_token_hash).toBe('old')
+  })
+
+  it('does not let a request whose claim was taken over mark its link as sent', async () => {
+    store.tables.card_orders.push(order({}))
+    let release: (v: string) => void = () => {}
+    sendEmail.mockImplementationOnce(() => new Promise<string>((r) => { release = r }))
+    const first = provisionCardOrder(store.admin, 'cs_test_1')
+    await vi.waitFor(() => expect(sendEmail).toHaveBeenCalledTimes(1))
+    store.tables.card_business_accounts[0].owner_link_claimed_at = new Date(Date.now() - 11 * 60 * 1000).toISOString()
+    sendEmail.mockImplementationOnce(async () => { throw new Error('mail down') })
+    await expect(provisionCardOrder(store.admin, 'cs_test_1')).rejects.toThrow('link email failed')
+    release('msg-1')
+    await first
+    expect(store.tables.card_business_accounts[0].owner_link_sent_at).toBeUndefined()
+  })
+
+  it('throws when the sent mark fails, and a later retry sends a newer link that works', async () => {
+    store.tables.card_orders.push(order({}))
+    store.failPatch.key = 'owner_link_sent_at'
+    await expect(provisionCardOrder(store.admin, 'cs_test_1')).rejects.toThrow('mark failed')
+    store.failPatch.key = null
+    store.tables.card_business_accounts[0].owner_link_claimed_at = new Date(Date.now() - 11 * 60 * 1000).toISOString()
+    expect(await provisionCardOrder(store.admin, 'cs_test_1')).toBe('account_link_replaced')
+    const raw = /cards\/manage#k=([A-Za-z0-9_-]{43})/.exec(mails().at(-1)?.text as string)?.[1] as string
+    expect(store.tables.card_business_accounts[0].owner_token_hash).toBe(hashCardToken(raw))
+    expect(store.tables.card_business_accounts[0].owner_link_sent_at).toEqual(expect.any(String))
+  })
+
   it('never replaces a link that was delivered', async () => {
     store.tables.card_orders.push(order({}))
     await provisionCardOrder(store.admin, 'cs_test_1')

@@ -15,6 +15,7 @@ export function makeStore() {
     card_staff_cards: [],
   }
   const failReads = { on: false }
+  const failPatch = { key: null as string | null }
   const client = {
     from(name: string) {
       const rows = tables[name]
@@ -26,6 +27,7 @@ export function makeStore() {
         if (failReads.on) return { data: null, error: { message: 'read failed' } }
         const hit = match()
         if (patch) {
+          if (failPatch.key && failPatch.key in patch) return { data: null, error: { message: 'update failed' } }
           for (const r of hit) {
             if (r.status === 'deactivated') return { data: null, error: { message: 'card_staff_card_deactivated' } }
             Object.assign(r, patch)
@@ -85,7 +87,7 @@ export function makeStore() {
       throw new Error(`unexpected rpc ${fn}`)
     },
   }
-  return { tables, failReads, admin: client as unknown as Admin, reader: client as never }
+  return { tables, failReads, failPatch, admin: client as unknown as Admin, reader: client as never }
 }
 
 export const OWNER_A = token('ownerA')

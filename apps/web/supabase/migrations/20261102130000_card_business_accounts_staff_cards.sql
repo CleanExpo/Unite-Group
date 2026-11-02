@@ -31,6 +31,8 @@ create table if not exists public.card_business_accounts (
   livemode boolean not null,
   -- null until the owner's link email is confirmed sent; while null a webhook retry replaces the token and sends again
   owner_link_sent_at timestamptz,
+  -- one delivery at a time: a retry leaves a link alone while another request's claim on it is live
+  owner_link_claimed_at timestamptz,
   owner_email text not null check (char_length(owner_email) <= 254 and owner_email = lower(owner_email) and owner_email ~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$'),
   owner_token_hash text not null unique check (owner_token_hash ~ '^[0-9a-f]{64}$'),
   rounds_included integer not null default 10 check (rounds_included >= 0),

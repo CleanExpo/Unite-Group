@@ -40,41 +40,64 @@ async function alertOrThrow(order: OrderRow, line: string): Promise<void> {
   if (!(await tellFounder(order, line))) throw new Error(`card order alert failed for order ${order.id}`)
 }
 
+/** Longer than a request can live (300s on this host), so a claim this old belongs to a request that has died. */
+const CLAIM_LEASE_MS = 10 * 60 * 1000
+
 /**
- * Only the hash is stored, so a link that was never delivered cannot be sent again. While owner_link_sent_at is null nobody
- * holds a working link, so a retry can safely replace the token and try again. The filter means a link already delivered
- * is never replaced by a late retry.
+ * Only the hash is stored, so a link that was never delivered cannot be sent again; a retry replaces the token instead.
+ * One delivery at a time holds a claim on the row. A retry that finds a live claim throws, so Stripe tries again later and
+ * cannot replace a link that is being emailed right now. A link confirmed sent is never replaced.
  */
 async function replaceUndeliveredLink(admin: Admin, order: OrderRow, email: string): Promise<ProvisionOutcome> {
-  const { token, hash } = newCardToken()
-  const replaced = await admin
+  const { data, error } = await admin
     .from('card_business_accounts')
-    .update({ owner_token_hash: hash })
+    .select('owner_link_sent_at, owner_link_claimed_at')
+    .eq('order_id', order.id)
+    .eq('founder_id', order.founder_id)
+    .maybeSingle()
+  if (error) throw new Error(`card account read failed: ${error.message}`)
+  if (!data) throw new Error('card account read failed: the account for this order was not found')
+  const row = data as { owner_link_sent_at: string | null; owner_link_claimed_at: string | null }
+  if (row.owner_link_sent_at) return 'account_exists'
+  const claimedAt = row.owner_link_claimed_at
+  if (claimedAt && Date.now() - new Date(claimedAt).getTime() < CLAIM_LEASE_MS) {
+    throw new Error(`card account link delivery in progress for order ${order.id}`)
+  }
+  const { token, hash } = newCardToken()
+  const claim = admin
+    .from('card_business_accounts')
+    .update({ owner_token_hash: hash, owner_link_claimed_at: new Date().toISOString() })
     .eq('order_id', order.id)
     .eq('founder_id', order.founder_id)
     .is('owner_link_sent_at', null)
-    .select('id')
+  // Compare-and-set on the claim we just read, so of two retries only one wins.
+  const replaced = await (claimedAt ? claim.eq('owner_link_claimed_at', claimedAt) : claim.is('owner_link_claimed_at', null)).select('id')
   if (replaced.error) throw new Error(`card account link replace failed: ${replaced.error.message}`)
-  if (!replaced.data?.length) return 'account_exists'
-  await deliverOwnerLink(admin, order, email, token)
+  if (!replaced.data?.length) throw new Error(`card account link delivery in progress for order ${order.id}`)
+  await deliverOwnerLink(admin, order, email, token, hash)
   return 'account_link_replaced'
 }
 
 async function openAccount(admin: Admin, order: OrderRow, email: string): Promise<ProvisionOutcome> {
   const { token, hash } = newCardToken()
-  const { error } = await admin
-    .from('card_business_accounts')
-    .insert({ founder_id: order.founder_id, order_id: order.id, livemode: order.livemode, owner_email: email, owner_token_hash: hash })
+  const { error } = await admin.from('card_business_accounts').insert({
+    founder_id: order.founder_id,
+    order_id: order.id,
+    livemode: order.livemode,
+    owner_email: email,
+    owner_token_hash: hash,
+    owner_link_claimed_at: new Date().toISOString(),
+  })
   if (error) {
     if (isNotApplied(error)) return 'not_applied'
     if ((error as { code?: string }).code === '23505') return replaceUndeliveredLink(admin, order, email)
     throw new Error(`card account insert failed: ${error.message}`)
   }
-  await deliverOwnerLink(admin, order, email, token)
+  await deliverOwnerLink(admin, order, email, token, hash)
   return 'account_created'
 }
 
-async function deliverOwnerLink(admin: Admin, order: OrderRow, email: string, token: string): Promise<void> {
+async function deliverOwnerLink(admin: Admin, order: OrderRow, email: string, token: string, hash: string): Promise<void> {
   const sent = await mail(
     email,
     'Margot at Unite-Group',
@@ -89,11 +112,15 @@ async function deliverOwnerLink(admin: Admin, order: OrderRow, email: string, to
     'card-account-link',
   )
   if (!sent) {
+    // Give up the claim so the next retry need not wait out the lease. If this fails the lease still expires.
+    await admin.from('card_business_accounts').update({ owner_link_claimed_at: null }).eq('order_id', order.id).eq('owner_token_hash', hash)
     // The alert carries the order id, never the link. Throwing makes the webhook answer 500, so Stripe retries with a new token.
     await tellFounder(order, 'the Business Pack account link email did not send. Stripe will retry; if it runs out of retries, set a new owner link (docs/guides/card-payment-links.md).')
     throw new Error(`card account link email failed for order ${order.id}`)
   }
-  const marked = await admin.from('card_business_accounts').update({ owner_link_sent_at: new Date().toISOString() }).eq('order_id', order.id)
+  // Bound to this token: a request whose claim was taken over must not mark a link it did not send. If the mark fails, the
+  // lease runs out and a retry sends a newer link; the owner gets two emails and the newest works.
+  const marked = await admin.from('card_business_accounts').update({ owner_link_sent_at: new Date().toISOString() }).eq('order_id', order.id).eq('owner_token_hash', hash)
   if (marked.error) throw new Error(`card account link mark failed: ${marked.error.message}`)
 }
 
