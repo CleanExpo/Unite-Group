@@ -15,7 +15,7 @@ export function ExtraBusiness({ link, priceAud, maxQuantity }: { link: string; p
   const [quantity, setQuantity] = useState(0)
 
   return (
-    <div role="group" aria-labelledby="extra-business-label" className={s.box} data-extra-business>
+    <div id="extra-business" role="group" aria-labelledby="extra-business-label" className={s.box} data-extra-business>
       <p id="extra-business-label" className={s.label}>
         Add another business, AUD {priceAud} each, GST included
       </p>

@@ -55,9 +55,14 @@ The webhook records a payment from that link as tier `extra_business` with the q
 
 ## Database
 
-`supabase/migrations/20261025100000_card_orders.sql` creates `card_orders` and `card_order_intakes`. It is founder-gated and
-has not been applied anywhere. Until it is applied, the webhook answers 500 for a paid card order (so Stripe retries and
-nothing is lost), and the thank-you form cannot save.
+`supabase/migrations/20261025100000_card_orders.sql` creates `card_orders` and `card_order_intakes`. Production state:
+
+- Applied manually: `card_orders` (including `quantity` and the `extra_business` tier) and the base `card_order_intakes` columns.
+- `20261030120000_card_order_intakes_payload_delivery.sql` and `20261027220000_card_order_emails.sql` are NOT applied as of 2 Nov 2026, awaiting owner approval.
+
+Until `20261030120000` is applied, the thank-you form cannot save: the route inserts columns production does not have, so the buyer sees an error and no intake alert is sent. Until `20261027220000` is applied, the follow-up email cron answers 500 and sends nothing.
+
+`GET /api/health/cards` (founder login) shows this live as true or false only: which card env var names are set, each payload column, and the `card_order_emails` table. `schema_checked: false` means the database could not be asked, so the schema answers are unknown rather than missing.
 
 ## Check it end to end (test mode)
 
