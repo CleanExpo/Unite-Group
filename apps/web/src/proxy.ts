@@ -102,9 +102,15 @@ const EXACT_PUBLIC_FILES: ReadonlySet<string> = new Set([
 // Nothing else under /c, and '/c' itself, stay private.
 const OWNER_CARD_PATH = /^\/c\/[a-z0-9-]{1,64}(?:\/contact\.vcf|\/review)?$/;
 
+// Client proposals (UNI-3173): exactly /proposal/<43-char link token> and its two POST routes. The token is the capability
+// and the routes check it; any other shape under /proposal or /api/proposals stays private.
+const PROPOSAL_PATH = /^\/proposal\/[A-Za-z0-9_-]{43}$/;
+const PROPOSAL_API_PATH = /^\/api\/proposals\/[A-Za-z0-9_-]{43}\/(?:checkout|redeem)$/;
+
 export function isPublicPath(pathname: string): boolean {
   if (EXACT_PUBLIC_FILES.has(pathname)) return true;
   if (OWNER_CARD_PATH.test(pathname)) return true;
+  if (PROPOSAL_PATH.test(pathname) || PROPOSAL_API_PATH.test(pathname)) return true;
 
   if (process.env.KNOWLEDGE_CONSOLE_PREVIEW === '1' && pathname === '/preview/knowledge-console') {
     return true;
@@ -123,7 +129,7 @@ export function isPublicPath(pathname: string): boolean {
 // (go-live audit D11: /about, /contact, /terms, /zzz all landed on a Google sign-in wall). The not-found answer is a
 // rewrite made here, so it fails closed: even if a real private route were missed from this list, the visitor would
 // see a 404, never the route. src/__tests__/golive-404-proxy.test.ts scans src/app so a new private root cannot be missed.
-const PROTECTED_ROOTS: ReadonlySet<string> = new Set(['founder', 'api', 'docs', 'preview', 'c']);
+const PROTECTED_ROOTS: ReadonlySet<string> = new Set(['founder', 'api', 'docs', 'preview', 'c', 'proposal']);
 
 function isProtectedRoot(pathname: string): boolean {
   return PROTECTED_ROOTS.has(pathname.split('/')[1] ?? '');

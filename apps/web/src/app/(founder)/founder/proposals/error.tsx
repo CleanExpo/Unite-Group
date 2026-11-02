@@ -1,0 +1,21 @@
+'use client'
+
+import { RouteErrorBoundary } from '@/founder/RouteErrorBoundary'
+
+export default function ProposalsError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string }
+  reset: () => void
+}) {
+  return (
+    <RouteErrorBoundary
+      error={error}
+      reset={reset}
+      section="proposals"
+      title="Proposals unavailable"
+      description="The proposal desk failed to load. Please try again."
+    />
+  )
+}

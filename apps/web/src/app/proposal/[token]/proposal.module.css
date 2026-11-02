@@ -1,0 +1,252 @@
+/* /proposal/[token]: a client's proposal (UNI-3173). Uses --pub-* from public-tokens.css. Type-led: no drawn graphics. */
+
+.page {
+  min-height: 100vh;
+  background: var(--pub-canvas);
+  color: var(--pub-ink);
+  font-family: var(--pub-font);
+}
+
+.header {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 1.5rem var(--pub-gutter);
+  border-bottom: 1px solid var(--pub-line);
+}
+
+.wordmark {
+  font-family: var(--pub-mono);
+  font-size: 13px;
+  letter-spacing: 0.15em;
+  color: var(--pub-accent-strong);
+}
+
+.main {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: clamp(2.5rem, 7vw, 5rem) var(--pub-gutter);
+}
+
+.hero {
+  max-width: 44rem;
+  margin-bottom: clamp(2.5rem, 6vw, 4rem);
+}
+
+.notice {
+  max-width: 36rem;
+}
+
+.eyebrow {
+  margin: 0 0 1rem;
+  font-family: var(--pub-mono);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: var(--pub-muted);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--pub-display);
+  font-size: clamp(2.5rem, 7vw, 4.5rem);
+  font-weight: 700;
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.lead {
+  margin: 1.25rem 0 0;
+  font-size: clamp(1.05rem, 2vw, 1.25rem);
+  line-height: 1.55;
+  color: var(--pub-muted);
+}
+
+.confirming {
+  margin: 0 0 2.5rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--pub-accent);
+  border-radius: var(--pub-radius);
+  line-height: 1.5;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(19rem, 24rem);
+  gap: clamp(2rem, 6vw, 5rem);
+  align-items: start;
+}
+
+.section + .section {
+  margin-top: 3rem;
+  padding-top: 3rem;
+  border-top: 1px solid var(--pub-line);
+}
+
+.heading {
+  margin: 0 0 1.25rem;
+  font-family: var(--pub-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.list,
+.terms {
+  margin: 0;
+  padding-left: 1.2rem;
+  list-style: disc;
+  line-height: 1.6;
+}
+
+.list li,
+.terms li {
+  margin-bottom: 0.65rem;
+}
+
+.list {
+  font-size: 1.1rem;
+}
+
+.terms {
+  color: var(--pub-muted);
+}
+
+.small {
+  margin: 0.75rem 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--pub-muted);
+}
+
+.small a {
+  color: var(--pub-ink);
+}
+
+.panel {
+  position: sticky;
+  top: 1.5rem;
+  padding: clamp(1.5rem, 3vw, 2rem);
+  background: var(--pub-surface);
+  border: 1px solid var(--pub-line);
+  border-radius: var(--pub-radius-lg);
+}
+
+.priceLabel {
+  margin: 0;
+  font-size: 14px;
+  color: var(--pub-muted);
+}
+
+.price {
+  margin: 0.35rem 0 0;
+  font-family: var(--pub-display);
+  font-size: 2.75rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.per {
+  font-family: var(--pub-font);
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--pub-muted);
+}
+
+.placeholder {
+  margin: 1rem 0 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--pub-line);
+  border-radius: var(--pub-radius);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--pub-accent-strong);
+}
+
+.form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.4rem;
+  font-size: 14px;
+  color: var(--pub-muted);
+}
+
+.input {
+  min-height: 2.75rem;
+  padding: 0 0.85rem;
+  background: var(--pub-canvas);
+  border: 1px solid var(--pub-line);
+  border-radius: var(--pub-radius);
+  color: var(--pub-ink);
+  font: inherit;
+  font-size: 16px;
+}
+
+.input:focus-visible,
+.primary:focus-visible,
+.textButton:focus-visible {
+  outline: 2px solid var(--pub-focus);
+  outline-offset: 2px;
+}
+
+.agree {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.6rem;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.primary {
+  min-height: 3rem;
+  padding: 0 1.5rem;
+  border: 1px solid var(--pub-accent-strong);
+  border-radius: 999px;
+  background: var(--pub-accent-strong);
+  color: var(--pub-canvas);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primary:hover {
+  filter: brightness(1.05);
+}
+
+.primary:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.textButton {
+  justify-self: center;
+  background: none;
+  border: 0;
+  padding: 0.25rem;
+  color: var(--pub-muted);
+  font: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.error {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--pub-danger);
+}
+
+@media (max-width: 860px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .panel {
+    position: static;
+  }
+}

@@ -308,3 +308,66 @@ describe('POST /api/webhooks/stripe, paid card order', () => {
     expect(t.card_orders).not.toHaveBeenCalled()
   })
 })
+
+// ---- paid proposals (UNI-3173). The order rules themselves are in lib/proposals/__tests__/paid-order.test.ts. ----
+
+describe('POST /api/webhooks/stripe, paid proposal', () => {
+  const PROPOSAL_ID = '11111111-1111-4111-8111-111111111111'
+  // At a card price from a card link, so only the metadata can keep it out of the card path.
+  const proposalEvent = () => card({ metadata: { proposal_id: PROPOSAL_ID }, amount_total: 24900 })
+
+  function mockProposalTables(orderInsert: Result, proposalRead: { data?: unknown; error?: unknown } = {}) {
+    const orders = vi.fn(async () => orderInsert)
+    const cardOrders = vi.fn(async () => ({ error: null }))
+    const maybeSingle = vi.fn(async () => ({
+      data: proposalRead.error ? null : { id: PROPOSAL_ID, founder_id: 'f1', amount_cents: 24900, currency: 'aud', client_email: 'c@example.invalid' },
+      error: proposalRead.error ?? null,
+    }))
+    ;(createServiceClient as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      from: vi.fn((t: string) => {
+        if (t === 'stripe_events') return { insert: vi.fn(async () => ({ error: null })) }
+        if (t === 'card_orders') return { insert: cardOrders }
+        if (t === 'website_orders') return { insert: orders }
+        return { select: () => ({ eq: () => ({ maybeSingle }) }) }
+      }),
+    })
+    return { orders, cardOrders }
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test'
+    process.env.STRIPE_CARD_PAYMENT_LINK_IDS = 'plink_test_card'
+    process.env.FOUNDER_USER_ID = '00000000-0000-0000-0000-000000000001'
+  })
+  afterEach(() => {
+    delete process.env.STRIPE_CARD_PAYMENT_LINK_IDS
+    delete process.env.FOUNDER_USER_ID
+  })
+
+  it('writes the proposal order, never a card order, and sends no email', async () => {
+    mockStripe(() => proposalEvent())
+    const t = mockProposalTables({ error: null })
+    expect((await POST(req('{}', 'sig'))).status).toBe(200)
+    expect(t.orders).toHaveBeenCalledTimes(1)
+    expect(t.orders).toHaveBeenCalledWith(expect.objectContaining({ proposal_id: PROPOSAL_ID, source: 'paid' }))
+    expect(t.cardOrders).not.toHaveBeenCalled()
+    expect(sendEmail).not.toHaveBeenCalled()
+  })
+
+  it('returns 500 so Stripe retries when the proposal cannot be read', async () => {
+    mockStripe(() => proposalEvent())
+    const t = mockProposalTables({ error: null }, { error: { message: 'down' } })
+    expect((await POST(req('{}', 'sig'))).status).toBe(500)
+    expect(t.orders).not.toHaveBeenCalled()
+  })
+
+  it('refuses a forged event before any order is written', async () => {
+    mockStripe(() => {
+      throw new Error('bad sig')
+    })
+    const t = mockProposalTables({ error: null })
+    expect((await POST(req('{}', 'sig'))).status).toBe(400)
+    expect(t.orders).not.toHaveBeenCalled()
+  })
+})

@@ -58,6 +58,13 @@ describe('D11: real protected routes still require sign-in', () => {
     '/c',
     '/c/UPPER',
     '/c/some-slug/other',
+    '/proposal',
+    '/proposal/too-short',
+    `/proposal/${'a'.repeat(44)}`,
+    `/proposal/${'a'.repeat(43)}/deeper`,
+    `/api/proposals/${'a'.repeat(43)}/other`,
+    `/api/proposals/${'a'.repeat(43)}`,
+    '/api/proposals/too-short/checkout',
   ])('redirects a signed-out visitor at %s to /auth/login with redirectTo', async (path) => {
     const res = await get(path)
     const loc = new URL(res.headers.get('location') ?? 'https://none.test/')
@@ -73,7 +80,7 @@ describe('D11: real protected routes still require sign-in', () => {
   })
 
   it('leaves public pages alone', async () => {
-    for (const p of ['/', '/cards', '/cards/order', '/cards/terms', '/grow', '/privacy-policy', '/terms-of-service', '/solutions/visibility', '/c/phill-mcgurk']) {
+    for (const p of ['/', '/cards', '/cards/order', '/cards/terms', '/grow', '/privacy-policy', '/terms-of-service', '/solutions/visibility', '/c/phill-mcgurk', `/proposal/${'a'.repeat(43)}`, `/api/proposals/${'a'.repeat(43)}/checkout`, `/api/proposals/${'a'.repeat(43)}/redeem`]) {
       const res = await get(p)
       expect(res.headers.get('location'), p).toBeNull()
       expect(res.headers.get('x-middleware-rewrite'), p).toBeNull()

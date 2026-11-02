@@ -67,6 +67,10 @@ export const SMOKE_PATHS = Object.freeze([
   { path: `${UNKNOWN_CARD}/review`, pattern: '/c/[slug]/review', status: 404, note: 'unknown but valid-looking slug' },
   { path: `${PUBLISHED_CARD}/review`, pattern: '/c/[slug]/review', status: 302, locationHref: 'https://search.google.com/local/writereview?placeid=ChIJsmokeTestPlaceId0001', note: 'published card (stubbed Place ID)' },
   { path: '/c', pattern: null, status: 307, location: LOGIN_PATH, note: 'bare /c stays private' },
+  // A client proposal. Supabase is refused here, so this must show the honest outage message, never "not found".
+  { path: `/proposal/${'a'.repeat(43)}`, pattern: '/proposal/[token]', status: 200, bodyIncludes: 'could not load this proposal', note: 'valid-shaped link during an outage' },
+  { path: '/proposal', pattern: null, status: 307, location: LOGIN_PATH, note: 'bare /proposal stays private' },
+  { path: '/proposal/short', pattern: null, status: 307, location: LOGIN_PATH, note: 'a link of the wrong shape stays private' },
   { path: '/privacy-policy', pattern: '/privacy-policy', status: 200 },
   { path: '/terms-of-service', pattern: '/terms-of-service', status: 200 },
   { path: '/grow', pattern: '/grow', status: 200 },

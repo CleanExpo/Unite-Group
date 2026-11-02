@@ -1,0 +1,216 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { NextRequest } from 'next/server'
+
+vi.mock('@/lib/integrations/stripe/client', () => ({ getStripe: vi.fn() }))
+vi.mock('@/lib/supabase/service', () => ({ createServiceClient: vi.fn() }))
+
+import { getStripe } from '@/lib/integrations/stripe/client'
+import { createServiceClient } from '@/lib/supabase/service'
+import { POST as checkout } from '../[token]/checkout/route'
+import { POST as redeem } from '../[token]/redeem/route'
+
+const TOKEN = 'a'.repeat(43)
+const params = (token = TOKEN) => ({ params: Promise.resolve({ token }) })
+
+const PROPOSAL = {
+  id: 'p1',
+  founder_id: 'f1',
+  client_email: 'owner@example.test',
+  plan_name: 'Growth',
+  amount_cents: 200000,
+  currency: 'aud',
+  billing_interval: 'month',
+  expires_at: '2999-01-01T00:00:00.000Z',
+  withdrawn_at: null,
+  stripe_session_id: null,
+}
+
+type Setup = {
+  proposal?: object | null
+  order?: object | null
+  proposalError?: string
+  rpc?: { data?: unknown; error?: { message: string } | null }
+}
+
+function setup({ proposal = PROPOSAL, order = null, proposalError, rpc }: Setup = {}) {
+  const updates: object[] = []
+  const rpcCall = vi.fn(async () => ({ data: rpc?.data ?? null, error: rpc?.error ?? null }))
+  const from = (table: string) => {
+    const single = async () =>
+      table === 'website_proposals'
+        ? { data: proposalError ? null : proposal, error: proposalError ? { message: proposalError } : null }
+        : { data: order, error: null }
+    const chain = { eq: () => chain, maybeSingle: single }
+    return {
+      select: () => chain,
+      update: (row: object) => {
+        updates.push(row)
+        const after = { eq: () => after, then: (done: (v: { error: null }) => void) => done({ error: null }) }
+        return after
+      },
+    }
+  }
+  ;(createServiceClient as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ from, rpc: rpcCall })
+  return { updates, rpcCall }
+}
+
+function stripeMock() {
+  const create = vi.fn(async () => ({ id: 'cs_1', url: 'https://checkout.example.test/1' }))
+  const expire = vi.fn(async () => ({}))
+  ;(getStripe as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+    checkout: { sessions: { create, expire, retrieve: vi.fn() } },
+  })
+  return { create, expire }
+}
+
+const post = (path: string, body: unknown) =>
+  new NextRequest(`http://localhost/api/proposals/${TOKEN}/${path}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+
+const ACCEPT = { name: 'Sam Owner', acceptedTerms: true }
+const CODE = { ...ACCEPT, email: 'owner@example.test', code: 'AAAA-BBBB-CCCC-DDDD' }
+
+describe('POST /api/proposals/[token]/checkout', () => {
+  const original = process.env.STRIPE_SECRET_KEY
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    process.env.STRIPE_SECRET_KEY = 'sk_test_placeholder'
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+  afterEach(() => {
+    if (original === undefined) delete process.env.STRIPE_SECRET_KEY
+    else process.env.STRIPE_SECRET_KEY = original
+  })
+
+  it('records acceptance and returns the Stripe URL, ignoring any price the browser sends', async () => {
+    const { updates } = setup()
+    const { create } = stripeMock()
+    const res = await checkout(post('checkout', { ...ACCEPT, amount_cents: 1 }), params())
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ url: 'https://checkout.example.test/1' })
+    expect(updates[0]).toMatchObject({ accepted_name: 'Sam Owner' })
+    expect(updates[1]).toEqual({ stripe_session_id: 'cs_1' })
+    const [stripeParams] = create.mock.calls[0] as unknown as [{ line_items: { price_data: { unit_amount: number } }[] }]
+    expect(stripeParams.line_items[0].price_data.unit_amount).toBe(200000)
+  })
+
+  it('refuses a live key before touching the database or Stripe', async () => {
+    process.env.STRIPE_SECRET_KEY = 'sk_live_placeholder'
+    setup()
+    const { create } = stripeMock()
+    const res = await checkout(post('checkout', ACCEPT), params())
+    expect(res.status).toBe(503)
+    expect((await res.json()).error).toBe('payment_off')
+    expect(create).not.toHaveBeenCalled()
+    expect(createServiceClient).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['terms not accepted', { name: 'Sam', acceptedTerms: false }],
+    ['no name', { acceptedTerms: true }],
+  ])('refuses %s', async (_label, body) => {
+    setup()
+    const { create } = stripeMock()
+    expect((await checkout(post('checkout', body), params())).status).toBe(400)
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['a bad link shape', { token: 'short' }, 404],
+    ['an unknown link', { proposal: null }, 404],
+    ['a withdrawn proposal', { proposal: { ...PROPOSAL, withdrawn_at: '2026-01-01T00:00:00.000Z' } }, 410],
+    ['an expired proposal', { proposal: { ...PROPOSAL, expires_at: '2020-01-01T00:00:00.000Z' } }, 410],
+    ['a proposal already ordered', { order: { source: 'paid' } }, 409],
+    ['a database outage, which is not "not found"', { proposalError: 'down' }, 503],
+  ])('opens no Checkout for %s', async (_label, state, status) => {
+    const { token, ...rest } = state as Setup & { token?: string }
+    setup(rest)
+    const { create } = stripeMock()
+    expect((await checkout(post('checkout', ACCEPT), params(token))).status).toBe(status)
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('answers 502 with no URL when Stripe fails', async () => {
+    setup()
+    const { create } = stripeMock()
+    create.mockRejectedValueOnce(new Error('stripe down'))
+    const res = await checkout(post('checkout', ACCEPT), params())
+    expect(res.status).toBe(502)
+    expect(await res.json()).toEqual({ error: 'checkout_failed' })
+  })
+})
+
+describe('POST /api/proposals/[token]/redeem', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    process.env.STRIPE_SECRET_KEY = 'sk_test_placeholder'
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  it('redeems through the one database function, sending the code only as a hash', async () => {
+    const { rpcCall } = setup({ rpc: { data: 'redeemed' } })
+    stripeMock()
+    const res = await redeem(post('redeem', CODE), params())
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ redeemed: true })
+    const [name, args] = rpcCall.mock.calls[0] as unknown as [string, Record<string, string>]
+    expect(name).toBe('redeem_website_comp_code')
+    expect(args.p_proposal_id).toBe('p1')
+    expect(args.p_code_hash).toMatch(/^[0-9a-f]{64}$/)
+    expect(JSON.stringify(args)).not.toContain('AAAA')
+  })
+
+  it('closes an open Checkout after redeeming, and a failure to close does not undo the redemption', async () => {
+    setup({ proposal: { ...PROPOSAL, stripe_session_id: 'cs_open' }, rpc: { data: 'redeemed' } })
+    const { expire } = stripeMock()
+    expire.mockRejectedValueOnce(new Error('already gone'))
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const res = await redeem(post('redeem', CODE), params())
+    expect(res.status).toBe(200)
+    expect(expire).toHaveBeenCalledWith('cs_open')
+  })
+
+  it('gives every refused code the same answer', async () => {
+    setup({ rpc: { data: 'invalid' } })
+    const res = await redeem(post('redeem', CODE), params())
+    expect(res.status).toBe(400)
+    expect(await res.json()).toEqual({ error: 'invalid_code' })
+  })
+
+  it('reports an order that got there first', async () => {
+    setup({ rpc: { data: 'already_ordered' } })
+    expect((await redeem(post('redeem', CODE), params())).status).toBe(409)
+  })
+
+  it('reports a database fault as unavailable, never as a bad code', async () => {
+    setup({ rpc: { error: { message: 'down' } } })
+    const res = await redeem(post('redeem', CODE), params())
+    expect(res.status).toBe(503)
+    expect((await res.json()).error).toBe('unavailable')
+  })
+
+  it.each([
+    ['terms not accepted', { ...CODE, acceptedTerms: false }],
+    ['a bad email', { ...CODE, email: 'nope' }],
+    ['no code', { ...CODE, code: '' }],
+  ])('never calls the database function for %s', async (_label, body) => {
+    const { rpcCall } = setup({ rpc: { data: 'redeemed' } })
+    expect((await redeem(post('redeem', body), params())).status).toBe(400)
+    expect(rpcCall).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['a withdrawn proposal', { proposal: { ...PROPOSAL, withdrawn_at: '2026-01-01T00:00:00.000Z' } }, 410],
+    ['a proposal already ordered', { order: { source: 'comped' } }, 409],
+    ['an unknown link', { proposal: null }, 404],
+    ['a database outage', { proposalError: 'down' }, 503],
+  ])('never calls the database function for %s', async (_label, state, status) => {
+    const { rpcCall } = setup({ ...state, rpc: { data: 'redeemed' } } as Setup)
+    expect((await redeem(post('redeem', CODE), params())).status).toBe(status)
+    expect(rpcCall).not.toHaveBeenCalled()
+  })
+})

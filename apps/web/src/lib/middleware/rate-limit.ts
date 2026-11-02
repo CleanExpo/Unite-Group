@@ -111,8 +111,8 @@ export function classifyTier(pathname: string): Tier | null {
     if (pathname.includes(fragment)) return 'ai';
   }
 
-  // Auth routes
-  if (pathname.includes('/auth')) return 'auth';
+  // Auth routes, and the public proposal routes where a code is tried against a link
+  if (pathname.includes('/auth') || pathname.startsWith('/api/proposals/')) return 'auth';
 
   // Everything else under /api/
   return 'standard';

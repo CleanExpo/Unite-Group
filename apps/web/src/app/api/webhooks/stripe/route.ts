@@ -1,8 +1,9 @@
 // POST /api/webhooks/stripe — Stripe webhook receiver (UNI-2328).
 //
 // Verifies the Stripe signature, then idempotently persists the event to the
-// `stripe_events` ledger. The one domain dispatch is a paid living-card checkout
-// (lib/cards/paid-order), which writes a card_orders row and sends one alert.
+// `stripe_events` ledger. Domain dispatch: a paid proposal checkout (lib/proposals/paid-order)
+// writes its one website_orders row; a paid living-card checkout (lib/cards/paid-order)
+// writes a card_orders row and sends one alert.
 // Register this endpoint in the Stripe dashboard to obtain STRIPE_WEBHOOK_SECRET.
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -10,6 +11,7 @@ import type Stripe from 'stripe'
 import { getStripe } from '@/lib/integrations/stripe/client'
 import { createServiceClient } from '@/lib/supabase/service'
 import { recordPaidCardOrder } from '@/lib/cards/paid-order'
+import { proposalIdOf, recordPaidProposalOrder } from '@/lib/proposals/paid-order'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs' // signature verification needs the Node crypto runtime
@@ -56,9 +58,11 @@ export async function POST(request: NextRequest) {
   // Runs on a redelivery too: if the first attempt saved the event but failed to write the order,
   // the retry must still record it. UNIQUE(stripe_session_id) keeps a true repeat to one row, one email.
   try {
-    await recordPaidCardOrder(admin, event)
+    // A proposal's Checkout carries proposal_id metadata (UNI-3173); everything else stays with the card path.
+    if (proposalIdOf(event)) await recordPaidProposalOrder(admin, event)
+    else await recordPaidCardOrder(admin, event)
   } catch (err) {
-    console.error('[webhooks/stripe] card order failed:', err instanceof Error ? err.message : err)
+    console.error('[webhooks/stripe] order failed:', err instanceof Error ? err.message : err)
     return NextResponse.json({ error: 'order_record_failed' }, { status: 500 })
   }
 
