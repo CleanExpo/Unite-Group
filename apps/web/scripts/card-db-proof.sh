@@ -142,5 +142,25 @@ for mut in \
   if [ $rc -ne 0 ] && ! echo "$out" | grep -q CARD_PROFILES_RLS_PROOF_PASS; then echo "RED-AS-EXPECTED  mutant ($mut)"; else echo "FAIL  proof stayed green on mutant ($mut)"; FAILS=$((FAILS+1)); fi
 done
 
+# 6. review requests (20261102140000): two-tenant proof, then the same proof must go red on each planted defect
+REVIEW_MIG="$MIG/20261102140000_card_review_requests.sql"
+fresh_db_reuse review || exit 2
+apply review "$BASE_MIG"; apply review "$FIX_MIG"; apply review "$REVIEW_MIG"; apply review "$REVIEW_MIG" && echo "PASS  review migration applies twice"
+expect_pass "review requests proof" review "$TESTS/card_review_requests_rls.sql"
+for mut in \
+  "s/if p_consent is not true then raise exception 'card_review_consent_required'; end if;//" \
+  "s/and r.request_day = v_day;/and false;/" \
+  "s/x.recipient_hash = p_recipient_hash) then/x.recipient_hash = p_recipient_hash) and false then/" \
+  "s/o.card_slug = p_card_slug and o.founder_id = v_uid/true/"; do
+  name="rmut$RANDOM"
+  fresh_db_reuse "$name" || exit 2
+  apply "$name" "$BASE_MIG"; apply "$name" "$FIX_MIG"
+  sed -e "$mut" "$REVIEW_MIG" > "$DATA/mutant.sql"
+  if cmp -s "$REVIEW_MIG" "$DATA/mutant.sql"; then echo "FAIL  mutant did not change the migration: $mut"; FAILS=$((FAILS+1)); continue; fi
+  apply "$name" "$DATA/mutant.sql"
+  out="$(PSQL -d "$name" -f "$TESTS/card_review_requests_rls.sql" 2>&1)"; rc=$?
+  if [ $rc -ne 0 ] && ! echo "$out" | grep -q CARD_REVIEW_RLS_PROOF_PASS; then echo "RED-AS-EXPECTED  review mutant ($mut)"; else echo "FAIL  review proof stayed green on mutant ($mut)"; FAILS=$((FAILS+1)); fi
+done
+
 if [ $FAILS -eq 0 ]; then echo "CARD_DB_PROOF_ALL_PASS"; exit 0; fi
 echo "CARD_DB_PROOF_FAILURES=$FAILS"; exit 1

@@ -98,8 +98,9 @@ const EXACT_PUBLIC_FILES: ReadonlySet<string> = new Set([
   '/solutions/intelligence',
 ]);
 
-// Owner cards: exactly /c/<slug> and /c/<slug>/contact.vcf. Nothing else under /c, and '/c' itself, stay private.
-const OWNER_CARD_PATH = /^\/c\/[a-z0-9-]{1,64}(?:\/contact\.vcf)?$/;
+// Owner cards: exactly /c/<slug>, /c/<slug>/contact.vcf and /c/<slug>/review (the Google review redirect).
+// Nothing else under /c, and '/c' itself, stay private.
+const OWNER_CARD_PATH = /^\/c\/[a-z0-9-]{1,64}(?:\/contact\.vcf|\/review)?$/;
 
 export function isPublicPath(pathname: string): boolean {
   if (EXACT_PUBLIC_FILES.has(pathname)) return true;
