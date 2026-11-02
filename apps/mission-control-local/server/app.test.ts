@@ -515,7 +515,8 @@ test('passcode: fails closed on missing and short sources, and loads from a priv
 });
 
 test('passcode: the ownership and mode rules refuse a foreign owner and any group or other bit', () => {
-  const me = 501;
+  // Never the uid running this test: an unknown owner falls back to the process uid, and 501 is the usual Mac login.
+  const me = (process.getuid?.() ?? 500) + 1;
   assert.doesNotThrow(() => checkPrivate('/d', fakeStats('folder', 0o700, me), 'folder', true, me));
   assert.doesNotThrow(() => checkPrivate('/f', fakeStats('file', 0o600, me), 'file', true, me));
   assert.doesNotThrow(() => checkPrivate('/f', fakeStats('file', 0o400, me), 'file', true, me));

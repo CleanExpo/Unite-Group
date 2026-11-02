@@ -38,8 +38,11 @@ vi.mock('@/lib/supabase/service', () => ({
   createServiceClient: vi.fn(() => ({ from: mockFrom })),
 }))
 
-const { mockNotify } = vi.hoisted(() => ({ mockNotify: vi.fn() }))
-vi.mock('@/lib/notifications', () => ({ notify: mockNotify }))
+const { mockNotify, mockSaveNotification } = vi.hoisted(() => ({
+  mockNotify: vi.fn(),
+  mockSaveNotification: vi.fn(),
+}))
+vi.mock('@/lib/notifications', () => ({ notify: mockNotify, saveNotification: mockSaveNotification }))
 
 import { POST, maxDuration } from '../route'
 
@@ -65,6 +68,76 @@ describe('POST /api/leads', () => {
   })
 
   afterEach(() => vi.useRealTimers())
+
+  describe('website intake (UNI-3172)', () => {
+    const INTAKE = { ...VALID_LEAD, source: 'website_intake', contact_consent: true, company: 'Sample Cafe' }
+    const leadInsert = () => inserts.find((i) => i.table === 'crm_leads')?.payload
+
+    beforeEach(() => {
+      responses.crm_leads = [{ data: { id: 'lead-1', captured_at: '2026-11-02T00:00:00Z' }, error: null }]
+      mockSaveNotification.mockReset().mockResolvedValue(undefined)
+    })
+
+    it('saves source website_intake with only the known answers', async () => {
+      const res = await POST(req({
+        ...INTAKE,
+        intake: { goals: '  More bookings ', budget_band: 'Not sure yet', call_time: 'Yes, in the morning', founder_id: 'attacker', role: 'admin', timeline: 42 },
+      }))
+      expect(res.status).toBe(201)
+      expect(leadInsert().source).toBe('website_intake')
+      expect(leadInsert().founder_id).toBe('founder-1')
+      expect(leadInsert().additional_data).toEqual({
+        contact_consent: true,
+        intake: { goals: 'More bookings', budget_band: 'Not sure yet', call_time: 'Yes, in the morning' },
+      })
+    })
+
+    it('caps a long answer', async () => {
+      await POST(req({ ...INTAKE, intake: { goals: 'x'.repeat(5000), timeline: 'y'.repeat(500) } }))
+      expect(leadInsert().additional_data.intake.goals).toHaveLength(1500)
+      expect(leadInsert().additional_data.intake.timeline).toHaveLength(256)
+    })
+
+    it.each([[undefined], [false], ['true']])('refuses contact_consent %s and saves nothing', async (consent) => {
+      const res = await POST(req({ ...INTAKE, contact_consent: consent }))
+      expect(res.status).toBe(400)
+      expect(inserts).toEqual([])
+      expect(mockSaveNotification).not.toHaveBeenCalled()
+    })
+
+    it.each([[null], ['a string'], [['goals']]])('stores no answers for a bad intake value %j', async (intake) => {
+      const res = await POST(req({ ...INTAKE, intake }))
+      expect(res.status).toBe(201)
+      expect(leadInsert().additional_data.intake).toEqual({})
+    })
+
+    it('notifies in-app and sends no email alert', async () => {
+      await POST(req(INTAKE))
+      expect(mockNotify).not.toHaveBeenCalled()
+      expect(mockSaveNotification).toHaveBeenCalledExactlyOnceWith('founder-1', 'new_website_intake', {
+        message: 'Sample Cafe asked for a new website',
+        leadId: 'lead-1',
+        businessName: 'Sample Cafe',
+        capturedAt: '2026-11-02T00:00:00Z',
+      })
+    })
+
+    it('never enrols an intake lead in a drip, even with consent and a campaign id', async () => {
+      const res = await POST(req({ ...INTAKE, marketing_consent: true, drip_campaign_id: 'camp-1' }))
+      expect(await res.json()).toEqual({ id: 'lead-1' })
+      expect(mockFrom).not.toHaveBeenCalledWith('drip_campaigns')
+      expect(inserts.some((i) => i.table === 'drip_enrollments')).toBe(false)
+    })
+
+    it.each([['anything_else'], ['WEBSITE_INTAKE'], [7]])('stores an unknown source %j as website_form', async (source) => {
+      const res = await POST(req({ ...VALID_LEAD, source, intake: { goals: 'ignored' } }))
+      expect(res.status).toBe(201)
+      expect(leadInsert().source).toBe('website_form')
+      expect(leadInsert().additional_data).toEqual({})
+      expect(mockNotify).toHaveBeenCalledTimes(1)
+      expect(mockSaveNotification).not.toHaveBeenCalled()
+    })
+  })
 
   it('returns 500 when FOUNDER_USER_ID is not configured', async () => {
     vi.stubEnv('FOUNDER_USER_ID', '')

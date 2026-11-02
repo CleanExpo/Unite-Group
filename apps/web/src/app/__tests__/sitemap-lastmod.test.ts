@@ -57,6 +57,7 @@ describe('sitemap lastmod and priority (D28)', () => {
       '/signatures': 0.7,
       '/cards/terms': 0.3,
       '/privacy-policy': 0.2,
+      '/get-a-website': 0.8,
       '/terms-of-service': 0.2,
     }
     expect([...m.keys()].sort()).toEqual(Object.keys(expected).sort())

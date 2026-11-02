@@ -89,6 +89,8 @@ const EXACT_PUBLIC_FILES: ReadonlySet<string> = new Set([
   '/cards/order', // Public card enquiry page; no payment, its form posts to the public /api/leads
   '/cards/terms', // Public card order terms; static text, no data. Exact path only
   '/video/ten-clips', // Public offer page; its form posts to the public /api/leads. Exact path only
+  '/get-a-website', // Public website intake questionnaire; its form posts to the public /api/leads. Exact path only
+  '/get-a-website/thanks', // Thank-you page after the intake form; static, no data. Exact path only
   '/cards/thanks', // Post-payment thank-you with the intake form; the buyer is signed out. Exact: no sub-routes
   '/api/cards/intake', // The intake form's POST, service-role insert against an order reference; rate-limited above. Exact: no siblings
   // The four pillar pages (UNI-3001). Exact paths only: a prefix rule would also open '/solutions/anything'.
