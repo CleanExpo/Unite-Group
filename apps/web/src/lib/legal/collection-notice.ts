@@ -51,7 +51,7 @@ const RECIPIENTS_ENQUIRY_EMAIL =
   'SendGrid delivers the enquiry alert we receive, which carries your first name, business name and the package you asked about, and any marketing email you agree to receive.'
 // The form on a card's own page goes through src/lib/card/enquiry-alert.ts, which sends with Mailtrap.
 const RECIPIENTS_CARD_OWNER_EMAIL =
-  'Mailtrap delivers the email that passes your enquiry to the card owner, and a short alert to us with the card and the first name you give.'
+  'Mailtrap delivers the email that passes your enquiry to the card owner, when the card has an email address for them, and a short alert to us with the card and the first name you give.'
 // The thank-you page posts to /api/cards/intake, and card order emails go through Mailtrap
 // (src/app/api/cards/intake/route.ts, src/lib/cards/paid-order.ts, src/lib/cards/follow-up.ts).
 const RECIPIENTS_CARD_EMAIL =

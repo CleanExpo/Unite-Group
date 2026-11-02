@@ -99,6 +99,12 @@ describe('collection notice parity with the privacy policy', () => {
       'Mailtrap, which delivers the emails sent when you buy a card: our order alert, your welcome email, any reminder about your order, and the email that passes us the details you give on the thank-you page.',
     )
     expect(policy).not.toContain('SendGrid, which delivers the emails our system sends')
+    // Section 6 must give the same purposes for each provider as 13.2.
+    expect(policy).toContain(
+      'Enquiry alert emails (first name, business name and package requested) and any marketing email you have agreed to receive (your name and email address)',
+    )
+    expect(policy).toContain('where the card has an email address for its owner, the email passing a card enquiry to the card owner')
+    expect(policy).toContain('owner, where the card has an email address for them, and a short alert')
     expect(policy).toContain('We do not sell')
     expect(policy).toMatch(/see, correct or delete|access, correct or delete/)
   })
@@ -131,7 +137,7 @@ describe('collection notice parity with the privacy policy', () => {
         'We store your details in a database hosted by Supabase. Vercel hosts this website and keeps request logs. We do not sell your information.',
       'card-enquiry': enquiry,
       'card-owner-enquiry':
-        'We store your details in a database hosted by Supabase. Vercel hosts this website and keeps request logs. Mailtrap delivers the email that passes your enquiry to the card owner, and a short alert to us with the card and the first name you give. We do not sell your information.',
+        'We store your details in a database hosted by Supabase. Vercel hosts this website and keeps request logs. Mailtrap delivers the email that passes your enquiry to the card owner, when the card has an email address for them, and a short alert to us with the card and the first name you give. We do not sell your information.',
       'card-intake':
         'We store your details in a database hosted by Supabase. Vercel hosts this website and keeps request logs. Mailtrap delivers the emails about your card order, including the email that passes us the details you give here. We do not sell your information.',
     })
