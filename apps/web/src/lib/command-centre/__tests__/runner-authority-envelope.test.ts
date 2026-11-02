@@ -277,6 +277,10 @@ function run([tool, ...args]: Cmd, extraEnv: Record<string, string> = {}) {
     encoding: 'utf8' as const,
     env: {
       ...process.env,
+      // Git config injected by the calling shell must not reach the stub: the pin assertions read these.
+      GIT_CONFIG_COUNT: undefined,
+      GIT_CONFIG_KEY_0: undefined,
+      GIT_CONFIG_VALUE_0: undefined,
       ...extraEnv,
       // Native Windows callers must pass literal {} and [] through MSYS argv parsing.
       ...(process.platform === 'win32' ? { MSYS: 'noglob' } : {}),
