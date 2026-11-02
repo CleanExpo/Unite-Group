@@ -1,5 +1,5 @@
 /* /cards/manage: owner and staff edit page (UNI-3146). Uses the tokens set on order.module.css's .page. */
-.main { padding-top: 2rem; }
+.main.main { padding-top: 2rem; } /* doubled so it outranks the padding shorthand on the shared .wrap */
 .panel { display: grid; gap: 1.25rem; max-width: 720px; padding-block: 1rem 4rem; }
 .title { margin: 0; font-size: 28px; line-height: 1.2; font-weight: 600; color: var(--pub-ink); }
 .heading { margin: 1.5rem 0 0; font-size: 20px; font-weight: 600; color: var(--pub-ink); }
