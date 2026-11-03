@@ -14,6 +14,10 @@ export const maxDuration = 60
 export async function GET(request: Request) {
   const denied = assertCronAuth(request)
   if (denied) return denied
+  // Dormant by default: nothing runs until the founder arms it.
+  if (process.env.CHANNEL_BOTS_ARMED?.trim() !== 'true') {
+    return NextResponse.json({ armed: false, skipped: true })
+  }
   const founderId = getFounderUserId()
   if (!founderId) return NextResponse.json({ error: 'FOUNDER_USER_ID not configured' }, { status: 500 })
 

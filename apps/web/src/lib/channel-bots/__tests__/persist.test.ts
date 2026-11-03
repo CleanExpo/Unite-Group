@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { persistChannelBotRun } from '../persist'
+import { BUSINESS_TO_TEAM } from '@/lib/integrations/linear'
 
 function fakeDb(insertResult: unknown, readResult: unknown) {
   const inserted: unknown[] = []
@@ -20,6 +21,8 @@ describe('persistChannelBotRun', () => {
     const { db, inserted } = fakeDb({ data: { id: 'i1' }, error: null }, { data: { id: 'i1' }, error: null })
     expect(await persistChannelBotRun(db, 'f', out)).toBe('i1')
     expect(JSON.stringify(inserted[0])).toContain('YouTube: 5 subs')
+    // The CRM create-issue action needs a Linear team for this business key.
+    expect(BUSINESS_TO_TEAM[(inserted[0] as { business_key: string }).business_key]).toBe('UNI')
   })
   it('marks a partly failing run high priority', async () => {
     const { db, inserted } = fakeDb({ data: { id: 'i1' }, error: null }, { data: { id: 'i1' }, error: null })

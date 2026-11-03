@@ -11,6 +11,7 @@ const json = (body: unknown, ok = true) => ({ ok, status: ok ? 200 : 403, json: 
 describe('GET /api/cron/channel-bots', () => {
   beforeEach(() => {
     process.env.FOUNDER_USER_ID = 'f'
+    process.env.CHANNEL_BOTS_ARMED = 'true'
     persist.mockClear()
   })
 
@@ -25,6 +26,17 @@ describe('GET /api/cron/channel-bots', () => {
     const stored = (persist.mock.calls[0] as unknown[])[2] as { anyFailed: boolean; results: Array<{ bot: string; status: string }> }
     expect(stored.anyFailed).toBe(true)
     expect(stored.results.find((r) => r.bot === 'search-console')?.status).toBe('error')
+  })
+
+  it('stays dormant and writes nothing unless armed', async () => {
+    delete process.env.CHANNEL_BOTS_ARMED
+    const f = vi.fn()
+    vi.stubGlobal('fetch', f)
+    const { GET } = await import('../route')
+    const res = await GET(new Request('http://x/api/cron/channel-bots'))
+    expect(await res.json()).toEqual({ armed: false, skipped: true })
+    expect(f).not.toHaveBeenCalled()
+    expect(persist).not.toHaveBeenCalled()
   })
 
   it('returns 200 when every built bot succeeds', async () => {

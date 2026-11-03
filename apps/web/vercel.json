@@ -132,10 +132,6 @@
     {
       "path": "/api/cron/card-follow-up",
       "schedule": "0 23 * * *"
-    },
-    {
-      "path": "/api/cron/channel-bots",
-      "schedule": "0 21 * * *"
     }
   ],
   "functions": {
