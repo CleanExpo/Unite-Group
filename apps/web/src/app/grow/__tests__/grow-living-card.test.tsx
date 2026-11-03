@@ -49,7 +49,7 @@ describe('/grow Living Business Card section', () => {
   it('leaves the monthly packages untouched and mentions no niche', () => {
     vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', 'https://buy.stripe.com/test_ready')
     const html = render()
-    expect(html).toContain('Prices in AUD, excluding GST.')
+    expect(html).toContain('Prices in AUD, GST included.')
     expect(html).not.toMatch(/restoration|training/i)
     expect(GROW_CARD_OFFERS.map((o) => o.id)).toEqual(['ready', 'custom', 'extra_business', 'nfc_tap'])
   })

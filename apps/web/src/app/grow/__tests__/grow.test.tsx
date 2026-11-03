@@ -13,26 +13,30 @@ afterEach(() => {
 })
 
 describe('/grow offer page', () => {
-  it('shows all three packages with their monthly and setup prices, ex GST', () => {
+  it('shows all three packages with their monthly and setup prices, GST included', () => {
     const html = render()
     for (const [id, monthly, setup] of [
-      ['local-growth', '$397', '$495'],
-      ['website-found', '$497', '$2,495'],
-      ['lead-machine', '$995', '$3,995'],
+      ['local-growth', '$439', '$549'],
+      ['website-found', '$549', '$2,749'],
+      ['lead-machine', '$1,099', '$4,399'],
     ]) {
       const card = html.slice(html.indexOf(`data-package="${id}"`), html.indexOf('</article>', html.indexOf(`data-package="${id}"`)))
       expect(card).toContain(monthly)
       expect(card).toContain(`plus ${setup} setup`)
     }
-    expect(html).toContain('Prices in AUD, excluding GST.')
+    expect(html).toContain('Prices in AUD, GST included.')
+    expect(html).not.toMatch(/excluding GST|ex GST/i)
   })
 
-  it('publishes an OfferCatalog with every package, prices marked ex GST', () => {
+  it('publishes an OfferCatalog with every package, prices marked GST included', () => {
     const raw = /<script type="application\/ld\+json">(.*?)<\/script>/.exec(render())?.[1]
     const ld = JSON.parse(raw ?? 'null')
     expect(ld['@type']).toBe('OfferCatalog')
     expect(ld.itemListElement.map((o: { name: string }) => o.name)).toEqual(GROW_PACKAGES.map((p) => p.name))
-    expect(ld.itemListElement[0].priceSpecification.every((s: { valueAddedTaxIncluded: boolean }) => s.valueAddedTaxIncluded === false)).toBe(true)
+    const specs = ld.itemListElement.flatMap((o: { priceSpecification: { price: number; valueAddedTaxIncluded: boolean }[] }) => o.priceSpecification)
+    expect(specs).toHaveLength(6)
+    expect(specs.every((s: { valueAddedTaxIncluded: boolean }) => s.valueAddedTaxIncluded === true)).toBe(true)
+    expect(specs.map((s: { price: number }) => s.price)).toEqual([549, 439, 2749, 549, 4399, 1099])
   })
 
   it('shows no pay button until a Stripe Payment Link is configured', () => {

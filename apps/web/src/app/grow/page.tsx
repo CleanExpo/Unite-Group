@@ -43,8 +43,8 @@ function jsonLd() {
       priceCurrency: 'AUD',
       price: pkg.setupAud,
       priceSpecification: [
-        { '@type': 'UnitPriceSpecification', price: pkg.setupAud, priceCurrency: 'AUD', valueAddedTaxIncluded: false, name: 'Setup' },
-        { '@type': 'UnitPriceSpecification', price: pkg.monthlyAud, priceCurrency: 'AUD', valueAddedTaxIncluded: false, unitCode: 'MON', name: 'Monthly' },
+        { '@type': 'UnitPriceSpecification', price: pkg.setupAud, priceCurrency: 'AUD', valueAddedTaxIncluded: true, name: 'Setup' },
+        { '@type': 'UnitPriceSpecification', price: pkg.monthlyAud, priceCurrency: 'AUD', valueAddedTaxIncluded: true, unitCode: 'MON', name: 'Monthly' },
       ],
       areaServed: ['AU', 'NZ'],
     })),
@@ -76,7 +76,7 @@ export default function GrowPage() {
 
         <section id="packages" className={m.section}>
           <div className={m.wrap}>
-            <SectionIntro title="Packages" lead="Prices in AUD, excluding GST." />
+            <SectionIntro title="Packages" lead="Prices in AUD, GST included." />
             <div className={m.packageGrid}>
               {GROW_PACKAGES.map((pkg, index) => {
                 const payLink = paymentLinkFor(pkg)
