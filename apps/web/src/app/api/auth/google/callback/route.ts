@@ -8,6 +8,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { encrypt } from '@/lib/vault'
 import { accountByEmail } from '@/lib/email-accounts'
 import { verifyOAuthState } from '@/lib/oauth-state'
+import { hasBrandScopes, isBrandAccount } from '@/lib/channel-bots/brand-scopes'
 
 export const dynamic = 'force-dynamic'
 
@@ -102,6 +103,21 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${APP_URL}/founder/email?error=identity_unconfirmed`)
   }
   email = authenticatedEmail
+
+  // Brand-only channel-bot scopes must belong to the brand account. If a
+  // different Google account consented to them, revoke and store nothing.
+  if (hasBrandScopes(tokens.scope) && !isBrandAccount(email)) {
+    try {
+      await fetch('https://oauth2.googleapis.com/revoke', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ token: tokens.refresh_token ?? tokens.access_token }),
+      })
+    } catch (e) {
+      console.error('[Google OAuth] brand-scope revoke failed:', e)
+    }
+    return NextResponse.redirect(`${APP_URL}/founder/email?error=brand_scope_wrong_account`)
+  }
 
   // Encrypt the token bundle
   const payload = encrypt(JSON.stringify({

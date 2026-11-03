@@ -46,6 +46,7 @@ function signedState(email: string) {
 // The authenticated identity is now read from Google userinfo (not the requested
 // state email). Track the account under test so the userinfo mock echoes it.
 let currentEmail = ''
+let grantedScope = 'https://www.googleapis.com/auth/gmail.modify'
 
 async function runCallback(email: string) {
   currentEmail = email
@@ -77,7 +78,7 @@ describe('Google callback — append-not-overwrite', () => {
             access_token: 'at',
             refresh_token: 'rt',
             expires_in: 3600,
-            scope: 'https://www.googleapis.com/auth/gmail.modify',
+            scope: grantedScope,
           }),
         } as never
       }),
@@ -91,6 +92,22 @@ describe('Google callback — append-not-overwrite', () => {
     process.env.VAULT_ENCRYPTION_KEY = originalEnv.VAULT_ENCRYPTION_KEY
     vi.unstubAllGlobals()
     vi.clearAllMocks()
+    grantedScope = 'https://www.googleapis.com/auth/gmail.modify'
+  })
+
+  it('rejects and revokes brand-only scopes granted by a non-brand account', async () => {
+    grantedScope = 'https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/youtube.readonly'
+    const res = await runCallback('someone-else@gmail.com')
+    expect(res.headers.get('location')).toContain('error=brand_scope_wrong_account')
+    expect(upsertMock).not.toHaveBeenCalled()
+    const urls = vi.mocked(fetch).mock.calls.map(([u]) => String(u))
+    expect(urls).toContain('https://oauth2.googleapis.com/revoke')
+  })
+
+  it('stores brand-only scopes for the brand account', async () => {
+    grantedScope = 'https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/webmasters.readonly'
+    await runCallback('contact@unite-group.in')
+    expect(upsertMock).toHaveBeenCalledTimes(1)
   })
 
   it('upserts keyed on (founder_id, service, label) so a second account appends', async () => {
