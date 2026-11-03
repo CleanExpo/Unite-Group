@@ -42,7 +42,7 @@ describe('GET /api/cron/channel-bots', () => {
   it('returns 200 when every built bot succeeds', async () => {
     vi.stubGlobal('fetch', vi.fn(async (url: string) =>
       String(url).includes('youtube')
-        ? json({ items: [{ snippet: { title: 'UG' }, statistics: {} }] })
+        ? json({ items: [{ snippet: { title: 'UG' }, statistics: { subscriberCount: '1', videoCount: '1', viewCount: '1' } }] })
         : json({ rows: [{ clicks: 1, impressions: 2, position: 3 }] })))
     const { GET } = await import('../route')
     const res = await GET(new Request('http://x/api/cron/channel-bots'))

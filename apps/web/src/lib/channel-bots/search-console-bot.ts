@@ -23,12 +23,16 @@ export const searchConsoleBot: ChannelBot = {
       },
     )
     if (!res.ok) return { bot: 'search-console', status: 'error', actions: [], error: `Search Console API ${res.status}` }
-    const data = (await res.json()) as { rows?: Array<{ clicks: number; impressions: number; position: number }> }
-    // No rows means no data for the window; report that honestly, never as zeros.
-    if (!Array.isArray(data.rows)) {
+    const data = (await res.json()) as { rows?: unknown }
+    if (data.rows !== undefined && !Array.isArray(data.rows)) {
+      return { bot: 'search-console', status: 'error', actions: [], error: 'Search Console returned malformed rows' }
+    }
+    const rows = data.rows as Array<{ clicks: number; impressions: number; position: number }> | undefined
+    // Absent or empty rows means no data for the window; report that honestly, never as zeros.
+    if (!rows || rows.length === 0) {
       return { bot: 'search-console', status: 'ok', metrics: { dataAvailable: 'no' }, actions: [{ bot: 'search-console', kind: 'report', summary: 'Search: no data returned for the last 28 days' }] }
     }
-    const row = data.rows[0]
+    const row = rows[0]
     if (!row || typeof row.clicks !== 'number' || typeof row.impressions !== 'number' || typeof row.position !== 'number') {
       return { bot: 'search-console', status: 'error', actions: [], error: 'Search Console returned malformed metrics' }
     }

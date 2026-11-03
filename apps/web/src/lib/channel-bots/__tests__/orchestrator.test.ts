@@ -42,6 +42,19 @@ describe('channel bots', () => {
     expect(empty.actions[0].summary).not.toMatch(/0 clicks/)
     const bad = await run({ rows: [{ clicks: 'x' }] })
     expect(bad.status).toBe('error')
+    expect((await run({ rows: [] })).metrics).toEqual({ dataAvailable: 'no' })
+    const notArray = await run({ rows: { clicks: 5 } })
+    expect(notArray.status).toBe('error')
+    expect(notArray.metrics).toBeUndefined()
+  })
+
+  it('youtube bot never reports missing or malformed statistics as zeros', async () => {
+    const run = (statistics: unknown) => youtubeBot.run({ founderId: 'f', accountEmail: 'a', getGoogleToken: async () => 't', fetchImpl: (async () => json({ items: [{ snippet: { title: 'UG' }, statistics }] })) as unknown as typeof fetch })
+    for (const stats of [{}, undefined, { subscriberCount: 'x', videoCount: '1', viewCount: '1' }, { subscriberCount: '1', videoCount: '1' }]) {
+      const r = await run(stats)
+      expect(r.status).toBe('error')
+      expect(r.metrics).toBeUndefined()
+    }
   })
 
   it('reports not_connected when Google is not linked', async () => {
