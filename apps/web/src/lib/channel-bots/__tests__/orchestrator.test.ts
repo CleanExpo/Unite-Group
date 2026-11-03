@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { gateActions, runChannelBots } from '../orchestrator'
+import { actionId, gateActions, runChannelBots } from '../orchestrator'
 import { youtubeBot } from '../youtube-bot'
 import { searchConsoleBot } from '../search-console-bot'
 
@@ -13,7 +13,13 @@ describe('channel bots', () => {
     ])
     expect(ready.map((a) => a.summary)).toEqual(['r'])
     expect(held.map((a) => a.summary)).toEqual(['p'])
-    expect(gateActions([{ bot: 'x', kind: 'public_post', summary: 'p' }], new Set(['p'])).ready).toHaveLength(1)
+    const approved = { bot: 'x' as const, kind: 'public_post' as const, summary: 'same', payload: { text: 'approved' } }
+    const tampered = { ...approved, payload: { text: 'different' } }
+    const other = { ...approved, bot: 'linkedin' as const }
+    const out = gateActions([approved, tampered, other], new Set([actionId(approved)]))
+    expect(out.ready).toEqual([approved])
+    expect(out.held).toHaveLength(2)
+    expect(gateActions([approved], new Set(['same'])).held).toHaveLength(1)
   })
 
   it('youtube bot reports channel stats', async () => {
@@ -33,5 +39,6 @@ describe('channel bots', () => {
     const out = await runChannelBots({ founderId: 'f', accountEmail: 'a', getGoogleToken: async () => { throw new Error('x') } })
     expect(out.results.find((r) => r.bot === 'youtube')?.status).toBe('not_connected')
     expect(out.results.filter((r) => r.status === 'not_built')).toHaveLength(5)
+    expect(out.allFailed).toBe(true)
   })
 })

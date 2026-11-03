@@ -2,6 +2,7 @@
 // Runs every registered bot and applies the approval gate: no public post or
 // profile change is ever executed without an explicit founder approval id.
 
+import { createHash } from 'node:crypto'
 import type { ChannelBot, ChannelBotAction, ChannelBotContext, ChannelBotId, ChannelBotResult } from './types'
 import { youtubeBot } from './youtube-bot'
 import { searchConsoleBot } from './search-console-bot'
@@ -13,13 +14,23 @@ export function requiresApproval(action: ChannelBotAction): boolean {
   return action.kind !== 'report'
 }
 
-/** Split actions into those safe to run now and those held for approval. */
-export function gateActions(actions: ChannelBotAction[], approvedSummaries: Set<string> = new Set()) {
+/**
+ * Immutable action id: a digest of bot, kind, summary and payload. A founder
+ * approval is bound to this id, so any change to the action voids it.
+ */
+export function actionId(action: ChannelBotAction): string {
+  const canonical = JSON.stringify([action.bot, action.kind, action.summary, action.payload ?? null])
+  return createHash('sha256').update(canonical).digest('hex')
+}
+
+/** Split actions into those safe to run now and those held for founder approval. */
+export function gateActions(actions: ChannelBotAction[], approvedActionIds: ReadonlySet<string> = new Set()) {
   const ready: ChannelBotAction[] = []
-  const held: ChannelBotAction[] = []
+  const held: Array<ChannelBotAction & { actionId: string }> = []
   for (const a of actions) {
-    if (!requiresApproval(a) || approvedSummaries.has(a.summary)) ready.push(a)
-    else held.push(a)
+    const id = actionId(a)
+    if (!requiresApproval(a) || approvedActionIds.has(id)) ready.push(a)
+    else held.push({ ...a, actionId: id })
   }
   return { ready, held }
 }
@@ -36,5 +47,6 @@ export async function runChannelBots(ctx: ChannelBotContext, bots: ChannelBot[] 
   )
   for (const id of PLANNED_BOTS) results.push({ bot: id, status: 'not_built', actions: [] })
   const { ready, held } = gateActions(results.flatMap((r) => r.actions))
-  return { results, ready, heldForApproval: held }
+  const allFailed = results.filter((r) => r.status !== 'not_built').every((r) => r.status !== 'ok')
+  return { results, ready, heldForApproval: held, allFailed }
 }

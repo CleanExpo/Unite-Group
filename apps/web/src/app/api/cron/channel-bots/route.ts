@@ -5,6 +5,8 @@ import { getFounderUserId } from '@/lib/auth/founder-user-id'
 import { getAccessTokenForEmail } from '@/lib/integrations/google-oauth'
 import { runChannelBots } from '@/lib/channel-bots/orchestrator'
 import { BRAND_ACCOUNT_EMAIL } from '@/lib/channel-bots/types'
+import { persistChannelBotRun } from '@/lib/channel-bots/persist'
+import { createServiceClient } from '@/lib/supabase/service'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -21,5 +23,12 @@ export async function GET(request: Request) {
     getGoogleToken: () => getAccessTokenForEmail(founderId, BRAND_ACCOUNT_EMAIL),
   })
   console.log('[channel-bots]', JSON.stringify(out.results.map((r) => ({ bot: r.bot, status: r.status }))))
-  return NextResponse.json(out)
+  let insightId: string
+  try {
+    insightId = await persistChannelBotRun(createServiceClient(), founderId, out)
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : 'persist failed', ...out }, { status: 500 })
+  }
+  // A run where every built bot failed is a failure, not a quiet success.
+  return NextResponse.json({ insightId, ...out }, { status: out.allFailed ? 502 : 200 })
 }
