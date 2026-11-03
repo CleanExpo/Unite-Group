@@ -104,6 +104,30 @@ test('apostrophes in page text do not hide a real hero and motion section', () =
   });
   assert.equal(code, 0, JSON.stringify(out.violations));
 });
+test('a logos/ or icons/ folder, or a word like flag, does not excuse ordinary media from the manifest', () => {
+  for (const p of ['/logos/ordinary.webp', '/icons/ordinary.webp', '/media/banner-flag.webp']) {
+    const { code, out } = run({
+      'media.manifest.json': JSON.stringify({ version: 1, entries: [] }),
+      [`public${p}`]: 'x',
+      'src/other.tsx': `export const A = () => <img src="${p}" alt="x"/>;`,
+    });
+    assert.equal(code, 1, p); assert.ok(out.byRule['unmanifested-media'], p); assert.ok(out.byRule['unmanifested-public-media'], p);
+  }
+  const logo = run({
+    'media.manifest.json': JSON.stringify({ version: 1, entries: [] }),
+    'public/media/site-logo.webp': 'x',
+    'src/other.tsx': `export const A = () => <img src="/media/site-logo.webp" alt="x"/>;`,
+  });
+  assert.ok(!logo.out.byRule['unmanifested-media'], JSON.stringify(logo.out.violations));
+  assert.ok(!logo.out.byRule['unmanifested-public-media'], JSON.stringify(logo.out.violations));
+});
+test('a backslash path cannot point a manifest entry outside public/', () => {
+  const { code, out } = run({
+    'media.manifest.json': JSON.stringify({ version: 1, entries: [entry('/..\\secret.webp')] }),
+    'secret.webp': 'x',
+  });
+  assert.equal(code, 1); assert.ok(out.byRule['manifest-invalid'], JSON.stringify(out.violations));
+});
 test('the words data-pv-motion in page text are not a motion section', () => {
   const files = {
     'media.manifest.json': JSON.stringify({ version: 1, entries: [entry('/media/hero/a.avif')] }),

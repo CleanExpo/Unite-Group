@@ -117,11 +117,20 @@ function main() {
   const add = (rule, file, line, detail) => violations.push({ rule, file, line, detail });
   const lineOf = (text, idx) => text.slice(0, idx).split('\n').length;
 
-  // Public-path exemptions by name: whole-word logo/icon/favicon/og names, or an icons/logos folder.
+  // svg-asset exemption (a code-drawn-art rule): whole-word logo/icon/brand-mark names, or an icons/logos folder.
   const BRAND_NAME = /(^|[-_.\s])(logo|logos|icon|icons|favicon|apple-touch-icon|og|opengraph|opengraph-image|twitter-image|mark|wordmark|badge-official|flag)([-_.\s@]|$)/i;
   const BRAND_DIR = /(^|\/)(icons?|logos?|favicons?)\//i;
   const brandAsset = (p) => BRAND_NAME.test(path.basename(p)) || BRAND_DIR.test(p);
-  const findPublic = (src) => cfg.publicDirs.map((d) => path.join(root, d, src)).find((p) => fs.existsSync(p) && fs.statSync(p).isFile());
+  // Manifest exemption is narrower: only a file whose own name says it is a logo, icon or share
+  // image. A folder name (/logos/banner.webp) or a word such as "flag" never excuses ordinary media.
+  const BRAND_MEDIA = /(^|[-_.\s])(logo|logos|icon|icons|favicon|apple-touch-icon|apple-icon|og|opengraph|opengraph-image|twitter-image)([-_.\s@]|$)/i;
+  const brandMedia = (p) => BRAND_MEDIA.test(path.basename(p));
+  // Only a path that stays inside a public dir counts as found there.
+  const findPublic = (src) => cfg.publicDirs.map((d) => {
+    const base = path.resolve(root, d);
+    const p = path.resolve(base, '.' + src);
+    return p.startsWith(base + path.sep) ? p : null;
+  }).find((p) => p && fs.existsSync(p) && fs.statSync(p).isFile());
 
   // ---- manifest ----
   const manifestSrcs = new Set(); // entry srcs and posters: paths that count as manifested
@@ -140,7 +149,7 @@ function main() {
         if (!Array.isArray(m.entries)) manifestBad('entries must be an array');
         else {
           const isText = (v) => typeof v === 'string' && v.trim().length > 0;
-          const validPath = (p) => typeof p === 'string' && /^\/[^\s?#]+$/.test(p) && !p.split('/').includes('..') && MEDIA_EXTS.includes(extOf(p));
+          const validPath = (p) => typeof p === 'string' && /^\/[^\s?#\\]+$/.test(p) && !p.split('/').includes('..') && MEDIA_EXTS.includes(extOf(p));
           m.entries.forEach((e, i) => {
             entryCount++;
             const id = e && typeof e === 'object' && typeof e.src === 'string' ? e.src : `entries[${i}]`;
@@ -209,7 +218,7 @@ function main() {
       MEDIA_PATH.lastIndex = 0;
       while ((m = MEDIA_PATH.exec(t))) {
         const p = m[1].split('?')[0];
-        if (brandAsset(p)) continue;
+        if (brandMedia(p)) continue;
         if (!manifestSrcs.has(p)) add('unmanifested-media', r, lineOf(t, m.index), `${p} has no ${cfg.manifest} entry`);
       }
     }
@@ -229,7 +238,7 @@ function main() {
       add('media-budget', r, 0, `${kb.toFixed(0)}KB PNG/JPG: ship AVIF/WebP (budget ${cfg.budgets.legacyRasterMaxKB}KB)`);
     if (['mp4', 'webm', 'mov'].includes(ext) && kb > cfg.budgets.videoMaxKB) add('media-budget', r, 0, `${(kb / 1024).toFixed(1)}MB > ${(cfg.budgets.videoMaxKB / 1024).toFixed(1)}MB video budget`);
     if (ext === 'mov') add('media-budget', r, 0, '.mov: encode to AV1/H.264 MP4 + WebM');
-    if (MEDIA_EXTS.includes(ext) && !brandAsset(publicPath) && !manifestSrcs.has(publicPath))
+    if (MEDIA_EXTS.includes(ext) && !brandMedia(publicPath) && !manifestSrcs.has(publicPath))
       add('unmanifested-public-media', r, 0, `${publicPath} is in a public dir with no ${cfg.manifest} entry`);
   }
 
