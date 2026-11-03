@@ -18,6 +18,13 @@ describe('guardReply', () => {
     'We improve your search visibility over time.',
     'This lifts your rankings in a few weeks.',
     'We publish an llms.txt file for you.',
+    // Codex review, c4cd9a75: paraphrases the first guard let through.
+    'We add a sitemap and metadata so Google discovers your business in its AI results.',
+    'Your site will show up on Google Maps and in ChatGPT answers.',
+    'We tune your keywords and backlinks so customers find you first.',
+    'People searching for a cafe near them will see you at the top.',
+    'Perplexity and Gemini will recommend you.',
+    'We make sure you are listed in the local directories that matter.',
   ])('replaces a reply that describes the confidential method: %s', (reply) => {
     expect(guardReply(reply)).toEqual({ text: SAFE_DEFLECTION, blocked: true, rule: 'confidential' })
   })
@@ -29,6 +36,12 @@ describe('guardReply', () => {
     'Prices start low, plus GST.',
     'Our pricing is simple.',
     'It costs less than a receptionist.',
+    // Codex review, c4cd9a75: non-dollar amounts.
+    'The bot is 99 euros.',
+    'Setup is about 2k.',
+    'It is \u00a3150 to start.',
+    'You pay monthly and can stop any time.',
+    'We can quote that for you now: 300 AUD.',
   ])('replaces a reply that gives a price: %s', (reply) => {
     expect(guardReply(reply)).toEqual({ text: SAFE_DEFLECTION, blocked: true, rule: 'price' })
   })
@@ -78,6 +91,26 @@ describe('extractLead', () => {
 
   it('drops a block with an invalid email, never showing it', () => {
     expect(extractLead('Ok <lead>{"name":"Sam","email":"nope","phone":"","need":"x"}</lead>')).toEqual({ text: 'Ok', lead: null })
+  })
+
+  // Codex review, c4cd9a75: every model-written field is shown back to the visitor.
+  it('blanks a need that breaks a content rule, so the visitor types it in their own words', () => {
+    const reply = 'Thanks.\n<lead>{"name":"Sam","email":"sam@example.com","phone":"","need":"We use schema markup to rank your business"}</lead>'
+    expect(extractLead(reply)).toEqual({ text: 'Thanks.', lead: { name: 'Sam', email: 'sam@example.com', phone: '', need: '' } })
+  })
+
+  it.each([
+    ['name', '{"name":"Sam. We rank you on Google","email":"sam@example.com","phone":"","need":"x"}'],
+    ['name', '{"name":"<img src=x onerror=alert(1)>","email":"sam@example.com","phone":"","need":"x"}'],
+    ['email', '{"name":"Sam","email":"prices start at $99@example.com","phone":"","need":"x"}'],
+    ['phone', '{"name":"Sam","email":"sam@example.com","phone":"call us, it is $99 a month","need":"x"}'],
+  ])('drops the whole lead when the %s is not a plain value', (_field, block) => {
+    expect(extractLead(`Ok <lead>${block}</lead>`).lead).toBeNull()
+  })
+
+  it('accepts real-world names and phone numbers', () => {
+    const lead = extractLead('Ok <lead>{"name":"Zoë O\'Brien-Ngata","email":"zoe.ob+cafe@example.com.au","phone":"+61 (0)400 123-456","need":"More bookings"}</lead>').lead
+    expect(lead).toEqual({ name: "Zoë O'Brien-Ngata", email: 'zoe.ob+cafe@example.com.au', phone: '+61 (0)400 123-456', need: 'More bookings' })
   })
 
   it('drops a malformed block', () => {

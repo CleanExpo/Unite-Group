@@ -48,6 +48,9 @@ describe('POST /api/bots/lead-chat', () => {
     expect(isPublicPath('/api/bots/lead-chat')).toBe(true)
     expect(isPublicPath('/api/bots')).toBe(false)
     expect(isPublicPath('/api/bots/other')).toBe(false)
+    // Codex review, c4cd9a75: the exemption must not reach routes beneath it.
+    expect(isPublicPath('/api/bots/lead-chat/private')).toBe(false)
+    expect(isPublicPath('/api/bots/lead-chat/')).toBe(false)
     expect(isPublicPath('/bots')).toBe(true)
     expect(isPublicPath('/bots/x')).toBe(false)
   })
@@ -162,6 +165,13 @@ describe('POST /api/bots/lead-chat', () => {
     expect(JSON.stringify(body)).not.toMatch(/SUPABASE/)
     expect(claimPublicAgentQuota).not.toHaveBeenCalled()
     expect(create).not.toHaveBeenCalled()
+  })
+
+  it('never returns a model-written need that breaks a content rule', async () => {
+    modelSays('Thanks.\n<lead>{"name":"Sam","email":"sam@example.com","phone":"","need":"We use schema markup to rank your business"}</lead>')
+    const body = await (await POST(req(hello))).json()
+    expect(body.capture).toEqual({ name: 'Sam', email: 'sam@example.com', phone: '', need: '' })
+    expect(JSON.stringify(body)).not.toMatch(/schema|rank/i)
   })
 
   it('hides provider errors from the caller', async () => {

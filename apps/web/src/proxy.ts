@@ -64,7 +64,6 @@ const PUBLIC_PATHS = [
   '/api/leads',    // Public website lead capture (UNI-2355) — service-role insert, rate-limited above
   '/api/events',   // First-party site analytics intake (UNI-3001) — service-role insert, honours DNT/GPC, rate-limited in-route
   '/api/agent',    // Public site chat agent — auth is the publishable site key, validated in-route (UNI-2359)
-  '/api/bots/lead-chat', // Public /bots lead follow-up demo (UNI-3217) — no auth by design; per-IP limit + durable daily quota + kill switch in-route, never writes data
   '/widget',       // Embeddable chat widget script must load on third-party sites (UNI-2359)
   '/cards/media',  // Living-card showroom clips: static files in public/cards/media (.mp4 is not in the matcher's asset list)
   '/landing/media',  // Home hero preview renders (webp, jpg, webm, mp4): static files in public/landing/media; .mp4 and .webm are not in the matcher's asset list
@@ -93,6 +92,7 @@ const EXACT_PUBLIC_FILES: ReadonlySet<string> = new Set([
   '/video/ten-clips', // Public offer page; its form posts to the public /api/leads. Exact path only
   '/get-a-website', // Public website intake questionnaire; its form posts to the public /api/leads. Exact path only
   '/bots', // Public demo bots showcase (UNI-3215); its chat calls /api/bots/lead-chat and its form posts to /api/leads. Exact path only
+  '/api/bots/lead-chat', // Public /bots lead follow-up demo (UNI-3217): no auth by design; per-IP limit + durable daily quota + kill switch in-route, never writes data. Exact path only, so no future route beneath it inherits the exemption
   '/get-a-website/thanks', // Thank-you page after the intake form; static, no data. Exact path only
   '/cards/thanks', // Post-payment thank-you with the intake form; the buyer is signed out. Exact: no sub-routes
   '/api/cards/intake', // The intake form's POST, service-role insert against an order reference; rate-limited above. Exact: no siblings
