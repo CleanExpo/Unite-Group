@@ -1,7 +1,7 @@
 name: check-visuals
 on:
   pull_request:
-    paths: ["**/*.tsx", "**/*.jsx", "**/*.ts", "**/*.js", "**/*.html", "**/*.astro", "**/*.vue", "**/*.svelte", "**/*.css", "**/*.scss", "**/*.sass", "**/*.less", "**/*.mdx", "**/public/**", "media.manifest.json", "visuals.config.json", "packages/premium-visuals/**", ".github/workflows/check-visuals.yml"]
+    paths: ["**/*.tsx", "**/*.jsx", "**/*.ts", "**/*.js", "**/*.mdx", "**/*.html", "**/*.astro", "**/*.vue", "**/*.svelte", "**/*.css", "**/*.scss", "**/*.sass", "**/*.less", "**/public/**", "media.manifest.json", "visuals.config.json", "packages/premium-visuals/**", ".github/workflows/check-visuals.yml"]
 permissions:
   contents: read
 jobs:
@@ -13,5 +13,8 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
-      # Mode comes from visuals.config.json ("report" = list violations, don't fail; "enforce" = fail the PR).
+      # Mode comes from visuals.config.json ("report" = list findings, never fail; "enforce" = fail the PR on any finding).
+      # Exit 2 = configuration error and fails in both modes. Neither mode is visual acceptance (see AGENTS.md).
+      # The path list must cover every extension the scanner reads; packages/premium-visuals/test/gp667-hardening.test.mjs checks it.
+      - run: node --test 'packages/premium-visuals/test/*.test.mjs'
       - run: node packages/premium-visuals/bin/check-visuals.mjs --root .

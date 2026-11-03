@@ -4,7 +4,10 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-const bin = path.resolve('bin/check-visuals.mjs');
+import { fileURLToPath, pathToFileURL } from 'node:url';
+// Resolved from this file, not the cwd, so the tests run from the package or the repo root.
+const PKG = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const bin = path.join(PKG, 'bin/check-visuals.mjs');
 function run(files, extra = []) {
   const d = fs.mkdtempSync(path.join(os.tmpdir(), 'cv-'));
   for (const [p, c] of Object.entries(files)) { fs.mkdirSync(path.dirname(path.join(d, p)), { recursive: true }); fs.writeFileSync(path.join(d, p), c); }
@@ -36,7 +39,7 @@ test('comments do not count as a hero or a motion section', () => {
   for (const r of ['hero-missing-media', 'no-motion']) assert.ok(out.byRule[r], r);
 });
 test('the shipped allowlist still scans components/ui for svg art', () => {
-  const shipped = JSON.parse(fs.readFileSync(path.resolve('templates/visuals.config.json'), 'utf8'));
+  const shipped = JSON.parse(fs.readFileSync(path.join(PKG, 'templates/visuals.config.json'), 'utf8'));
   const { code, out } = run({
     'visuals.config.json': JSON.stringify({ ...shipped, mode: 'enforce' }),
     'src/components/ui/illustration.tsx': `export const A = () => <svg viewBox="0 0 10 10"><circle r="4"/></svg>`,
@@ -73,8 +76,16 @@ test('a data-pv-hero whose image sits outside it fails', () => {
   });
   assert.equal(code, 1); assert.ok(out.byRule['hero-missing-media']);
 });
+test('a data-pv-hero with a nested same-name element still finds its own image', () => {
+  const { code, out } = run({
+    'media.manifest.json': JSON.stringify({ version: 1, entries: [entry('/media/hero/a.avif')] }),
+    'public/media/hero/a.avif': 'x',
+    'app/page.tsx': `<div data-pv-hero><div>text</div><img src="/media/hero/a.avif" alt="x"/></div><MotionSection>x</MotionSection>`,
+  });
+  assert.equal(code, 0, JSON.stringify(out.violations));
+});
 test('every video file the CLIs encode gets a manifest entry, so the template sources pass', async () => {
-  const { videoEntries } = await import(path.resolve('bin/manifest-entries.mjs'));
+  const { videoEntries } = await import(pathToFileURL(path.join(PKG, 'bin/manifest-entries.mjs')).href);
   const entries = videoEntries('/media/hero/a', { source: 'generated', credit: 'Higgsfield', alt: 'x' });
   const files = Object.fromEntries(['.mp4', '.av1.mp4', '.webm', '.poster.webp'].map((x) => [`public/media/hero/a${x}`, 'x']));
   const { code, out } = run({
@@ -83,14 +94,14 @@ test('every video file the CLIs encode gets a manifest entry, so the template so
     'app/page.tsx': `<PremiumHero media={m('/media/hero/a.mp4')} video={[{ src: '/media/hero/a.av1.mp4', type: 'video/mp4' }, { src: '/media/hero/a.webm', type: 'video/webm' }, { src: '/media/hero/a.mp4', type: 'video/mp4' }]} title="t"/><MotionSection>x</MotionSection>`,
   });
   assert.equal(code, 0, JSON.stringify(out.violations));
-  for (const cli of ['bin/generate-media.mjs', 'bin/blender-render.mjs']) assert.match(fs.readFileSync(path.resolve(cli), 'utf8'), /videoEntries\(pub,/, cli);
+  for (const cli of ['bin/generate-media.mjs', 'bin/blender-render.mjs']) assert.match(fs.readFileSync(path.join(PKG, cli), 'utf8'), /videoEntries\(pub,/, cli);
 });
 test('media in a stylesheet url() needs a manifest entry', () => {
   const { code, out } = run({ 'src/site.css': `body { background-image: url("/media/hero.webp"); }`, 'public/media/hero.webp': 'x' });
   assert.equal(code, 1); assert.ok(out.byRule['unmanifested-media']);
 });
 test('the marketing template gives PremiumHero a video entry, which carries the poster', () => {
-  const t = fs.readFileSync(path.resolve('templates/marketing-page.tsx'), 'utf8');
+  const t = fs.readFileSync(path.join(PKG, 'templates/marketing-page.tsx'), 'utf8');
   const hero = t.slice(t.indexOf('<PremiumHero'), t.indexOf('/>', t.indexOf('<PremiumHero')));
   assert.match(hero, /video=\{/);
   assert.match(hero, /media=\{m\('[^']+\.mp4'\)\}/);
