@@ -46,6 +46,7 @@ import PricingPage from '../pricing/page'
 import TenClipsPage from '../video/ten-clips/page'
 import GetAWebsitePage from '../get-a-website/page'
 import GetAWebsiteThanksPage from '../get-a-website/thanks/page'
+import BotsPage from '../bots/page'
 import SignaturesPage from '../signatures/page'
 import VisibilityPage from '../solutions/visibility/page'
 import ExperiencePage from '../solutions/experience/page'
@@ -73,6 +74,7 @@ const RENDERS: Record<string, () => Promise<ReactElement>> = {
   '/video/ten-clips': sync(TenClipsPage),
   '/get-a-website': sync(GetAWebsitePage),
   '/get-a-website/thanks': sync(GetAWebsiteThanksPage),
+  '/bots': sync(BotsPage),
   '/signatures': sync(SignaturesPage),
   '/solutions/visibility': sync(VisibilityPage),
   '/solutions/experience': sync(ExperiencePage),

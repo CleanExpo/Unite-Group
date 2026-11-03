@@ -1,4 +1,11 @@
 {
   "version": 1,
-  "entries": []
+  "entries": [
+    {
+      "src": "/landing/visuals/nexus-1280.webp",
+      "source": "client",
+      "credit": "Unite Group: real screenshot of the product's CRM Inbox with invented demo data (no real person); see src/components/public/visuals.ts",
+      "alt": "The CRM inbox showing new leads and their next steps"
+    }
+  ]
 }

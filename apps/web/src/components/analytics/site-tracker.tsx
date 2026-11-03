@@ -104,6 +104,16 @@ function track(event: Omit<QueuedEvent, 'session_id'>) {
   else if (!timer) timer = setTimeout(flush, FLUSH_DELAY_MS)
 }
 
+/**
+ * Records one event from page code that is not a click or a video, such as a demo chat starting
+ * (UNI-3217). Same rules as the tracker: tracked public pages only, nothing when the visitor opted out,
+ * and only the existing event types, so no new event type or table change is needed.
+ */
+export function trackSiteEvent(eventType: SiteEventType, label: string): void {
+  if (typeof window === 'undefined' || !isTrackedPath(window.location.pathname)) return
+  track({ event_type: eventType, path: window.location.pathname, label: cut(label, SITE_EVENT_LIMITS.label) })
+}
+
 function labelOf(el: Element): string | undefined {
   return cut(el.getAttribute('data-track-label'), SITE_EVENT_LIMITS.label)
 }

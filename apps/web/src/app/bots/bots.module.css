@@ -1,0 +1,227 @@
+/* /bots: layout on top of marketing-page.module.css. Tokens from public-tokens.css. No drawn art: pictures are real files only. */
+
+.grid {
+  display: grid;
+  gap: clamp(16px, 2.5vw, 24px);
+  margin-top: 2rem;
+}
+
+@media (min-width: 760px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1180px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--pub-line);
+  border-radius: var(--pub-radius-lg);
+  background: var(--pub-surface);
+}
+
+.card[data-bot-status='live'] {
+  border-color: var(--pub-accent);
+}
+
+.picture {
+  margin: 0;
+  border-bottom: 1px solid var(--pub-line);
+}
+
+.picture img,
+.video {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.cardBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: clamp(18px, 2.5vw, 26px);
+}
+
+.badgeLive,
+.badgeSoon {
+  align-self: flex-start;
+  margin: 0;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.badgeLive {
+  background: var(--pub-accent);
+  color: var(--pub-accent-ink);
+}
+
+.badgeSoon {
+  border: 1px solid var(--pub-line-strong);
+  color: var(--pub-muted);
+}
+
+.cardTitle {
+  margin: 0;
+  font-family: var(--pub-display);
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: var(--pub-ink);
+}
+
+.cardSummary {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--pub-ink-soft);
+}
+
+.points {
+  flex: 1;
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--pub-ink-soft);
+}
+
+.points li + li {
+  margin-top: 0.35rem;
+}
+
+.soon {
+  align-self: flex-start;
+  padding: 0.7rem 1.1rem;
+  border: 1px dashed var(--pub-line-strong);
+  border-radius: var(--pub-radius);
+  font-size: 15px;
+  color: var(--pub-muted);
+}
+
+.demoWrap {
+  max-width: 760px;
+  margin-top: 1.5rem;
+}
+
+.chat {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.log {
+  display: grid;
+  gap: 0.6rem;
+  max-height: 420px;
+  margin: 0;
+  padding: 1rem;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--pub-line);
+  border-radius: var(--pub-radius-lg);
+  background: var(--pub-surface);
+}
+
+.fromBot,
+.fromVisitor {
+  max-width: 85%;
+  padding: 0.65rem 0.9rem;
+  border-radius: var(--pub-radius);
+  font-size: 15px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.fromBot {
+  justify-self: start;
+  background: var(--pub-surface-raised);
+  color: var(--pub-ink);
+}
+
+.fromVisitor {
+  justify-self: end;
+  background: var(--pub-accent-soft);
+  color: var(--pub-ink);
+}
+
+.who {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pub-muted);
+}
+
+.composer {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.composer input {
+  flex: 1;
+}
+
+.sendButton {
+  padding: 0 1.2rem;
+  border: 0;
+  border-radius: var(--pub-radius);
+  background: var(--pub-accent);
+  color: var(--pub-accent-ink);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sendButton:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.sendButton:focus-visible,
+.linkButton:focus-visible {
+  outline: 2px solid var(--pub-focus);
+  outline-offset: 2px;
+}
+
+.notice {
+  margin: 0 0 1rem;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--pub-ink-soft);
+}
+
+.small {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--pub-muted);
+}
+
+.linkButton {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pub-accent-strong);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

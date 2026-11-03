@@ -12,6 +12,7 @@ const ROUTES: Record<PublicRoute, { lastModified: string; priority: number; chan
   '/cards/order': { lastModified: '2026-10-25', priority: 0.8, changeFrequency: 'monthly' },
   '/video/ten-clips': { lastModified: '2026-10-30', priority: 0.8, changeFrequency: 'monthly' },
   '/get-a-website': { lastModified: '2026-11-02', priority: 0.8, changeFrequency: 'monthly' },
+  '/bots': { lastModified: '2026-11-03', priority: 0.7, changeFrequency: 'monthly' },
   '/solutions/conversion': { lastModified: '2026-10-25', priority: 0.7, changeFrequency: 'monthly' },
   '/solutions/visibility': { lastModified: '2026-10-25', priority: 0.6, changeFrequency: 'monthly' },
   '/solutions/experience': { lastModified: '2026-10-25', priority: 0.6, changeFrequency: 'monthly' },
