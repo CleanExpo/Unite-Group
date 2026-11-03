@@ -14,8 +14,9 @@
 -- card_staff_public; a deactivated card can never change again; a card's owner, order and address never change; and
 -- seats exist only from a paid staff-card order.
 --
--- Until this is applied the webhook logs a warning and records the order as before. Apply it before merging the code
--- that advertises owner control.
+-- Until this is applied the webhook records the order as before and emails the founder that no account or staff card
+-- was set up (it fails, so Stripe retries, if that email cannot send); resending the event afterwards sets it up. Apply
+-- it before merging the code that advertises owner control.
 -- Re-appliable: tables and indexes use if not exists, functions use create or replace, policies and triggers are dropped and recreated.
 -- Rollback (reviewed forward migration): drop function public.card_staff_public(text),
 --   public.card_provision_staff_cards(uuid, uuid), then drop table public.card_staff_cards, public.card_business_accounts
