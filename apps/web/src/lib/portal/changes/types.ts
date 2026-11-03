@@ -1,6 +1,6 @@
 // Shared shapes for the owner portal change-request editor (UNI-3168).
 // PortalOwner and Entitlements are the contract agreed across the three portal jobs (S1 owner/guard, S2 plans,
-// S3 this folder). S1 and S2 provide the real functions; until they merge, owner-stub.ts stands in.
+// S3 this folder). The owner check is lib/portal/owner.ts; the plans are lib/portal/entitlements.
 
 export type PortalPlan = 'comp' | 'paid' | 'none'
 export type Aal = 'aal1' | 'aal2'

@@ -1,53 +1,22 @@
-import { describe, expect, it, vi } from 'vitest'
-
-vi.mock('server-only', () => ({}))
-vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }))
+import { describe, expect, it } from 'vitest'
 
 import { decidePortalAccess, deniedResult, signInPath } from '../access'
-import { ownerFromSession } from '../owner-stub'
+import type { PortalOwner } from '../types'
 
-const ALPHA = { id: 'u-a1', app_metadata: { portal_tenant_slug: 'alpha', portal_plan: 'comp' } }
+// Who counts as an owner (membership, aal, plan) is tested in lib/portal/__tests__/owner.test.ts.
+const ALPHA: PortalOwner = { userId: 'u-a1', ownerId: 'u-a1', tenantSlug: 'alpha', plan: 'comp', aal: 'aal2' }
 
 describe('who may use the owner portal', () => {
-  it('anon (no session) is sent to sign in', () => {
-    expect(ownerFromSession(null, null)).toBeNull()
+  it('anon, or a signed-in user with no portal, is sent to sign in', () => {
     expect(decidePortalAccess(null)).toEqual({ kind: 'sign_in' })
   })
 
   it('aal1 is never access: the owner is asked for her second factor', () => {
-    const owner = ownerFromSession(ALPHA, 'aal1')
-    expect(owner?.aal).toBe('aal1')
-    expect(decidePortalAccess(owner)).toEqual({ kind: 'verify_second_factor' })
-  })
-
-  it('an unknown or missing assurance level counts as aal1', () => {
-    expect(decidePortalAccess(ownerFromSession(ALPHA, undefined)).kind).toBe('verify_second_factor')
-    expect(decidePortalAccess(ownerFromSession(ALPHA, 'AAL2')).kind).toBe('verify_second_factor')
-  })
-
-  it('a signed-in user with no portal tenant (for example the founder) is not an owner', () => {
-    expect(ownerFromSession({ id: 'founder', app_metadata: {} }, 'aal2')).toBeNull()
-    expect(ownerFromSession({ id: 'founder', app_metadata: null }, 'aal2')).toBeNull()
-  })
-
-  it('a malformed tenant claim is refused, so a crafted value cannot reach a query', () => {
-    for (const slug of ['Alpha', 'alpha/beta', '', 'a'.repeat(65), "alpha' or 1=1", 42]) {
-      expect(ownerFromSession({ id: 'x', app_metadata: { portal_tenant_slug: slug } }, 'aal2'), String(slug)).toBeNull()
-    }
-  })
-
-  it('the tenant comes only from app_metadata, never user_metadata', () => {
-    const forged = { id: 'u-b2', app_metadata: { portal_tenant_slug: 'beta' }, user_metadata: { portal_tenant_slug: 'alpha' } }
-    expect(ownerFromSession(forged, 'aal2')?.tenantSlug).toBe('beta')
+    expect(decidePortalAccess({ ...ALPHA, aal: 'aal1' })).toEqual({ kind: 'verify_second_factor' })
   })
 
   it('a correct aal2 owner gets in, with her own tenant and plan', () => {
-    const access = decidePortalAccess(ownerFromSession(ALPHA, 'aal2'))
-    expect(access).toEqual({ kind: 'ok', owner: { userId: 'u-a1', ownerId: 'u-a1', tenantSlug: 'alpha', plan: 'comp', aal: 'aal2' } })
-  })
-
-  it('an unknown plan falls back to none', () => {
-    expect(ownerFromSession({ id: 'x', app_metadata: { portal_tenant_slug: 'alpha', portal_plan: 'gold' } }, 'aal2')?.plan).toBe('none')
+    expect(decidePortalAccess(ALPHA)).toEqual({ kind: 'ok', owner: ALPHA })
   })
 
   it('refusals carry a code the form can act on', () => {

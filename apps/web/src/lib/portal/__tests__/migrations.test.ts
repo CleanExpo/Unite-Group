@@ -61,3 +61,30 @@ describe('portal migrations', () => {
     }
   })
 })
+
+// The owner helper that joins S3's row rules to the invite membership. Behaviour: scripts/portal-owner-db-proof.sh.
+describe('portal owner helper migration', () => {
+  const helper = readFileSync(join(dir, '20261103120000_portal_owner_tenant_from_membership.sql'), 'utf8')
+  const body = helper.split('\n').filter((l) => !l.trim().startsWith('--')).join('\n')
+
+  it('replaces only public.portal_owner_tenant_slug(), same signature, and touches no table', () => {
+    expect([...body.matchAll(/create or replace function public\.(\w+)\(\)\s*returns text/g)].map((m) => m[1])).toEqual(['portal_owner_tenant_slug'])
+    expect(body).not.toMatch(/\b(create|alter|drop|truncate)\s+(table|policy|index)\b/i)
+    expect(body).not.toMatch(/^\s*(insert|update|delete)\b/im)
+  })
+
+  it('reads the caller\'s own membership on an aal2 session, oldest first, never a token claim', () => {
+    expect(body).toContain('from public.portal_tenant_members m')
+    expect(body).toContain('where public.portal_session_is_aal2()')
+    expect(body).toContain('and m.user_id = (select auth.uid())')
+    expect(body).toContain('order by m.created_at, m.tenant_slug')
+    expect(helper).toMatch(/app_metadata/) // control: the header explains the old claim, so the next line can fail
+    expect(body).not.toMatch(/app_metadata|user_metadata/)
+  })
+
+  it('pins search_path, is not security definer, and is not executable by anon', () => {
+    expect(body).toContain("set search_path = ''")
+    expect(body).not.toMatch(/security definer/i)
+    expect(body).toContain('revoke all on function public.portal_owner_tenant_slug() from public, anon;')
+  })
+})

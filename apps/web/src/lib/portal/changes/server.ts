@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { PortalSetupDb } from '../setup/service'
 
 import { decidePortalAccess, type PortalAccess } from './access'
-import { getPortalOwner } from './owner-stub'
+import { getPortalOwner } from '../owner'
 import type { PortalChangesDb } from './service'
 
 /**
