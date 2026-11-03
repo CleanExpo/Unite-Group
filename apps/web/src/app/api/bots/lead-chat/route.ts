@@ -93,8 +93,16 @@ export async function POST(request: Request) {
     return NextResponse.json(UNAVAILABLE, { status: 503 })
   }
 
-  // Durable daily ceiling + kill switch, before any model call. Fails closed.
-  const quota = await claimPublicAgentQuota(createServiceClient(), founderId, QUOTA_SCOPE, 'chat')
+  // Durable daily ceiling + kill switch, before any model call. Fails closed, including when the
+  // service client cannot be built (createServiceClient throws on a missing or placeholder key).
+  let supabase: ReturnType<typeof createServiceClient>
+  try {
+    supabase = createServiceClient()
+  } catch {
+    console.error('[bots/lead-chat] service client unavailable')
+    return NextResponse.json(UNAVAILABLE, { status: 503 })
+  }
+  const quota = await claimPublicAgentQuota(supabase, founderId, QUOTA_SCOPE, 'chat')
   if (!quota.ok) {
     console.warn(`[bots/lead-chat] quota refused: ${quota.reason}`)
     const refusal = quotaRefusalResponse(quota.reason)

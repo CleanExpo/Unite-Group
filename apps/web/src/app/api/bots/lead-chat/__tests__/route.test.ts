@@ -13,6 +13,7 @@ import { recordAiUsage } from '@/lib/ai/usage-recorder'
 import { BOT_LIMITS, SAFE_DEFLECTION } from '@/lib/bots/guard'
 import { resetRateLimit } from '@/lib/bots/rate-limit'
 import { claimPublicAgentQuota } from '@/lib/site-agent/quota'
+import { createServiceClient } from '@/lib/supabase/service'
 import { isPublicPath } from '@/proxy'
 
 import { POST } from '../route'
@@ -148,6 +149,19 @@ describe('POST /api/bots/lead-chat', () => {
 
     vi.stubEnv('FOUNDER_USER_ID', '')
     expect((await POST(req(hello))).status).toBe(503)
+  })
+
+  it('fails closed with a form fallback when the service client cannot be built', async () => {
+    vi.mocked(createServiceClient).mockImplementationOnce(() => {
+      throw new Error('SUPABASE_SERVICE_ROLE_KEY looks truncated/placeholder')
+    })
+    const res = await POST(req(hello))
+    expect(res.status).toBe(503)
+    const body = await res.json()
+    expect(body.fallback).toBe('form')
+    expect(JSON.stringify(body)).not.toMatch(/SUPABASE/)
+    expect(claimPublicAgentQuota).not.toHaveBeenCalled()
+    expect(create).not.toHaveBeenCalled()
   })
 
   it('hides provider errors from the caller', async () => {
