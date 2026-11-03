@@ -107,14 +107,21 @@ export async function GET(request: Request) {
   // Brand-only channel-bot scopes must belong to the brand account. If a
   // different Google account consented to them, revoke and store nothing.
   if (hasBrandScopes(tokens.scope) && !isBrandAccount(email)) {
+    let revoked = false
     try {
-      await fetch('https://oauth2.googleapis.com/revoke', {
+      const revokeRes = await fetch('https://oauth2.googleapis.com/revoke', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({ token: tokens.refresh_token ?? tokens.access_token }),
       })
+      revoked = revokeRes.ok
+      if (!revoked) console.error('[Google OAuth] brand-scope revoke failed:', revokeRes.status)
     } catch (e) {
       console.error('[Google OAuth] brand-scope revoke failed:', e)
+    }
+    if (!revoked) {
+      // Tokens are still discarded, but tell the founder the grant may still be active.
+      return NextResponse.redirect(`${APP_URL}/founder/email?error=brand_scope_wrong_account_revoke_failed`)
     }
     return NextResponse.redirect(`${APP_URL}/founder/email?error=brand_scope_wrong_account`)
   }
