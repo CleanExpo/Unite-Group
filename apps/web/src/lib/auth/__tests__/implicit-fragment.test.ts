@@ -24,4 +24,18 @@ describe('safeNextPath', () => {
     expect(safeNextPath('/founder?tab=a#x')).toBe('/founder?tab=a#x')
     expect(safeNextPath(null)).toBe('/founder/command-centre')
   })
+
+  it('never returns a path that resolves to another origin, even after dot-segment normalisation', () => {
+    const origin = 'https://app.example'
+    const payloads = [
+      '/.//evil.example', '/a/..//evil.example', '/%2e//evil.example', '/a/%2e%2e//evil.example',
+      '/./%2F/evil.example', '/%5Cevil.example', '//evil.example', '/\\evil.example', 'javascript:alert(1)',
+    ]
+    for (const raw of payloads) {
+      const out = safeNextPath(raw)
+      expect(out.startsWith('//'), raw).toBe(false)
+      expect(new URL(out, origin).origin, raw).toBe(origin)
+    }
+    expect(safeNextPath('/a/..//evil.example')).toBe('/founder/command-centre')
+  })
 })

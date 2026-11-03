@@ -25,6 +25,9 @@ export function safeNextPath(raw: string | null): string {
   try {
     const url = new URL(raw, base)
     if (url.origin !== base) return DEFAULT_NEXT
+    // Dot segments can collapse to a protocol-relative path: "/a/..//evil.example"
+    // normalises to "//evil.example", which a browser or router treats as another host.
+    if (url.pathname.startsWith('//')) return DEFAULT_NEXT
     return `${url.pathname}${url.search}${url.hash}`
   } catch {
     return DEFAULT_NEXT
