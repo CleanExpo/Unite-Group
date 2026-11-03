@@ -92,12 +92,22 @@ export async function POST(
   const supabase = await createClient();
 
   // Idempotent — one issue per insight.
-  const { data: existing } = await supabase
+  const { data: existing, error: existingError } = await supabase
     .from("strategy_insight_issues")
     .select("*")
     .eq("founder_id", user.id)
     .eq("insight_id", id)
     .maybeSingle();
+  // A failed lookup must not fall through to creating a duplicate Linear issue.
+  if (existingError)
+    return NextResponse.json(
+      {
+        error: sanitiseError(existingError, "Failed to load issue link", {
+          route: "strategy/insights/[id]/create-issue",
+        }),
+      },
+      { status: 500 },
+    );
   if (existing) return NextResponse.json({ link: existing }, { status: 200 });
 
   const { data: insight, error: insightError } = await supabase
@@ -178,11 +188,24 @@ export async function POST(
 
   // Advance the insight to "acting" — it now has work attached.
   if (insight.status === "new" || insight.status === "reviewing") {
-    await supabase
+    const { error: statusError } = await supabase
       .from("strategy_insights")
       .update({ status: "acting", updated_at: new Date().toISOString() })
       .eq("id", insight.id)
       .eq("founder_id", user.id);
+    // The issue and link exist; report the partial failure instead of a 201.
+    if (statusError)
+      return NextResponse.json(
+        {
+          error: sanitiseError(
+            statusError,
+            "Issue created but the insight status was not updated.",
+            { route: "strategy/insights/[id]/create-issue" },
+          ),
+          link,
+        },
+        { status: 500 },
+      );
   }
 
   return NextResponse.json({ link }, { status: 201 });

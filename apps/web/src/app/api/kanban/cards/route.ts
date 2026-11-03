@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { getUser } from '@/lib/supabase/server';
 import { listTasks, createTask } from '@/lib/kanban/store';
+import { sanitiseError } from '@/lib/error-reporting';
 import { COLUMNS, type TaskStatus } from '@/types/kanban';
 
 export const dynamic = 'force-dynamic';
@@ -18,7 +19,15 @@ const STATUSES = new Set(COLUMNS.map(c => c.id));
 export async function GET() {
   const user = await getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
-  const tasks = await listTasks(user.id);
+  let tasks: Awaited<ReturnType<typeof listTasks>>;
+  try {
+    tasks = await listTasks(user.id);
+  } catch (e) {
+    return NextResponse.json(
+      { error: sanitiseError(e, 'Failed to load cards', { route: 'kanban/cards' }) },
+      { status: 500 }
+    );
+  }
   const columns = COLUMNS.map(c => ({
     ...c,
     tasks: tasks.filter(t => t.status === c.id),
@@ -47,14 +56,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'invalid status' }, { status: 400 });
   }
 
-  const id = await createTask(user.id, {
-    title: body.title.trim(),
-    status: body.status,
-    priority: body.priority,
-    description: body.description,
-    businessKey: body.businessKey,
-    sourceMessageId: body.sourceMessageId,
-    sourceDraftId: body.sourceDraftId,
-  });
+  let id: string;
+  try {
+    id = await createTask(user.id, {
+      title: body.title.trim(),
+      status: body.status,
+      priority: body.priority,
+      description: body.description,
+      businessKey: body.businessKey,
+      sourceMessageId: body.sourceMessageId,
+      sourceDraftId: body.sourceDraftId,
+    });
+  } catch (e) {
+    return NextResponse.json(
+      { error: sanitiseError(e, 'Failed to create card', { route: 'kanban/cards' }) },
+      { status: 500 }
+    );
+  }
   return NextResponse.json({ id, status: body.status ?? 'todo' }, { status: 201 });
 }
