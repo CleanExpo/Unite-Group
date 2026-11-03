@@ -129,7 +129,7 @@ describe('visitorDetails: only the visitor\'s own words get through', () => {
     const typed = ['want MORE   bookings please', 'sam lee', 'Sam@Example.com', 'call me on 0412 345 678']
     expect(visitorDetails(read({ need: 'want more bookings', name: 'Sam Lee', email: 'sam@example.com', phone: '+0412345678' }), typed)).toEqual({
       name: 'sam lee',
-      email: 'sam@example.com',
+      email: 'Sam@Example.com',
       phone: '0412 345 678',
       need: 'want MORE   bookings',
     })

@@ -202,7 +202,7 @@ export function visitorDetails(read: ModelRead | null, visitorMessages: string[]
   const name = visitorText(read.name, visitorMessages)
   if (NAME_RE.test(name) && name.split(/\s+/).length <= 5 && !guardReply(name).blocked) lead.name = name
   const email = visitorText(read.email, visitorMessages)
-  if (EMAIL_RE.test(email)) lead.email = email.toLowerCase()
+  if (EMAIL_RE.test(email)) lead.email = email
   lead.phone = visitorPhone(read.phone, visitorMessages)
   const need = visitorText(read.need, visitorMessages)
   if (need.length >= 3 && !guardReply(need).blocked) lead.need = need
