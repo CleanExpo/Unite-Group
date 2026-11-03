@@ -162,13 +162,14 @@ const norm = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim()
 
 /**
  * Keeps only the details the visitor typed themselves. Each value must appear verbatim (ignoring case and
- * spacing) in the visitor's own messages and have the right shape; otherwise it becomes "". The need is also
- * blanked if it touches a guarded topic, so the visitor types it in the form instead.
+ * spacing) inside ONE of the visitor's messages and have the right shape; otherwise it becomes "". Messages are
+ * never joined, so the model cannot assemble a value from words split across turns (Codex review, 17cd67c0).
+ * The need is also blanked if it touches a guarded topic, so the visitor types it in the form instead.
  */
 export function visitorDetails(read: ModelRead | null, visitorMessages: string[]): CapturedLead {
-  const said = norm(visitorMessages.join('\n'))
+  const said = visitorMessages.map(norm)
   const saidDigits = visitorMessages.map((m) => m.replace(/\D/g, ''))
-  const fromVisitor = (v: string) => v.length > 0 && said.includes(norm(v))
+  const fromVisitor = (v: string) => v.length > 0 && said.some((m) => m.includes(norm(v)))
   const lead: CapturedLead = { name: '', email: '', phone: '', need: '' }
   if (!read) return lead
 

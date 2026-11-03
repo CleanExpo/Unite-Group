@@ -113,6 +113,17 @@ describe('visitorDetails: only the visitor\'s own words get through', () => {
     expect(visitorDetails(r, said)[field as 'need']).toBe('')
   })
 
+  // Codex review, 17cd67c0: words split across turns must not be joined into a value the visitor never typed.
+  it('never assembles a value from words split across visitor messages', () => {
+    const split = ['I need a new', 'website', 'Sam', 'Lee', 'sam@', 'example.com', '0400', '000000']
+    expect(visitorDetails(read({ need: 'new website', name: 'Sam Lee', email: 'sam@example.com', phone: '0400000000' }), split)).toEqual({
+      name: '',
+      email: '',
+      phone: '',
+      need: '',
+    })
+  })
+
   it('blanks a visitor-typed need that touches a guarded topic, and refuses prose as a name', () => {
     const typed = ['How much is it a month? I need help with my search ranking', 'Sam. We rank you on Google']
     expect(visitorDetails(read({ need: 'I need help with my search ranking', name: 'Sam. We rank you on Google' }), typed)).toEqual({

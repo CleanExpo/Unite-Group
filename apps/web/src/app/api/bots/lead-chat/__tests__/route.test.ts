@@ -113,6 +113,26 @@ describe('POST /api/bots/lead-chat', () => {
     expect(body.capture).toEqual({ name: 'Sam Lee', email: 'sam@example.com', phone: '0400 000 000', need: 'miss enquiries' })
   })
 
+  it('does not capture a value the model assembled from words split across turns', async () => {
+    const chat = {
+      messages: [
+        { role: 'user', content: 'I need a new' },
+        { role: 'assistant', content: REPLY_TEMPLATES.askNeed },
+        { role: 'user', content: 'website' },
+        { role: 'assistant', content: REPLY_TEMPLATES.askName },
+        { role: 'user', content: 'Sam Lee' },
+        { role: 'assistant', content: REPLY_TEMPLATES.askEmail },
+        { role: 'user', content: 'sam@example.com' },
+        { role: 'assistant', content: REPLY_TEMPLATES.askPhone },
+        { role: 'user', content: '0400000000' },
+      ],
+    }
+    modelSays(json({ name: 'Sam Lee', email: 'sam@example.com', phone: '0400000000', need: 'new website' }))
+    const body = await (await POST(req(chat))).json()
+    expect(body.reply).toBe(REPLY_TEMPLATES.captured)
+    expect(body.capture).toEqual({ name: 'Sam Lee', email: 'sam@example.com', phone: '0400000000', need: '' })
+  })
+
   it('answers with the fixed deflection when the visitor asks about prices', async () => {
     modelSays(json({ askedAbout: 'price' }))
     const body = await (await POST(req(hello))).json()
