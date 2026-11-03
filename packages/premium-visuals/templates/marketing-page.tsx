@@ -1,6 +1,8 @@
-// Default marketing page scaffold — copy for every new public page. check-visuals FAILS without PremiumHero + MotionSection.
+// Default marketing page scaffold: copy for every new public page. check-visuals flags a page without a rendered PremiumHero + MotionSection.
+// NOT INSTALLED: @cleanexpo/premium-visuals is not yet a dependency of any app, so this file does not compile until it is added to that app's package.json.
+// media.manifest.json lives at the repo root; "@/" maps to an app's ./src, so import it relatively from the page's folder.
 import { PremiumHero, MediaSection, MediaCard, MotionSection, Carousel, type MediaEntry } from '@cleanexpo/premium-visuals';
-import manifest from '@/media.manifest.json';
+import manifest from '../../media.manifest.json'; // REPLACE depth: relative path from this page to the repo root
 
 const m = (src: string) => (manifest.entries as MediaEntry[]).find((e) => e.src === src)!;
 

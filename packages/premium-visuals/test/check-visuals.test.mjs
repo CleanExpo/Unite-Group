@@ -4,7 +4,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-const bin = path.resolve('bin/check-visuals.mjs');
+import { fileURLToPath } from 'node:url';
+// Resolved from this file, not the cwd, so the tests run from the package or the repo root.
+const bin = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../bin/check-visuals.mjs');
 function run(files, extra = []) {
   const d = fs.mkdtempSync(path.join(os.tmpdir(), 'cv-'));
   for (const [p, c] of Object.entries(files)) { fs.mkdirSync(path.dirname(path.join(d, p)), { recursive: true }); fs.writeFileSync(path.join(d, p), c); }
@@ -19,6 +21,7 @@ test('flags svg art, css art, placeholder, missing hero + motion', () => {
 test('passes a compliant page', () => {
   const { code, out } = run({
     'media.manifest.json': JSON.stringify({ version: 1, entries: [{ src: '/media/hero/a.avif', kind: 'image', source: 'generated', credit: 'Higgsfield', alt: 'x' }] }),
+    'public/media/hero/a.avif': 'x',
     'app/page.tsx': `<PremiumHero media={m('/media/hero/a.avif')} title="t"/><MotionSection>x</MotionSection><svg data-pv-allow="logo"/>`,
   });
   assert.equal(code, 0, JSON.stringify(out.violations));
