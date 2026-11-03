@@ -3,11 +3,13 @@ import type { Metadata } from 'next'
 import { LegalSection as Section, LegalSubHeading as SubHeading } from '@/public/legal/legal-document'
 import { LegalPageShell } from '@/public/legal/legal-page-shell'
 import { COMPANY_NAME, companyAbnLabel } from '@/lib/legal/company'
+import { SITE_URL } from '@/lib/public-site'
 
 export const metadata: Metadata = {
   title: 'Privacy Policy — Unite-Group Application',
   description: 'Privacy Policy for the Unite-Group Application operated by Unite-Group Nexus Pty Ltd.',
   robots: { index: true, follow: true },
+  alternates: { canonical: `${SITE_URL}/privacy-policy` },
 }
 
 const LAST_UPDATED = '25 October 2026'

@@ -10,7 +10,7 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.deployment_status.state == 'success' &&
-       github.event.deployment.environment == 'Production')
+       github.event.deployment.environment == 'Production – unite-group')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
