@@ -19,7 +19,7 @@
  *                             (image|video|render), source (client|stock|generated|blender), non-string
  *                             credit/alt, duplicate src, or a video without a poster
  *   manifest-missing-file     manifest entry (or poster) whose file is not in any public dir
- *   hero-missing-media        marketing page without a rendered <PremiumHero media|video={...}> (or a data-pv-hero element holding its own image/video)
+ *   hero-missing-media        marketing page without a rendered <PremiumHero media={...}> (or a data-pv-hero element holding its own image/video)
  *   no-motion                 marketing page with no rendered <MotionSection> / data-pv-motion
  *   marketing-coverage        fewer marketing pages found than minMarketingPages (default 1)
  *   media-budget              raster > imageMaxKB, video > videoMaxKB, PNG/JPG > legacyRasterMaxKB, or .mov
@@ -353,7 +353,7 @@ function tagEnd(bare, start) {
   return bare.length;
 }
 
-const EMPTY_VALUE = /^(undefined|null|false|true|0|void 0|'\s*'|"\s*"|`\s*`|\[\s*\]|\{\s*\})?$/;
+const EMPTY_VALUE = /^(undefined|null|false|true|0|void\s*\(?\s*0\s*\)?|'\s*'|"\s*"|`\s*`|\[\s*\]|\{\s*\})?$/;
 
 /** True when the opening tag at `start` gives one of `names` a value that renders something. */
 function hasNonEmptyAttr(code, bare, start, names) {
@@ -375,7 +375,7 @@ function hasNonEmptyAttr(code, bare, start, names) {
 function hasHeroMedia(code, bare) {
   const heroRe = /<PremiumHero\b/g;
   let m;
-  while ((m = heroRe.exec(bare))) if (hasNonEmptyAttr(code, bare, m.index, 'media|video')) return true;
+  while ((m = heroRe.exec(bare))) if (hasNonEmptyAttr(code, bare, m.index, 'media')) return true;
   // A data-pv-hero element must contain its own image or video with a real src, between its open and close tags.
   const markerRe = /<([A-Za-z][\w.]*)\b/g;
   while ((m = markerRe.exec(bare))) {

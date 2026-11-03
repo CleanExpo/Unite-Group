@@ -64,6 +64,18 @@ test('a PremiumHero with an empty media value fails', () => {
     assert.equal(code, 1, v); assert.ok(out.byRule['hero-missing-media'], v);
   }
 });
+test('a PremiumHero with video but no media fails: the hero renders media, not video alone', () => {
+  for (const attrs of ['video={[{ src: "/media/hero/a.mp4", type: "video/mp4" }]}', 'video={[{}]}']) {
+    const { code, out } = run({ 'app/page.tsx': `<PremiumHero title="t" ${attrs}/><MotionSection>x</MotionSection>` });
+    assert.equal(code, 1, attrs); assert.ok(out.byRule['hero-missing-media'], attrs);
+  }
+});
+test('a PremiumHero with media={void(0)} fails', () => {
+  for (const v of ['{void(0)}', '{void (0)}', '{void 0}']) {
+    const { code, out } = run({ 'app/page.tsx': `<PremiumHero media=${v} title="t"/><MotionSection>x</MotionSection>` });
+    assert.equal(code, 1, v); assert.ok(out.byRule['hero-missing-media'], v);
+  }
+});
 test('a data-pv-hero around an image with an empty src fails', () => {
   const { code, out } = run({ 'app/page.tsx': `<header data-pv-hero><img src={""} alt="x"/></header><MotionSection>x</MotionSection>` });
   assert.equal(code, 1); assert.ok(out.byRule['hero-missing-media']);
