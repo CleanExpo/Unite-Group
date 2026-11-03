@@ -47,6 +47,7 @@ function signedState(email: string) {
 // state email). Track the account under test so the userinfo mock echoes it.
 let currentEmail = ''
 let revokeOk = true
+let userinfoOk = true
 let grantedScope = 'https://www.googleapis.com/auth/gmail.modify'
 
 async function runCallback(email: string) {
@@ -70,6 +71,7 @@ describe('Google callback — append-not-overwrite', () => {
       'fetch',
       vi.fn(async (url: string) => {
         if (String(url).includes('/revoke')) return { ok: revokeOk, status: revokeOk ? 200 : 400 } as never
+        if (String(url).includes('userinfo') && !userinfoOk) return { ok: false, status: 500 } as never
         if (String(url).includes('userinfo')) {
           // Identity is confirmed from userinfo — echo the account under test.
           return { ok: true, json: async () => ({ email: currentEmail }) } as never
@@ -96,6 +98,7 @@ describe('Google callback — append-not-overwrite', () => {
     vi.clearAllMocks()
     grantedScope = 'https://www.googleapis.com/auth/gmail.modify'
     revokeOk = true
+    userinfoOk = true
   })
 
   it('rejects and revokes brand-only scopes granted by a non-brand account', async () => {
@@ -113,6 +116,18 @@ describe('Google callback — append-not-overwrite', () => {
     const res = await runCallback('someone-else@gmail.com')
     expect(res.headers.get('location')).toContain('error=brand_scope_wrong_account_revoke_failed')
     expect(upsertMock).not.toHaveBeenCalled()
+  })
+
+  it('revokes a brand-only grant when identity cannot be confirmed', async () => {
+    grantedScope = 'https://www.googleapis.com/auth/youtube.readonly'
+    userinfoOk = false
+    const res = await runCallback('someone-else@gmail.com')
+    expect(res.headers.get('location')).toMatch(/error=identity_unconfirmed$/)
+    expect(vi.mocked(fetch).mock.calls.map(([u]) => String(u))).toContain('https://oauth2.googleapis.com/revoke')
+    expect(upsertMock).not.toHaveBeenCalled()
+    revokeOk = false
+    const failed = await runCallback('someone-else@gmail.com')
+    expect(failed.headers.get('location')).toContain('error=identity_unconfirmed_revoke_failed')
   })
 
   it('stores brand-only scopes for the brand account', async () => {

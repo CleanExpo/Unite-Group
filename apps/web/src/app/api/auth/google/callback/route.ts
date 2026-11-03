@@ -12,6 +12,22 @@ import { hasBrandScopes, isBrandAccount } from '@/lib/channel-bots/brand-scopes'
 
 export const dynamic = 'force-dynamic'
 
+/** Best-effort Google grant revocation; true only when Google confirms it. */
+async function revokeGrant(tokens: { access_token: string; refresh_token?: string }): Promise<boolean> {
+  try {
+    const res = await fetch('https://oauth2.googleapis.com/revoke', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ token: tokens.refresh_token ?? tokens.access_token }),
+    })
+    if (!res.ok) console.error('[Google OAuth] grant revoke failed:', res.status)
+    return res.ok
+  } catch (e) {
+    console.error('[Google OAuth] grant revoke failed:', e)
+    return false
+  }
+}
+
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const APP_URL = process.env.NEXT_PUBLIC_APP_URL?.trim() || requestUrl.origin
@@ -100,6 +116,10 @@ export async function GET(request: Request) {
     // Google riding a different session store credentials under the wrong
     // identity. Discard the tokens and surface an error redirect instead.
     console.error('[Google OAuth] userinfo failed — failing closed:', e)
+    // Identity unknown: a brand-only grant can't be attributed, so revoke it.
+    if (hasBrandScopes(tokens.scope) && !(await revokeGrant(tokens))) {
+      return NextResponse.redirect(`${APP_URL}/founder/email?error=identity_unconfirmed_revoke_failed`)
+    }
     return NextResponse.redirect(`${APP_URL}/founder/email?error=identity_unconfirmed`)
   }
   email = authenticatedEmail
@@ -107,18 +127,7 @@ export async function GET(request: Request) {
   // Brand-only channel-bot scopes must belong to the brand account. If a
   // different Google account consented to them, revoke and store nothing.
   if (hasBrandScopes(tokens.scope) && !isBrandAccount(email)) {
-    let revoked = false
-    try {
-      const revokeRes = await fetch('https://oauth2.googleapis.com/revoke', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ token: tokens.refresh_token ?? tokens.access_token }),
-      })
-      revoked = revokeRes.ok
-      if (!revoked) console.error('[Google OAuth] brand-scope revoke failed:', revokeRes.status)
-    } catch (e) {
-      console.error('[Google OAuth] brand-scope revoke failed:', e)
-    }
+    const revoked = await revokeGrant(tokens)
     if (!revoked) {
       // Tokens are still discarded, but tell the founder the grant may still be active.
       return NextResponse.redirect(`${APP_URL}/founder/email?error=brand_scope_wrong_account_revoke_failed`)
