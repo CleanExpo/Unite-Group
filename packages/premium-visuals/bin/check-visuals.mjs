@@ -188,7 +188,7 @@ function main() {
     const ext = extOf(f);
     const isCode = CODE_EXTS.includes(ext);
     const raw = fs.readFileSync(f, 'utf8');
-    const v = scrub(raw, { slashComments: ext !== 'css', htmlComments: ['html', 'mdx', 'astro', 'vue', 'svelte'].includes(ext) });
+    const v = scrub(raw, { slashComments: ext !== 'css', htmlComments: ['html', 'mdx', 'astro', 'vue', 'svelte'].includes(ext), jsx: ['tsx', 'jsx', 'js', 'mdx'].includes(ext), mdx: ext === 'mdx' });
     views.set(f, v);
     const t = v.code;
     const artOk = allowed(r);
@@ -334,15 +334,39 @@ function opensString(text, i) {
   return false;
 }
 
-function scrub(text, { slashComments, htmlComments }) {
+/** True when the `<` at `i` can open a JSX element: a quote could start there, and it is not `a / <b` or a regex. */
+function opensJsx(text, i) {
+  let k = i - 1;
+  while (k >= 0 && /\s/.test(text[k])) k--;
+  if (k >= 0 && '/<*%+-~^'.includes(text[k])) return false;
+  return opensString(text, i);
+}
+
+/**
+ * In JSX files (jsx: true) scrub also tracks where it is: code, inside an opening tag, or in an
+ * element's children. Children are page text, so a quote or backtick there is a word, never a
+ * string; `{...}` inside them is code again. Only code strings and attribute strings are blanked.
+ */
+function scrub(text, { slashComments, htmlComments, jsx = false, mdx = false }) {
   const code = text.split('');
   const bare = text.split('');
   const blank = (arr, a, b) => { for (let k = a; k < b; k++) if (arr[k] !== '\n') arr[k] = ' '; };
   const n = text.length;
+  // MDX starts as page text; other files start as code.
+  const stack = [{ t: mdx ? 'text' : 'code', braces: 0 }];
+  // Index after the tag name of an element opening at `at`, or -1 for a generic such as <T,> or <T extends U>.
+  const openTag = (at) => {
+    let j = at + 1;
+    while (j < n && /[\w.$:-]/.test(text[j])) j++;
+    if (/^\s*(,|extends\b)/.test(text.slice(j, j + 12))) return -1;
+    stack.push({ t: 'tag' });
+    return j;
+  };
   let i = 0;
   while (i < n) {
     const c = text[i];
     const d = text[i + 1];
+    const top = stack[stack.length - 1];
     if (c === '/' && d === '*') {
       const e = text.indexOf('*/', i + 2); const end = e < 0 ? n : e + 2;
       blank(code, i, end); blank(bare, i, end); i = end; continue;
@@ -362,7 +386,30 @@ function scrub(text, { slashComments, htmlComments }) {
       if (k < 0 || '\n;{})]'.includes(text[k])) blank(code, i, end);
       i = end; continue;
     }
-    if (c === '`' || ((c === '"' || c === "'") && opensString(text, i))) {
+    if (jsx && top.t === 'text') {
+      if (mdx && stack.length === 1 && (i === 0 || text[i - 1] === '\n') && /^(import|export)\s/.test(text.slice(i, i + 7))) {
+        stack.push({ t: 'code', braces: 0, line: true }); i += 6; continue;
+      }
+      if (c === '{') { stack.push({ t: 'code', braces: 0, inner: true }); i++; continue; }
+      if (c === '<' && d === '/') { const e = text.indexOf('>', i); if (stack.length > 1) stack.pop(); i = e < 0 ? n : e + 1; continue; }
+      if (c === '<' && /[A-Za-z>]/.test(d || '')) { const j = openTag(i); i = j < 0 ? i + 1 : j; continue; }
+      // Page text: quotes and backticks here are words, never strings.
+      i++; continue;
+    }
+    if (jsx && top.t === 'tag') {
+      if (c === '"' || c === "'") { const e = text.indexOf(c, i + 1); const end = e < 0 ? n : e; blank(bare, i + 1, end); i = end + 1; continue; }
+      if (c === '{') { stack.push({ t: 'code', braces: 0, inner: true }); i++; continue; }
+      if (c === '/' && d === '>') { stack.pop(); i += 2; continue; }
+      if (c === '>') { stack.pop(); stack.push({ t: 'text' }); i++; continue; }
+      i++; continue;
+    }
+    if (jsx) {
+      if (top.line && c === '\n' && top.braces === 0) { stack.pop(); i++; continue; }
+      if (c === '{') { top.braces++; i++; continue; }
+      if (c === '}') { if (top.braces > 0) top.braces--; else if (top.inner) stack.pop(); i++; continue; }
+      if (c === '<' && /[A-Za-z>]/.test(d || '') && opensJsx(text, i)) { const j = openTag(i); if (j >= 0) { i = j; continue; } }
+    }
+    if (c === '`' || ((c === '"' || c === "'") && (jsx || opensString(text, i)))) {
       let j = i + 1;
       while (j < n && text[j] !== c && (c === '`' || text[j] !== '\n')) j += text[j] === '\\' ? 2 : 1;
       if (j < n && text[j] === c) { blank(bare, i + 1, j); i = j + 1; continue; }

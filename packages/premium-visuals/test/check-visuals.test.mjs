@@ -104,6 +104,33 @@ test('apostrophes in page text do not hide a real hero and motion section', () =
   });
   assert.equal(code, 0, JSON.stringify(out.violations));
 });
+test('quotes and backticks anywhere in page text do not hide a real hero or motion section', () => {
+  const files = {
+    'media.manifest.json': JSON.stringify({ version: 1, entries: [entry('/media/hero/a.avif')] }),
+    'public/media/hero/a.avif': 'x',
+  };
+  const hero = `<PremiumHero media={m('/media/hero/a.avif')}/>`;
+  for (const body of [
+    'Use ` ' + hero + ' ` here <MotionSection />',
+    hero + ' Use ` <MotionSection /> ` here',
+    `Tip: ' ${hero} ' and <MotionSection /> then '`,
+    `Tip: " ${hero} " then <MotionSection /> "`,
+    `<p>(see 'a')</p> ${hero} <span>x, 'b'</span><MotionSection>x</MotionSection>`,
+    `{cond && <b>x</b>} Note: ' ${hero} <MotionSection /> '`,
+  ]) {
+    const { code, out } = run({ ...files, 'app/page.tsx': `export default () => <main>${body}</main>;` });
+    assert.equal(code, 0, body + ' ' + JSON.stringify(out.violations));
+  }
+});
+test('a string inside a JSX expression is still not a hero or motion section', () => {
+  const { code, out } = run({ 'app/page.tsx': `export default () => <main>{'<MotionSection />'}{"<PremiumHero media={x}/>"}{\`<MotionSection/>\`}Hi</main>;` });
+  assert.equal(code, 1);
+  for (const r of ['hero-missing-media', 'no-motion']) assert.ok(out.byRule[r], r);
+  // After the element closes the file is code again, so a later string is still not evidence.
+  const after = run({ 'app/page.tsx': `export default () => <main><p>Hi</p></main>;\nconst s = '<MotionSection />', h = "<PremiumHero media={x}/>";` });
+  assert.equal(after.code, 1);
+  for (const r of ['hero-missing-media', 'no-motion']) assert.ok(after.out.byRule[r], r);
+});
 test('a logos/ or icons/ folder, or a word like flag, does not excuse ordinary media from the manifest', () => {
   for (const p of ['/logos/ordinary.webp', '/icons/ordinary.webp', '/media/banner-flag.webp']) {
     const { code, out } = run({
