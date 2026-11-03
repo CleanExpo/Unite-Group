@@ -3,11 +3,13 @@ import type { Metadata } from 'next'
 import { LegalSection as Section } from '@/public/legal/legal-document'
 import { LegalPageShell } from '@/public/legal/legal-page-shell'
 import { COMPANY_NAME } from '@/lib/legal/company'
+import { SITE_URL } from '@/lib/public-site'
 
 export const metadata: Metadata = {
   title: 'Terms of Service — Unite-Group Application',
   description: 'Terms of Service for the Unite-Group Application operated by Unite-Group Nexus Pty Ltd.',
   robots: { index: true, follow: true },
+  alternates: { canonical: `${SITE_URL}/terms-of-service` },
 }
 
 const LAST_UPDATED = '20 June 2026'
