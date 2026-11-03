@@ -83,14 +83,17 @@ export async function moveTask(
   id: string,
   toStatus: TaskStatus,
   toIndex: number
-): Promise<void> {
+): Promise<boolean> {
   const positions = await columnPositions(founderId, toStatus, id);
   const position = positionForIndex(positions, toIndex);
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('kanban_task')
     .update({ status: toStatus, position, updated_at: new Date().toISOString() })
     .eq('id', id)
-    .eq('founder_id', founderId);
+    .eq('founder_id', founderId)
+    .select('id');
   if (error) throw new Error(`kanban_task move: ${error.message}`);
+  // false = no row matched: the card does not exist or is not this founder's.
+  return (data ?? []).length > 0;
 }

@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { getUser } from '@/lib/supabase/server';
 import { moveTask } from '@/lib/kanban/store';
+import { sanitiseError } from '@/lib/error-reporting';
 import { COLUMNS, type TaskStatus } from '@/types/kanban';
 
 export const dynamic = 'force-dynamic';
@@ -30,6 +31,17 @@ export async function PATCH(
   }
   const index = Number.isInteger(body.index) ? (body.index as number) : 0;
 
-  await moveTask(user.id, id, body.status, index);
+  let moved: boolean;
+  try {
+    moved = await moveTask(user.id, id, body.status, index);
+  } catch (e) {
+    return NextResponse.json(
+      { error: sanitiseError(e, 'Failed to move card', { route: 'kanban/cards/[id]/move' }) },
+      { status: 500 }
+    );
+  }
+  if (!moved) {
+    return NextResponse.json({ error: 'Card not found' }, { status: 404 });
+  }
   return NextResponse.json({ ok: true, status: body.status, index });
 }

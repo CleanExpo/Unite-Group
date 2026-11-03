@@ -5,6 +5,7 @@
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { classifyWork } from '@/lib/work/classifier'
+import { sanitiseError } from '@/lib/error-reporting'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,7 +34,9 @@ export async function POST(request: Request) {
     const result = await classifyWork(description, context)
     return NextResponse.json(result)
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Classification service unavailable'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json(
+      { error: sanitiseError(error, 'Classification service unavailable', { route: 'work' }) },
+      { status: 500 }
+    )
   }
 }

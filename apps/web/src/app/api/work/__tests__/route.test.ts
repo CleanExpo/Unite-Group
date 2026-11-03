@@ -2,9 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn() }))
 vi.mock('@/lib/work/classifier', () => ({ classifyWork: vi.fn() }))
+vi.mock('@/lib/error-reporting', () => ({
+  sanitiseError: vi.fn((_e: unknown, fallback: string) => fallback),
+}))
 
 import { getUser } from '@/lib/supabase/server'
 import { classifyWork } from '@/lib/work/classifier'
+import { sanitiseError } from '@/lib/error-reporting'
 import { POST } from '../route'
 
 function req(body: unknown) {
@@ -54,10 +58,18 @@ describe('POST /api/work', () => {
     expect(await res.json()).toEqual(result)
   })
 
-  it('returns 500 when the classifier fails', async () => {
-    vi.mocked(classifyWork).mockRejectedValue(new Error('llm down'))
+  it('returns 500 with a generic message and logs the real error server-side (UNI-3079)', async () => {
+    const err = new Error('llm down: key sk-internal at 10.0.0.4')
+    vi.mocked(classifyWork).mockRejectedValue(err)
     const res = await POST(req({ description: 'fix it' }))
     expect(res.status).toBe(500)
-    expect(((await res.json()) as { error: string }).error).toBe('llm down')
+    const json = (await res.json()) as { error: string }
+    expect(json.error).toBe('Classification service unavailable')
+    expect(JSON.stringify(json)).not.toContain('llm down')
+    expect(sanitiseError).toHaveBeenCalledWith(
+      err,
+      'Classification service unavailable',
+      expect.objectContaining({ route: 'work' }),
+    )
   })
 })

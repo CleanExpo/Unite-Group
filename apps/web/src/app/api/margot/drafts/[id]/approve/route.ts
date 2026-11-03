@@ -9,6 +9,8 @@ import { getUser } from '@/lib/supabase/server';
 import { createMargotDraftStore } from '@/lib/margot/draft-store';
 import { approveAndSend } from '@/lib/margot/send-on-approval';
 import { sendStoredDraft } from '@/lib/margot/providers';
+import { ApprovalError } from '@/lib/margot/approval-gate';
+import { sanitiseError } from '@/lib/error-reporting';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,9 +57,14 @@ export async function POST(
     );
     return NextResponse.json({ ok: true, status: draft.status });
   } catch (e) {
+    // Gate refusal (draft not approvable/sendable) is the caller's problem: 400.
+    if (e instanceof ApprovalError) {
+      return NextResponse.json({ error: e.message }, { status: 400 });
+    }
+    // Anything else is a failed record/transmit/status write: 502, detail logged.
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : 'approve/send failed' },
-      { status: 400 }
+      { error: sanitiseError(e, 'Failed to send draft', { route: 'margot/drafts/[id]/approve' }) },
+      { status: 502 }
     );
   }
 }
