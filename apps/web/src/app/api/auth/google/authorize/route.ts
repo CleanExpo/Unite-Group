@@ -16,6 +16,10 @@ const SCOPES = [
   // Drive (read-only) so a single Google connect also powers the Notes vault
   // (google-drive.ts). Requires the Drive API enabled + GOOGLE_DRIVE_VAULT_FOLDER_ID.
   'https://www.googleapis.com/auth/drive.readonly',
+  // Channel bots (UNI-3223): read-only YouTube + Search Console for the
+  // contact@unite-group.in brand account.
+  'https://www.googleapis.com/auth/youtube.readonly',
+  'https://www.googleapis.com/auth/webmasters.readonly',
   'openid',
   'email',
   'profile',
