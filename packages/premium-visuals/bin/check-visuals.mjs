@@ -8,7 +8,7 @@
  *
  * FINDINGS (fail in enforce mode):
  *   inline-svg-art            inline <svg> not marked data-pv-allow="icon|logo" (use lucide/real icon sets for UI)
- *   svg-asset                 .svg files in public/ that are not logos/icons/favicons or allowlisted
+ *   svg-asset                 .svg files in public/ whose own name is not a logo/icon/favicon name, unless allowlisted
  *   css-art                   conic/radial/repeating gradients or clip-path polygons (>=5 points) used as artwork
  *   canvas-drawing            <canvas> / getContext() drawing (light WebGL needs an allowlist entry)
  *   placeholder-host          placeholder or hot-linked stock hosts (placehold.co, picsum, unsplash CDN, ...)
@@ -117,10 +117,10 @@ function main() {
   const add = (rule, file, line, detail) => violations.push({ rule, file, line, detail });
   const lineOf = (text, idx) => text.slice(0, idx).split('\n').length;
 
-  // svg-asset exemption (a code-drawn-art rule): whole-word logo/icon/brand-mark names, or an icons/logos folder.
+  // svg-asset exemption (a code-drawn-art rule): the file's own name must be a whole-word
+  // logo/icon/brand-mark name. A folder such as icons/ or logos/ never excuses an illustration.
   const BRAND_NAME = /(^|[-_.\s])(logo|logos|icon|icons|favicon|apple-touch-icon|og|opengraph|opengraph-image|twitter-image|mark|wordmark|badge-official|flag)([-_.\s@]|$)/i;
-  const BRAND_DIR = /(^|\/)(icons?|logos?|favicons?)\//i;
-  const brandAsset = (p) => BRAND_NAME.test(path.basename(p)) || BRAND_DIR.test(p);
+  const brandAsset = (p) => BRAND_NAME.test(path.basename(p));
   // Manifest exemption is narrower: only a file whose own name says it is a logo, icon or share
   // image. A folder name (/logos/banner.webp) or a word such as "flag" never excuses ordinary media.
   const BRAND_MEDIA = /(^|[-_.\s])(logo|logos|icon|icons|favicon|apple-touch-icon|apple-icon|og|opengraph|opengraph-image|twitter-image)([-_.\s@]|$)/i;
@@ -311,6 +311,7 @@ function globToRe(g) {
  * A '...' or "..." literal must close on its line; an unclosed quote is JSX text (e.g. "don't").
  * `//` after ':' or '(' is a URL, not a comment. In the code view a `//` only counts as a comment at
  * line start or after `; { } ) ]`, so JSX text such as `See // <svg />` cannot hide a finding.
+ * In JSX page text (tsx, jsx, js, mdx) `//` and `/*` render as characters, so neither view blanks them.
  */
 /**
  * True when the quote at `i` sits where code can start a string literal: at the start, after an
@@ -367,7 +368,9 @@ function scrub(text, { slashComments, htmlComments, jsx = false, mdx = false }) 
     const c = text[i];
     const d = text[i + 1];
     const top = stack[stack.length - 1];
-    if (c === '/' && d === '*') {
+    // In JSX page text `//` and `/*` are characters that render, not comments.
+    const inText = jsx && top.t === 'text';
+    if (!inText && c === '/' && d === '*') {
       const e = text.indexOf('*/', i + 2); const end = e < 0 ? n : e + 2;
       blank(code, i, end); blank(bare, i, end); i = end; continue;
     }
@@ -375,7 +378,7 @@ function scrub(text, { slashComments, htmlComments, jsx = false, mdx = false }) 
       const e = text.indexOf('-->', i + 4); const end = e < 0 ? n : e + 3;
       blank(code, i, end); blank(bare, i, end); i = end; continue;
     }
-    if (slashComments && c === '/' && d === '/' && text[i - 1] !== ':' && text[i - 1] !== '(') {
+    if (!inText && slashComments && c === '/' && d === '/' && text[i - 1] !== ':' && text[i - 1] !== '(') {
       const e = text.indexOf('\n', i); const end = e < 0 ? n : e;
       // Evidence view: any // ends the line, so a comment can never fake a hero or motion section.
       blank(bare, i, end);

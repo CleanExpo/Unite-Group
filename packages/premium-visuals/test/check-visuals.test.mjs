@@ -131,6 +131,31 @@ test('a string inside a JSX expression is still not a hero or motion section', (
   assert.equal(after.code, 1);
   for (const r of ['hero-missing-media', 'no-motion']) assert.ok(after.out.byRule[r], r);
 });
+test('// or /* in page text is text, so it does not hide a real hero or motion section', () => {
+  const files = {
+    'media.manifest.json': JSON.stringify({ version: 1, entries: [entry('/media/hero/a.avif')] }),
+    'public/media/hero/a.avif': 'x',
+  };
+  const tags = `<PremiumHero media={m('/media/hero/a.avif')}/><MotionSection />`;
+  for (const lead of ['"// ', '`// ', "'// ", 'a // b ', '/* note ']) {
+    const { code, out } = run({ ...files, 'app/page.tsx': `export default function Page(){return <main><p>${lead}</p>${tags}</main>}` });
+    assert.equal(code, 0, lead + ' ' + JSON.stringify(out.violations));
+  }
+  // A real comment in code still hides nothing and fakes nothing.
+  const comment = run({ ...files, 'app/page.tsx': `// ${tags}\nexport default function Page(){return <main>{/* ${tags} */}Hi</main>}` });
+  assert.equal(comment.code, 1);
+  for (const r of ['hero-missing-media', 'no-motion']) assert.ok(comment.out.byRule[r], r);
+});
+test('an icons/ or logos/ folder does not excuse an SVG illustration', () => {
+  for (const p of ['public/icons/illustration.svg', 'public/logos/illustration.svg', 'public/favicons/scene.svg']) {
+    const { out } = run({ [p]: '<svg></svg>' });
+    assert.ok(out.byRule['svg-asset'], p);
+  }
+  for (const p of ['public/icons/menu-icon.svg', 'public/logos/site-logo.svg', 'public/brand-logo.svg', 'public/favicon.svg']) {
+    const { out } = run({ [p]: '<svg></svg>' });
+    assert.ok(!out.byRule['svg-asset'], p + ' ' + JSON.stringify(out.violations));
+  }
+});
 test('a logos/ or icons/ folder, or a word like flag, does not excuse ordinary media from the manifest', () => {
   for (const p of ['/logos/ordinary.webp', '/icons/ordinary.webp', '/media/banner-flag.webp']) {
     const { code, out } = run({
