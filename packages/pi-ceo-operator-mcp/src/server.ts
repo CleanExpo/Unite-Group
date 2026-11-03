@@ -1,15 +1,9 @@
 /**
- * Pi-CEO Operator MCP App production composition root.
- * Runtime construction stays import-safe in runtime.ts; this module alone starts
- * the HTTP transport and optionally binds the compiled Vite manifest.
+ * Pi-CEO Operator MCP App definition.
+ * Importing this module starts nothing: Skybridge 2 registers tools per request,
+ * and src/index.ts alone starts the HTTP transport.
  */
-import { applyProductionManifest, createOperatorServer } from "./runtime.js";
+import { createOperatorServer } from "./runtime.js";
 
-const server = createOperatorServer();
-
-if (process.env.NODE_ENV === "production") {
-  await applyProductionManifest(server);
-}
-
-export default await server.run();
-export type AppType = typeof server;
+export const app = createOperatorServer();
+export type AppType = typeof app;

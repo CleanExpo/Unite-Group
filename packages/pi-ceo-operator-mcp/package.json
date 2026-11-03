@@ -19,14 +19,16 @@
     "check:install-scripts": "node -e \"const lock=require('./package-lock.json');const found=Object.entries(lock.packages).filter(([,v])=>v.hasInstallScript).map(([p,v])=>p+'@'+v.version).sort();const expected=['node_modules/esbuild@0.28.1','node_modules/fsevents@2.3.3'];if(JSON.stringify(found)!==JSON.stringify(expected))throw new Error('install-script allow-list drift: '+found.join(','));console.log('install-script allow-list verified:',found.join(','))\""
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "skybridge": "^1.2.7",
-    "vite": "^8.1.4"
+    "skybridge": "^2.1.0",
+    "vite": "^8.1.4",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@skybridge/devtools": "^1.2.7",
+    "@modelcontextprotocol/client": "^2.4.0",
+    "@skybridge/devtools": "^2.1.0",
+    "@skybridge/vite-plugin": "^2.1.0",
     "@types/express": "^5.0.6",
     "@types/node": "^24.0.0",
     "@types/react": "^19.2.17",

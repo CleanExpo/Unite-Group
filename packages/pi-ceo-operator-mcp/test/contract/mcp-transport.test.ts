@@ -1,5 +1,4 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import { afterEach, describe, expect, test } from "vitest";
 import { recordCase } from "../fixtures/fake-gh.mjs";
 
@@ -19,7 +18,7 @@ async function harness() {
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   await server.connect(serverTransport);
   await client.connect(clientTransport);
-  closers.push(async () => { await client.close(); await server.close(); });
+  closers.push(async () => { await client.close(); await serverTransport.close(); });
   return { client, clientTransport };
 }
 

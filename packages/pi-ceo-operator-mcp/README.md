@@ -47,7 +47,9 @@ Per the rollout SKILL.md §5 (deployment decision tree): this POC is **internal-
 pi-ceo-operator-mcp/
 ├── SPEC.md                    # design + acceptance criteria
 ├── src/
-│   ├── server.ts              # MCP server + 2 tool handlers
+│   ├── index.ts               # starts the HTTP server (the only entry that runs it)
+│   ├── server.ts              # the Skybridge app, safe to import
+│   ├── runtime.ts             # 2 tool handlers + /healthz
 │   ├── helpers.ts             # type-safe React hooks (generated)
 │   ├── index.css              # global CSS — themed for Claude/ChatGPT
 │   └── views/
