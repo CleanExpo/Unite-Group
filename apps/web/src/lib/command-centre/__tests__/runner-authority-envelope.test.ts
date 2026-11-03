@@ -277,7 +277,7 @@ function run([tool, ...args]: Cmd, extraEnv: Record<string, string> = {}) {
     encoding: 'utf8' as const,
     env: {
       ...process.env,
-      // Git config injected by the calling shell must not reach the stub: the pin assertions read these.
+      // The shim's git config pin is asserted below; a pin inherited from the caller's shell must not satisfy or fail it.
       GIT_CONFIG_COUNT: undefined,
       GIT_CONFIG_KEY_0: undefined,
       GIT_CONFIG_VALUE_0: undefined,

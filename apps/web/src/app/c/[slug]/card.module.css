@@ -197,3 +197,14 @@
   border-radius: 4px;
   object-fit: cover;
 }
+
+/* Google review button: same weight as the other actions, outlined so it does not compete with Call. */
+.review {
+  background: transparent;
+  border: 2px solid #e55a2b;
+}
+
+/* ?r=1 (the QR review link): the button moves first and is ringed, no script and no auto-redirect */
+.reviewHighlight {
+  box-shadow: 0 0 0 4px rgba(229, 90, 43, 0.45);
+}

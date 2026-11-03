@@ -69,6 +69,11 @@ export function IntakeForm({ reference }: { reference: string }) {
         <div>
           <label htmlFor="business" className={f.label}>Business name</label>
           <input id="business" name="business" maxLength={120} autoComplete="organization" className={f.field} />
+          {/* A new tab, so following the link does not lose what the buyer has typed. */}
+          <p className={f.hint}>
+            One card per person;{' '}
+            <a href="/cards/order#extra-business" target="_blank" rel="noopener">staff cards are A$199 each</a>
+          </p>
         </div>
         <div className={f.wide}>
           <label htmlFor="email" className={f.label}>Email</label>

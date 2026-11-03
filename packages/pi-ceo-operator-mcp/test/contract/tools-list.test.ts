@@ -1,5 +1,4 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import { describe, expect, test } from "vitest";
 import { recordCase, sha256 } from "../fixtures/fake-gh.mjs";
 
@@ -12,7 +11,7 @@ async function listOnce() {
   await client.connect(clientTransport);
   const result = await client.listTools();
   await client.close();
-  await server.close();
+  await serverTransport.close();
   return result.tools;
 }
 

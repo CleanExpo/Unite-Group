@@ -14,6 +14,10 @@ vi.mock('../../lib/supabase/server', () => ({
   getUser: vi.fn(),
 }));
 
+vi.mock('@/lib/auth/private-access', () => ({
+  hasPrivateAccess: vi.fn((user: { id?: string }) => user?.id === 'founder-123'),
+}));
+
 import { redirect } from 'next/navigation';
 import { getUser } from '../../lib/supabase/server';
 import RootPage from '../page';
@@ -40,5 +44,13 @@ describe('root page redirect', () => {
 
     await expect(RootPage()).rejects.toThrow('REDIRECT:/founder/command-centre');
     expect(redirect).toHaveBeenCalledWith('/founder/command-centre');
+  });
+
+  it('sends a signed-in user who is not the founder to the business-owner portal, never the founder area', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'owner-456' } as any);
+
+    await expect(RootPage()).rejects.toThrow('REDIRECT:/portal');
+    expect(redirect).toHaveBeenCalledWith('/portal');
+    expect(redirect).not.toHaveBeenCalledWith('/founder/command-centre');
   });
 });

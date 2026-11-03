@@ -15,6 +15,8 @@ export default defineConfig({
   plugins: [tsconfigPaths()],
   test: {
     globals: true,
+    // Keep a developer laptop responsive: at most two test workers (portal S1 brief, UNI-3174).
+    maxWorkers: 2,
     typecheck: { include: ['**/*.test-d.ts'], tsconfig: './tsconfig.typetest.json' },
     environment: 'node',
     // Vitest 3 does not pass the CLI typecheck flags into inline projects.

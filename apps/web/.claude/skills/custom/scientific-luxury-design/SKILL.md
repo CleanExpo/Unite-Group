@@ -148,3 +148,13 @@ Every UI element communicates its state through **colour opacity**, not shadow o
 Before delivering any UI code, ask: Does this look like it could be part of a $500/month SaaS dashboard used by people who care deeply about what they're looking at? If it looks like a tutorial project, a generic admin panel, or anything that could have come from a free Bootstrap template — revise.
 
 The standard is: every component looks like it was designed by someone who has studied Bloomberg Terminal, Linear, Vercel, and Raycast — and synthesised something more precise than all of them.
+
+## CleanExpo Premium Visual & Motion Standard (proposed, UNI-3140)
+
+When this skill touches any customer-facing page, the spec/review MUST cover and the build MUST pass:
+- Zero code-drawn TS/CSS/SVG/canvas graphics; real icon sets for UI only.
+- Media from client photos/video → self-hosted licensed stock → Higgsfield photoreal (`cinematic-au-restoration` preset) → offline Blender renders. All listed in `media.manifest.json` (source + credit + alt).
+- Every marketing page: `<PremiumHero>` with looping muted video (AV1/WebM/H.264 + poster) or real photo, ≥1 `<MotionSection>`, `<Carousel>` for galleries/services, View Transitions page transitions, prefers-reduced-motion honoured.
+- `check-visuals` lists zero violations for the page (a green CI job is not enough while the repo runs it in report mode) and the SDA visual/commercial evidence gate passes (reduced-motion screenshots + video frame review).
+- Package: `@cleanexpo/premium-visuals` (Unite-Group `packages/premium-visuals`).
+- Scientific Luxury note: a photographic scrim (linear overlay on a real photo/video for legibility) is permitted; gradient *art* remains banned.

@@ -62,11 +62,18 @@ export const SMOKE_PATHS = Object.freeze([
   { path: `${UNKNOWN_CARD}/contact.vcf`, pattern: '/c/[slug]/contact.vcf', status: 404, note: 'unknown but valid-looking slug' },
   { path: PUBLISHED_CARD, pattern: '/c/[slug]', status: 200, bodyIncludes: 'Smoke Test Owner', note: 'published card (stubbed row) renders CardView' },
   { path: `${PUBLISHED_CARD}/contact.vcf`, pattern: '/c/[slug]/contact.vcf', status: 200, bodyIncludes: 'Smoke Test Owner', note: 'published card (stubbed row)' },
+  // The review redirect: the stub answers its REVIEW_COLUMNS read, so an unknown card is a plain 404 and the published
+  // card goes straight to Google's write-a-review page (exact URL, no gating page). The tap log RPC is refused like
+  // an outage, which also proves a logging fault never blocks the redirect.
+  { path: `${UNKNOWN_CARD}/review`, pattern: '/c/[slug]/review', status: 404, note: 'unknown but valid-looking slug' },
+  { path: `${PUBLISHED_CARD}/review`, pattern: '/c/[slug]/review', status: 302, locationHref: 'https://search.google.com/local/writereview?placeid=ChIJsmokeTestPlaceId0001', note: 'published card (stubbed Place ID)' },
   { path: '/c', pattern: null, status: 307, location: LOGIN_PATH, note: 'bare /c stays private' },
   { path: '/privacy-policy', pattern: '/privacy-policy', status: 200 },
   { path: '/terms-of-service', pattern: '/terms-of-service', status: 200 },
   { path: '/grow', pattern: '/grow', status: 200 },
   { path: '/video/ten-clips', pattern: '/video/ten-clips', status: 200 },
+  { path: '/get-a-website', pattern: '/get-a-website', status: 200 },
+  { path: '/get-a-website/thanks', pattern: '/get-a-website/thanks', status: 200 },
   { path: '/solutions/visibility', pattern: '/solutions/visibility', status: 200 },
   { path: '/solutions/experience', pattern: '/solutions/experience', status: 200 },
   { path: '/solutions/conversion', pattern: '/solutions/conversion', status: 200 },
@@ -80,9 +87,17 @@ export const SMOKE_PATHS = Object.freeze([
   { path: '/auth/login', pattern: '/auth/login', status: 200 },
   { path: '/auth/reset-password', pattern: '/auth/reset-password', status: 200 },
   { path: '/forgot-password', pattern: '/forgot-password', status: 200 },
+  // The business-owner invite page (UNI-3167): public so an owner with a code can sign in. No session here, so it
+  // renders step 1 without a code and step 2 (the email form) with one; the code is not checked until a link is asked for.
+  { path: '/portal/join', pattern: '/portal/join', status: 200, bodyIncludes: 'Enter your invite code', note: 'step 1: no code' },
+  { path: '/portal/join?code=SMOKE-TEST-CODE', pattern: '/portal/join', status: 200, bodyIncludes: 'Sign in with your email', note: 'step 2: code in the link' },
   // Private by the proxy: anything not public redirects to the login page.
   { path: '/docs', pattern: '/docs', status: 307, location: LOGIN_PATH, note: 'private' },
   { path: '/preview/knowledge-console', pattern: '/preview/knowledge-console', status: 307, location: LOGIN_PATH, note: 'public only when KNOWLEDGE_CONSOLE_PREVIEW=1' },
+  { path: '/portal', pattern: '/portal', status: 307, location: LOGIN_PATH, note: 'owner portal home (UNI-3174): signed-out owners sign in first' },
+  { path: '/portal/verify', pattern: '/portal/verify', status: 307, location: LOGIN_PATH, note: 'owner second step (UNI-3174): signed-out owners sign in first' },
+  { path: '/portal/changes', pattern: '/portal/changes', status: 307, location: LOGIN_PATH, note: 'owner portal (UNI-3168): signed-out owners sign in first' },
+  { path: '/portal/setup', pattern: '/portal/setup', status: 307, location: LOGIN_PATH, note: 'owner portal (UNI-3168): signed-out owners sign in first' },
   // Metadata files from the brand pack beside the root layout.
   { path: '/icon.png', pattern: '/icon.png', status: 200 },
   { path: '/apple-icon.png', pattern: '/apple-icon.png', status: 200 },
@@ -243,7 +258,14 @@ export function checkCoverage({ discovered, entries, excluded, publicDir }) {
     .filter((entry) => entry.pattern !== null && !pathMatchesPattern(entry.path.split('?')[0], entry.pattern))
     .map((entry) => `smoke entry ${entry.path} cannot be an instance of its pattern ${entry.pattern}`);
 
-  return { uncovered, stale, mismatched, ok: uncovered.length + stale.length + mismatched.length === 0 };
+  // A route both smoked and excluded is checked two contradictory ways: its own entry (e.g. public, 200) and the
+  // excluded-page check (must redirect to sign in). The run cannot pass both, so the list is wrong (UNI-3174:
+  // '/portal/**' swallowed the public /portal/join).
+  const conflicted = [...discoveredPatterns]
+    .filter((pattern) => smoked.has(pattern) && excluded.some((rule) => excludedMatches(rule.pattern, pattern)))
+    .map((pattern) => `route ${pattern} is both smoked and excluded`);
+
+  return { uncovered, stale, mismatched, conflicted, ok: uncovered.length + stale.length + mismatched.length + conflicted.length === 0 };
 }
 
 /** Excluded page and route-handler patterns, each as a concrete request path that must redirect to the login page. */
@@ -361,6 +383,10 @@ export function evaluateResponse(entry, { status, location, contentType, body },
       actual = null;
     }
     if (actual !== entry.location) return { ok: false, reason: `redirected to ${location ?? '(no Location)'}, expected ${entry.location}` };
+  }
+  // An off-site redirect is matched on the whole Location value: right host, path and query, nothing else.
+  if (entry.locationHref !== undefined && location !== entry.locationHref) {
+    return { ok: false, reason: `redirected to ${location ?? '(no Location)'}, expected ${entry.locationHref}` };
   }
   const textual = !contentType || /text|json|xml|vcard|javascript/i.test(contentType);
   if (textual) {

@@ -1,0 +1,29 @@
+{
+  "name": "mission-control-local",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-only Mission Control for the Mac Mini. Binds 127.0.0.1, reads the fleet broker, never writes to it.",
+  "type": "module",
+  "engines": {
+    "node": ">=24.14.1 <25"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "test": "node --test \"server/*.test.ts\" \"shared/*.test.ts\"",
+    "build": "vite build",
+    "start": "node server/main.ts"
+  },
+  "dependencies": {
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-grid-layout": "^2.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5"
+  }
+}

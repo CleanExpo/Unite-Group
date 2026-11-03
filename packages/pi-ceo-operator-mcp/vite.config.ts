@@ -1,4 +1,4 @@
-import { skybridge } from "skybridge/vite";
+import { skybridge } from "@skybridge/vite-plugin";
 // defineConfig from "vitest/config", NOT from "vite": the plain Vite helper does
 // not type the `test` key, so the block below would be a type error there while
 // still silently working at runtime.

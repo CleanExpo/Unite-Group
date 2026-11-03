@@ -1,0 +1,7 @@
+{
+  "preset": "cinematic-au-restoration",
+  "items": [
+    { "id": "hero-water-damage", "kind": "image", "dir": "hero", "alt": "Technician checking moisture in a flooded Brisbane living room", "prompt": "IICRC-certified technician kneeling with a pin moisture meter on wet timber floorboards in a flooded Queensland living room, air movers running, morning light" },
+    { "id": "hero-water-damage", "kind": "video", "dir": "hero", "alt": "Drying equipment running in a flood-damaged home", "prompt": "slow dolly past LGR dehumidifier and air movers drying a flood-damaged Queensland home, technician in background reading a thermal camera" }
+  ]
+}

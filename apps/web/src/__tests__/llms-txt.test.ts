@@ -17,4 +17,10 @@ describe('public/llms.txt', () => {
     expect(llms).toContain('https://unite-group.in')
     expect(llms).not.toMatch(/unite-group\.com\.au/)
   })
+
+  it('tells a buyer how to buy, linking the card order page, without the $199 extras', () => {
+    const howToBuy = llms.split('## How to buy')[1]?.split('\n## ')[0] ?? ''
+    expect(howToBuy).toContain('https://unite-group.in/cards/order')
+    expect(llms).not.toContain('199')
+  })
 })

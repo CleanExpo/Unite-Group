@@ -44,6 +44,8 @@ import CardTermsPage from '../cards/terms/page'
 import CardThanksPage from '../cards/thanks/page'
 import PricingPage from '../pricing/page'
 import TenClipsPage from '../video/ten-clips/page'
+import GetAWebsitePage from '../get-a-website/page'
+import GetAWebsiteThanksPage from '../get-a-website/thanks/page'
 import SignaturesPage from '../signatures/page'
 import VisibilityPage from '../solutions/visibility/page'
 import ExperiencePage from '../solutions/experience/page'
@@ -69,6 +71,8 @@ const RENDERS: Record<string, () => Promise<ReactElement>> = {
   '/cards/thanks': () => CardThanksPage({ searchParams: noProps }),
   '/pricing': sync(PricingPage),
   '/video/ten-clips': sync(TenClipsPage),
+  '/get-a-website': sync(GetAWebsitePage),
+  '/get-a-website/thanks': sync(GetAWebsiteThanksPage),
   '/signatures': sync(SignaturesPage),
   '/solutions/visibility': sync(VisibilityPage),
   '/solutions/experience': sync(ExperiencePage),

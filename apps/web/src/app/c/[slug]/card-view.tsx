@@ -8,10 +8,30 @@ import { EnquiryForm } from './enquiry-form'
 
 /** The persistent card: server HTML and real links. The sample shows the moving Constellation film (client script) so buyers see a living card; client cards stay media-free. The enquiry form (the only script) renders only when enquiries are open. */
 export function CardView({
-  card, enquiryOpen = false, ownerAlerts = false, sample = false,
-}: { card: PublicCard; enquiryOpen?: boolean; ownerAlerts?: boolean; sample?: boolean }) {
+  card, enquiryOpen = false, ownerAlerts = false, sample = false, reviewOpen = false, highlightReview = false,
+}: {
+  card: PublicCard; enquiryOpen?: boolean; ownerAlerts?: boolean; sample?: boolean
+  /** The card has a valid Google Place ID. The button links to our /review redirect, never straight to Google. */
+  reviewOpen?: boolean
+  /** ?r=1 from the QR: show the review button first and ringed. The card stays the landing page. */
+  highlightReview?: boolean
+}) {
   const demo = EDITIONS.find((e) => e.name === DEMO_EDITION)
   const telHref = card.phone ? `tel:${card.phone.replace(/[^+\d]/g, '')}` : null
+  // Google review policy: the same button for every visitor, never behind a feedback question or the enquiry form
+  const review = reviewOpen ? (
+    <li>
+      <a
+        className={[styles.button, styles.review, highlightReview ? styles.reviewHighlight : ''].filter(Boolean).join(' ')}
+        href={`/c/${card.slug}/review`}
+        id="review"
+        data-review-button
+        rel="nofollow"
+      >
+        Leave us a Google review
+      </a>
+    </li>
+  ) : null
   return (
     <main className={styles.page}>
       {sample ? (
@@ -35,6 +55,7 @@ export function CardView({
         {card.staff?.address ? <p className={styles.area}>{card.staff.address}</p> : null}
         {card.staff?.offer ? <p className={styles.area} data-card-offer>{card.staff.offer}</p> : null}
         <ul className={styles.actions}>
+          {highlightReview ? review : null}
           {telHref ? (
             <li>
               <a className={styles.button} href={telHref}>Call</a>
@@ -53,6 +74,7 @@ export function CardView({
           <li>
             <a className={styles.button} href={`/c/${card.slug}/contact.vcf`}>Save contact</a>
           </li>
+          {highlightReview ? null : review}
         </ul>
         {enquiryOpen ? <EnquiryForm slug={card.slug} fallback={{ phone: card.phone, email: card.email }} ownerAlerts={ownerAlerts} /> : null}
       </article>

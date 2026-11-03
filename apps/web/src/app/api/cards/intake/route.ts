@@ -25,6 +25,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { EDITIONS } from '@/app/cards/editions'
+import { CARD_EXTRA_BUSINESS } from '@/app/cards/order/order-view'
 import { leadAlertEmailTo, mailtrapFromEmail, sendEmail } from '@/lib/integrations/mailtrap'
 import { createServiceClient } from '@/lib/supabase/service'
 
@@ -47,6 +48,51 @@ function text(value: unknown, max: number): string | null {
   if (typeof value !== 'string') return null
   const t = value.trim()
   return t && t.length <= max ? t : null
+}
+
+/**
+ * The alert's staff-card line (UNI-3146: the A$199 add-on is a staff card). An add-on is its own payment, not linked to the main order, so it is matched by
+ * buyer email within the same founder and the same Stripe mode. Every card_orders row is a paid session. Never
+ * throws and never waits long: this runs after the claim, so a read that hangs would otherwise strand the alert (a
+ * retry gets 409). A failed or slow lookup says so rather than reading as zero, and the alert still goes.
+ */
+const EXTRA_LOOKUP_TIMEOUT_MS = 3_000
+
+async function extraBusinessLine(
+  admin: ReturnType<typeof createServiceClient>,
+  order: { founder_id: string; livemode: boolean },
+  buyerEmail: string,
+): Promise<string> {
+  const label = 'Staff cards paid with this email'
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    const email = buyerEmail.trim().toLowerCase()
+    const lookup = admin
+      .from('card_orders')
+      .select('customer_email, quantity')
+      .eq('founder_id', order.founder_id)
+      .eq('tier', CARD_EXTRA_BUSINESS.id)
+      .eq('livemode', order.livemode)
+      // ilike for case; _ and % are common in emails and are wildcards to ilike, so escape them.
+      .ilike('customer_email', email.replace(/[\\%_]/g, '\\$&'))
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('timed out')), EXTRA_LOOKUP_TIMEOUT_MS)
+    })
+    const { data, error } = await Promise.race([lookup, timeout])
+    if (error || !data) throw new Error(error?.message ?? 'no data')
+    const rows = (data as Array<{ customer_email: string | null; quantity: number }>).filter(
+      (row) => row.customer_email?.trim().toLowerCase() === email,
+    )
+    const cards = rows.reduce((sum, row) => sum + row.quantity, 0)
+    if (!Number.isInteger(cards)) throw new Error('bad quantity')
+    if (rows.length === 0) return `${label}: 0`
+    return `${label}: ${cards} (${rows.length} ${rows.length === 1 ? 'payment' : 'payments'})`
+  } catch (err) {
+    console.error('[cards/intake] extra-business lookup failed:', err instanceof Error ? err.message : err)
+    return `${label}: could not be checked`
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -80,7 +126,7 @@ export async function POST(request: NextRequest) {
   const admin = createServiceClient()
   const { data: orders, error: lookupError } = await admin
     .from('card_orders')
-    .select('id, founder_id, customer_email, tier')
+    .select('id, founder_id, customer_email, tier, livemode')
     .eq('stripe_session_id', sessionId)
     .limit(1)
   if (lookupError || !orders) {
@@ -149,6 +195,9 @@ export async function POST(request: NextRequest) {
       console.error('[cards/intake] could not record delivery state:', err instanceof Error ? err.message : err)
     }
   }
+
+  // After the claim, so only the request that will send the alert does this read. Stripe's email wins when it recorded one.
+  lines.splice(2, 0, await extraBusinessLine(admin, order, paidEmail || email))
 
   let messageId: string | null = null
   try {

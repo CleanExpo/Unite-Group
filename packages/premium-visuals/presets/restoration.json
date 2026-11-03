@@ -1,0 +1,10 @@
+{
+  "id": "cinematic-au-restoration",
+  "description": "Cinematic photoreal grade for Australian restoration, remediation and trade work (DR, RestoreAssist, CARSI, BRII, CCW).",
+  "prefix": "Photoreal editorial documentary photograph, shot on full-frame cinema camera, 35mm lens, f/2.8 shallow depth of field, natural Australian daylight through windows with soft practical fill, subtle teal-and-amber cinematic colour grade, fine film grain, true-to-life skin and material textures,",
+  "subject_rules": "Australian setting (Queensland/NSW suburban homes, brick-veneer and weatherboard, colorbond roofs, eucalyptus outside windows); certified technicians in correct PPE (P2/P3 respirator, nitrile gloves, coveralls, safety boots) per IICRC S500/S520; real equipment (LGR dehumidifiers, air movers, thermal camera, moisture meter, HEPA air scrubber, containment sheeting).",
+  "suffix": "authentic, unposed, professional, high dynamic range, no text, no logos, no watermark",
+  "negative": "cartoon, illustration, 3d render look, CGI plastic, stock-photo smile, American flags, US power outlets, wrong PPE, distorted hands, extra fingers, text, watermark, oversaturated",
+  "image": { "endpoint": "/higgsfield-ai/soul/v2/standard", "resolution": "1080p", "aspect_ratio": "16:9" },
+  "video": { "endpoint": "${HIGGSFIELD_VIDEO_ENDPOINT}", "duration": 6, "motion": "slow cinematic dolly or gentle handheld drift, no fast cuts, loopable start/end frame" }
+}

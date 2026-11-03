@@ -12,10 +12,10 @@ import sitemap from '../sitemap'
 const llms = readFileSync(join(__dirname, '..', '..', '..', 'public', 'llms.txt'), 'utf8')
 
 describe('sitemap (AC-7)', () => {
-  it('lists the home, cards, order, terms, ten-clips, four pillars and the two legal pages, and nothing private (not /grow: noindex, D3)', () => {
+  it('lists the home, cards, order, terms, ten-clips, get-a-website, four pillars and the two legal pages, and nothing private (not /grow: noindex, D3)', () => {
     const paths = sitemap().map((e) => new URL(e.url).pathname)
     expect(paths).toEqual([
-      '/', '/cards', '/cards/order', '/cards/terms', '/video/ten-clips', '/pricing', '/signatures',
+      '/', '/cards', '/cards/order', '/cards/terms', '/video/ten-clips', '/get-a-website', '/pricing', '/signatures',
       '/solutions/visibility', '/solutions/experience', '/solutions/conversion', '/solutions/intelligence',
       '/privacy-policy', '/terms-of-service',
     ])
@@ -28,18 +28,28 @@ describe('robots (AC-7)', () => {
   const rules = () => [robots().rules].flat()
   const forAgent = (a: string) => rules().find((r) => [r.userAgent].flat().includes(a))
 
-  it('keeps /founder/, /api/ and /docs disallowed for everyone who may read the site', () => {
-    for (const agent of ['*', 'ChatGPT-User', 'Claude-Web']) {
+  const ALLOWED_AI = [
+    'GPTBot', 'OAI-SearchBot', 'ChatGPT-User', 'ClaudeBot', 'Claude-User',
+    'Claude-SearchBot', 'Claude-Web', 'Google-Extended', 'PerplexityBot', 'Perplexity-User',
+  ]
+
+  it('keeps every private path disallowed, exactly, for everyone who may read the site', () => {
+    for (const agent of ['*', ...ALLOWED_AI]) {
       const r = forAgent(agent)!
       expect(r, agent).toBeTruthy()
-      expect([r.disallow].flat()).toEqual(expect.arrayContaining(['/founder/', '/api/', '/docs']))
-      expect(r.allow).toBe('/')
+      expect(r.disallow, agent).toEqual(['/founder/', '/api/', '/docs', '/auth/', '/portal'])
+      expect(r.allow, agent).toBe('/')
     }
   })
 
-  it('lets user-triggered fetchers read public paths and blocks training crawlers outright', () => {
-    for (const agent of ['ChatGPT-User', 'Claude-Web', 'Claude-User']) expect(forAgent(agent)!.allow).toBe('/')
-    for (const agent of ['GPTBot', 'CCBot', 'anthropic-ai', 'ClaudeBot', 'Google-Extended']) {
+  it('never disallows /cards for the named AI assistants', () => {
+    for (const agent of ALLOWED_AI) {
+      for (const path of [forAgent(agent)!.disallow].flat()) expect('/cards'.startsWith(path as string), agent).toBe(false)
+    }
+  })
+
+  it('blocks the crawlers not named by the founder decision outright', () => {
+    for (const agent of ['CCBot', 'anthropic-ai', 'Applebot-Extended', 'Bytespider']) {
       const r = forAgent(agent)!
       expect(r, agent).toBeTruthy()
       expect(r.disallow).toBe('/')

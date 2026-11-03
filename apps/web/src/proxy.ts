@@ -10,6 +10,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 import { checkRateLimit } from '@/lib/middleware/rate-limit';
+import { isPortalPath } from '@/lib/portal/paths';
 import { hasPrivateAccess, isPrivateAccessConfigured } from '@/lib/auth/private-access';
 
 const isDev = process.env.NODE_ENV === 'development';
@@ -89,10 +90,13 @@ const EXACT_PUBLIC_FILES: ReadonlySet<string> = new Set([
   '/cards/order', // Public card enquiry page; no payment, its form posts to the public /api/leads
   '/cards/terms', // Public card order terms; static text, no data. Exact path only
   '/video/ten-clips', // Public offer page; its form posts to the public /api/leads. Exact path only
+  '/get-a-website', // Public website intake questionnaire; its form posts to the public /api/leads. Exact path only
+  '/get-a-website/thanks', // Thank-you page after the intake form; static, no data. Exact path only
   '/cards/thanks', // Post-payment thank-you with the intake form; the buyer is signed out. Exact: no sub-routes
   '/api/cards/intake', // The intake form's POST, service-role insert against an order reference; rate-limited above. Exact: no siblings
   '/cards/manage', // Card owner and staff edit page (UNI-3146); shows nothing until a private link's token is posted. Exact path only
   '/api/cards/manage', // That page's POST; the token in the body is the authority, checked in the route; rate-limited above. Exact: no siblings
+  '/portal/join', // Portal invite claim (UNI-3167): the holder may have no account yet. Its actions check the code, a database rate limit, and an aal2 session themselves. Exact: the rest of /portal is not opened here
   // The four pillar pages (UNI-3001). Exact paths only: a prefix rule would also open '/solutions/anything'.
   '/solutions/visibility',
   '/solutions/experience',
@@ -100,8 +104,9 @@ const EXACT_PUBLIC_FILES: ReadonlySet<string> = new Set([
   '/solutions/intelligence',
 ]);
 
-// Owner cards: exactly /c/<slug> and /c/<slug>/contact.vcf. Nothing else under /c, and '/c' itself, stay private.
-const OWNER_CARD_PATH = /^\/c\/[a-z0-9-]{1,64}(?:\/contact\.vcf)?$/;
+// Owner cards: exactly /c/<slug>, /c/<slug>/contact.vcf and /c/<slug>/review (the Google review redirect).
+// Nothing else under /c, and '/c' itself, stay private.
+const OWNER_CARD_PATH = /^\/c\/[a-z0-9-]{1,64}(?:\/contact\.vcf|\/review)?$/;
 
 export function isPublicPath(pathname: string): boolean {
   if (EXACT_PUBLIC_FILES.has(pathname)) return true;
@@ -124,11 +129,18 @@ export function isPublicPath(pathname: string): boolean {
 // (go-live audit D11: /about, /contact, /terms, /zzz all landed on a Google sign-in wall). The not-found answer is a
 // rewrite made here, so it fails closed: even if a real private route were missed from this list, the visitor would
 // see a 404, never the route. src/__tests__/golive-404-proxy.test.ts scans src/app so a new private root cannot be missed.
-const PROTECTED_ROOTS: ReadonlySet<string> = new Set(['founder', 'api', 'docs', 'preview', 'c']);
+// 'portal' (UNI-3168): owner portal pages. Signed-out owners are sent to sign in. Signed-in visitors on /portal skip the
+// founder allow-list (isPortalPath below, S1); every portal page then checks owner access itself.
+const PROTECTED_ROOTS: ReadonlySet<string> = new Set(['founder', 'api', 'docs', 'preview', 'c', 'portal']);
 
 function isProtectedRoot(pathname: string): boolean {
   return PROTECTED_ROOTS.has(pathname.split('/')[1] ?? '');
 }
+
+// The business-owner portal: exactly /portal and pages beneath it (not '/portalx', not '/portal-admin').
+// A signed-in visitor here skips the founder allow-list below; the (portal) layout then admits only card owners
+// (src/lib/portal/owner.ts). Pages only: the portal has no API routes, so founder APIs keep the allow-list.
+export { isPortalPath };
 
 // These exact POST handlers authenticate their own bearer or enrolled signature.
 // Cookies grant no transport authority; siblings and descendants stay private.
@@ -217,7 +229,7 @@ export async function proxy(request: NextRequest) {
   // ------------------------------------------------------------------
   // 4. Private CRM guard — only explicit founder/invite allow-list can enter
   // ------------------------------------------------------------------
-  if (user && !isPublicPath(pathname) && !routeAuthenticated && !hasPrivateAccess(user)) {
+  if (user && !isPublicPath(pathname) && !routeAuthenticated && !isPortalPath(pathname) && !hasPrivateAccess(user)) {
     // Log the rejected identity so a lockout is diagnosable from Vercel runtime
     // logs alone (2026-07-14: a stale FOUNDER_USER_ID denied the real founder
     // and the logs showed nothing about who was rejected or why).

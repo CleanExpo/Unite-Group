@@ -77,6 +77,11 @@
   color: #a6a29b;
 }
 
+.hint a {
+  color: inherit;
+  text-decoration: underline;
+}
+
 .alert {
   margin: 0.75rem 0 0;
   font-size: 14px;

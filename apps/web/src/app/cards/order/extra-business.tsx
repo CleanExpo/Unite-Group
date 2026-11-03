@@ -15,7 +15,7 @@ export function ExtraBusiness({ link, priceAud }: { link: string; priceAud: numb
   const [quantity, setQuantity] = useState(0)
 
   return (
-    <div role="group" aria-labelledby="extra-business-label" className={s.box} data-extra-business>
+    <div id="extra-business" role="group" aria-labelledby="extra-business-label" className={s.box} data-extra-business>
       <p id="extra-business-label" className={s.label}>
         Add staff cards, AUD {priceAud} each, GST included. One card per staff member, no limit, 3 rounds of changes each. You control the business details on every card; each staff member changes only their own name, photo and mobile.
       </p>

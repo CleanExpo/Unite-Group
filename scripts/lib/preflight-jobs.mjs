@@ -104,6 +104,13 @@ export const JOBS = [
     cmd: ['python3', ['-m', 'unittest', 'discover', '-s', 'tests'], 'tools/complete-requires-push'],
   },
   {
+    id: 'fleet-router',
+    ciJob: 'fleet-router',
+    label: 'tools/fleet-router — tests',
+    paths: ['tools/fleet-router/'],
+    cmd: ['node', ['--test'], 'tools/fleet-router'],
+  },
+  {
     id: 'dependency-audit',
     ciJob: 'dependency-audit',
     label: 'Active lockfiles — high-severity audit',
@@ -165,6 +172,13 @@ export const JOBS = [
     label: 'apps/spec-board — type-check, test, build',
     paths: ['apps/spec-board/'],
     cmd: ['npm', ['run', 'verify:spec-board']],
+  },
+  {
+    id: 'mission-control-local',
+    ciJob: 'mission-control-local',
+    label: 'apps/mission-control-local — type-check, test, build',
+    paths: ['apps/mission-control-local/'],
+    cmd: ['npm', ['run', 'verify:mission-control-local']],
   },
 ];
 

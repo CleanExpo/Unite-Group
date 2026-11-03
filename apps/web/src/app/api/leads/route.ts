@@ -10,7 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { notify } from '@/lib/notifications'
+import { notify, saveNotification } from '@/lib/notifications'
 import {
   buildCrmActivityTimelineEvent,
   buildCrmTimelineAgentActionInsert,
@@ -34,6 +34,12 @@ type LeadBody = {
   business_key?: string
   /** Optional drip campaign to enroll the lead into (capture → enroll in one call). */
   drip_campaign_id?: string
+  /** Only 'website_intake' is honoured; anything else is stored as 'website_form'. */
+  source?: string
+  /** Website intake only: the visitor agreed we may contact them about this enquiry. */
+  contact_consent?: boolean
+  /** Website intake only: the questionnaire answers. Unknown keys are dropped. */
+  intake?: unknown
 }
 
 type ContactRow = {
@@ -45,6 +51,32 @@ type ContactRow = {
 
 const MAX_SHORT_FIELD = 256
 const MAX_LONG_FIELD = 4000
+
+const WEBSITE_INTAKE_SOURCE = 'website_intake'
+const MAX_INTAKE_ANSWER = 1500
+
+/** The questionnaire answers we keep, each with its own length cap. */
+const INTAKE_FIELDS: Record<string, number> = {
+  current_site: MAX_SHORT_FIELD,
+  services: MAX_INTAKE_ANSWER,
+  goals: MAX_INTAKE_ANSWER,
+  photos: MAX_SHORT_FIELD,
+  photos_link: MAX_SHORT_FIELD,
+  socials: MAX_SHORT_FIELD,
+  budget_band: MAX_SHORT_FIELD,
+  timeline: MAX_SHORT_FIELD,
+  call_time: MAX_SHORT_FIELD,
+}
+
+function cleanIntake(value: unknown): Record<string, string> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  const answers: Record<string, string> = {}
+  for (const [key, max] of Object.entries(INTAKE_FIELDS)) {
+    const answer = clean((value as Record<string, unknown>)[key], max)
+    if (answer) answers[key] = answer
+  }
+  return answers
+}
 
 // Log label only: the error name, or a fixed fallback. Never message, details, hint or code,
 // which can echo submitted personal data. PostgrestError often has no name.
@@ -182,6 +214,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'A valid email is required' }, { status: 400 })
   }
 
+  const isWebsiteIntake = body.source === WEBSITE_INTAKE_SOURCE
+  if (isWebsiteIntake && body.contact_consent !== true) {
+    return NextResponse.json({ error: 'Please agree that we may contact you about your website' }, { status: 400 })
+  }
+
   const lastName = clean(body.last_name, MAX_SHORT_FIELD)
   const businessKey = clean(body.business_key, MAX_SHORT_FIELD)
   const ipAddress =
@@ -206,10 +243,13 @@ export async function POST(request: NextRequest) {
       interests: clean(body.interests, MAX_LONG_FIELD),
       referral_source: clean(body.referral_source, MAX_SHORT_FIELD),
       marketing_consent: body.marketing_consent === true,
-      source: 'website_form',
+      source: isWebsiteIntake ? WEBSITE_INTAKE_SOURCE : 'website_form',
       ip_address: ipAddress,
       user_agent: userAgent,
-      additional_data: businessKey ? { business_key: businessKey } : {},
+      additional_data: {
+        ...(businessKey ? { business_key: businessKey } : {}),
+        ...(isWebsiteIntake ? { contact_consent: true, intake: cleanIntake(body.intake) } : {}),
+      },
     })
     .select('id, captured_at')
     .single()
@@ -219,25 +259,35 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to capture lead' }, { status: 500 })
   }
 
-  let alertTimer: ReturnType<typeof setTimeout> | undefined
-  try {
-    await Promise.race([
-      notify({
-        type: 'new_lead',
-        leadId: leadRow.id,
-        firstName,
-        businessName: clean(body.company, MAX_SHORT_FIELD),
-        interests: clean(body.interests, MAX_LONG_FIELD),
-        capturedAt: leadRow.captured_at,
-      }),
-      new Promise<never>((_, reject) => {
-        alertTimer = setTimeout(() => reject(new Error('Alert deadline exceeded')), 6000)
-      }),
-    ])
-  } catch (error) {
-    console.error('[leads] alert failed:', errorLabel(error))
-  } finally {
-    if (alertTimer) clearTimeout(alertTimer)
+  if (isWebsiteIntake) {
+    // UNI-3172: website intake leads notify in-app only, with no email or SMS. saveNotification never throws.
+    await saveNotification(founderId, 'new_website_intake', {
+      message: `${clean(body.company, MAX_SHORT_FIELD) ?? firstName} asked for a new website`,
+      leadId: leadRow.id,
+      businessName: clean(body.company, MAX_SHORT_FIELD),
+      capturedAt: leadRow.captured_at,
+    })
+  } else {
+    let alertTimer: ReturnType<typeof setTimeout> | undefined
+    try {
+      await Promise.race([
+        notify({
+          type: 'new_lead',
+          leadId: leadRow.id,
+          firstName,
+          businessName: clean(body.company, MAX_SHORT_FIELD),
+          interests: clean(body.interests, MAX_LONG_FIELD),
+          capturedAt: leadRow.captured_at,
+        }),
+        new Promise<never>((_, reject) => {
+          alertTimer = setTimeout(() => reject(new Error('Alert deadline exceeded')), 6000)
+        }),
+      ])
+    } catch (error) {
+      console.error('[leads] alert failed:', errorLabel(error))
+    } finally {
+      if (alertTimer) clearTimeout(alertTimer)
+    }
   }
 
   const subjectLabel = [firstName, lastName].filter(Boolean).join(' ').trim() || clean(body.company, MAX_SHORT_FIELD) || email
@@ -264,7 +314,8 @@ export async function POST(request: NextRequest) {
     console.error('[leads] timeline insert failed:', errorLabel(err))
   }
 
-  const dripCampaignId = clean(body.drip_campaign_id, MAX_SHORT_FIELD)
+  // A website intake lead is never enrolled in a drip: this path sends no email (UNI-3172).
+  const dripCampaignId = isWebsiteIntake ? null : clean(body.drip_campaign_id, MAX_SHORT_FIELD)
   let drip: Awaited<ReturnType<typeof enrollLeadInDrip>> | undefined
   if (dripCampaignId) {
     // Spam Act 2003: no commercial email without consent (UNI-2918). The lead
