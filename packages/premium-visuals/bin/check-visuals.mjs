@@ -8,18 +8,18 @@
  *
  * FINDINGS (fail in enforce mode):
  *   inline-svg-art            inline <svg> not marked data-pv-allow="icon|logo" (use lucide/real icon sets for UI)
- *   svg-asset                 .svg files in public/ that are not logos/icons/favicons or allowlisted
+ *   svg-asset                 .svg files in public/ whose own name is not a logo/icon/favicon name, unless allowlisted
  *   css-art                   conic/radial/repeating gradients or clip-path polygons (>=5 points) used as artwork
  *   canvas-drawing            <canvas> / getContext() drawing (light WebGL needs an allowlist entry)
  *   placeholder-host          placeholder or hot-linked stock hosts (placehold.co, picsum, unsplash CDN, ...)
- *   unmanifested-media        image/video paths used in code with no media.manifest.json entry
+ *   unmanifested-media        image/video paths used in code or stylesheets with no media.manifest.json entry
  *   unmanifested-public-media image/video files in public/ with no media.manifest.json entry
  *   manifest-missing          no media.manifest.json at all
  *   manifest-invalid          manifest not {version:1, entries:[...]}, or an entry with a bad src, kind
  *                             (image|video|render), source (client|stock|generated|blender), non-string
  *                             credit/alt, duplicate src, or a video without a poster
  *   manifest-missing-file     manifest entry (or poster) whose file is not in any public dir
- *   hero-missing-media        marketing page without a rendered <PremiumHero media|video={...}> (or data-pv-hero + media element)
+ *   hero-missing-media        marketing page without a rendered <PremiumHero media={...}> (or a data-pv-hero element holding its own image/video)
  *   no-motion                 marketing page with no rendered <MotionSection> / data-pv-motion
  *   marketing-coverage        fewer marketing pages found than minMarketingPages (default 1)
  *   media-budget              raster > imageMaxKB, video > videoMaxKB, PNG/JPG > legacyRasterMaxKB, or .mov
@@ -117,15 +117,24 @@ function main() {
   const add = (rule, file, line, detail) => violations.push({ rule, file, line, detail });
   const lineOf = (text, idx) => text.slice(0, idx).split('\n').length;
 
-  // Public-path exemptions by name: whole-word logo/icon/favicon/og names, or an icons/logos folder.
+  // svg-asset exemption (a code-drawn-art rule): the file's own name must be a whole-word
+  // logo/icon/brand-mark name. A folder such as icons/ or logos/ never excuses an illustration.
   const BRAND_NAME = /(^|[-_.\s])(logo|logos|icon|icons|favicon|apple-touch-icon|og|opengraph|opengraph-image|twitter-image|mark|wordmark|badge-official|flag)([-_.\s@]|$)/i;
-  const BRAND_DIR = /(^|\/)(icons?|logos?|favicons?)\//i;
-  const brandAsset = (p) => BRAND_NAME.test(path.basename(p)) || BRAND_DIR.test(p);
-  const findPublic = (src) => cfg.publicDirs.map((d) => path.join(root, d, src)).find((p) => fs.existsSync(p) && fs.statSync(p).isFile());
+  const brandAsset = (p) => BRAND_NAME.test(path.basename(p));
+  // Manifest exemption: the same whole-word brand names (plus apple-icon), by the file's own name
+  // only. A folder name (/logos/banner.webp) never excuses ordinary media.
+  const BRAND_MEDIA = /(^|[-_.\s])(logo|logos|icon|icons|favicon|apple-touch-icon|apple-icon|og|opengraph|opengraph-image|twitter-image|mark|wordmark|badge-official|flag)([-_.\s@]|$)/i;
+  const brandMedia = (p) => BRAND_MEDIA.test(path.basename(p));
+  // Only a path that stays inside a public dir counts as found there.
+  const findPublic = (src) => cfg.publicDirs.map((d) => {
+    const base = path.resolve(root, d);
+    const p = path.resolve(base, '.' + src);
+    return p.startsWith(base + path.sep) ? p : null;
+  }).find((p) => p && fs.existsSync(p) && fs.statSync(p).isFile());
 
   // ---- manifest ----
-  const manifestSrcs = new Set();
-  const entrySrcs = new Set(); // entry src values only; a poster reference is not an entry
+  const manifestSrcs = new Set(); // entry srcs and posters: paths that count as manifested
+  const entrySrcs = new Set(); // entry srcs only: a poster may also have its own entry (videoEntries does this)
   const mPath = path.join(root, cfg.manifest);
   const manifestBad = (detail) => add('manifest-invalid', cfg.manifest, 0, detail);
   let entryCount = 0;
@@ -140,7 +149,7 @@ function main() {
         if (!Array.isArray(m.entries)) manifestBad('entries must be an array');
         else {
           const isText = (v) => typeof v === 'string' && v.trim().length > 0;
-          const validPath = (p) => typeof p === 'string' && /^\/[^\s?#]+$/.test(p) && !p.split('/').includes('..') && MEDIA_EXTS.includes(extOf(p));
+          const validPath = (p) => typeof p === 'string' && /^\/[^\s?#\\]+$/.test(p) && !p.split('/').includes('..') && MEDIA_EXTS.includes(extOf(p));
           m.entries.forEach((e, i) => {
             entryCount++;
             const id = e && typeof e === 'object' && typeof e.src === 'string' ? e.src : `entries[${i}]`;
@@ -179,7 +188,7 @@ function main() {
     const ext = extOf(f);
     const isCode = CODE_EXTS.includes(ext);
     const raw = fs.readFileSync(f, 'utf8');
-    const v = scrub(raw, { slashComments: ext !== 'css', htmlComments: ['html', 'mdx', 'astro', 'vue', 'svelte'].includes(ext) });
+    const v = scrub(raw, { slashComments: ext !== 'css', htmlComments: ['html', 'mdx', 'astro', 'vue', 'svelte'].includes(ext), jsx: ['tsx', 'jsx', 'js', 'mdx'].includes(ext), mdx: ext === 'mdx' });
     views.set(f, v);
     const t = v.code;
     const artOk = allowed(r);
@@ -204,12 +213,12 @@ function main() {
     }
     PLACEHOLDER.lastIndex = 0;
     while ((m = PLACEHOLDER.exec(t))) add('placeholder-host', r, lineOf(t, m.index), m[1]);
-    // Code and stylesheets alike: a CSS background-image: url("/media/x.webp") is shipped media too (#1349).
+    // Code and stylesheets alike: a CSS background-image: url("/media/x.webp") is shipped media too.
     {
       MEDIA_PATH.lastIndex = 0;
       while ((m = MEDIA_PATH.exec(t))) {
         const p = m[1].split('?')[0];
-        if (brandAsset(p)) continue;
+        if (brandMedia(p)) continue;
         if (!manifestSrcs.has(p)) add('unmanifested-media', r, lineOf(t, m.index), `${p} has no ${cfg.manifest} entry`);
       }
     }
@@ -229,7 +238,7 @@ function main() {
       add('media-budget', r, 0, `${kb.toFixed(0)}KB PNG/JPG: ship AVIF/WebP (budget ${cfg.budgets.legacyRasterMaxKB}KB)`);
     if (['mp4', 'webm', 'mov'].includes(ext) && kb > cfg.budgets.videoMaxKB) add('media-budget', r, 0, `${(kb / 1024).toFixed(1)}MB > ${(cfg.budgets.videoMaxKB / 1024).toFixed(1)}MB video budget`);
     if (ext === 'mov') add('media-budget', r, 0, '.mov: encode to AV1/H.264 MP4 + WebM');
-    if (MEDIA_EXTS.includes(ext) && !brandAsset(publicPath) && !manifestSrcs.has(publicPath))
+    if (MEDIA_EXTS.includes(ext) && !brandMedia(publicPath) && !manifestSrcs.has(publicPath))
       add('unmanifested-public-media', r, 0, `${publicPath} is in a public dir with no ${cfg.manifest} entry`);
   }
 
@@ -242,7 +251,7 @@ function main() {
     const r = rel(f);
     const { code, bare } = views.get(f);
     if (!hasHeroMedia(code, bare)) add('hero-missing-media', r, 0, 'marketing page needs a rendered <PremiumHero media={...} video={...}> with a real/generated photo or video');
-    if (!/<MotionSection\b|\bdata-pv-motion\b/.test(bare)) add('no-motion', r, 0, 'marketing page needs at least one rendered <MotionSection> (hero motion alone is not enough)');
+    if (!MOTION_TAG.test(bare) && !hasTagAttr(bare, 'data-pv-motion')) add('no-motion', r, 0, 'marketing page needs at least one rendered <MotionSection> (hero motion alone is not enough)');
   }
   if (marketing.length < cfg.minMarketingPages)
     add('marketing-coverage', '.', 0, `${marketing.length} marketing page(s) found, expected at least ${cfg.minMarketingPages}; check marketingPages/nonMarketing patterns (set minMarketingPages: 0 only for a repo with no public pages)`);
@@ -302,17 +311,66 @@ function globToRe(g) {
  * A '...' or "..." literal must close on its line; an unclosed quote is JSX text (e.g. "don't").
  * `//` after ':' or '(' is a URL, not a comment. In the code view a `//` only counts as a comment at
  * line start or after `; { } ) ]`, so JSX text such as `See // <svg />` cannot hide a finding.
+ * In JSX page text (tsx, jsx, js, mdx) `//` and `/*` render as characters, so neither view blanks them.
  */
-function scrub(text, { slashComments, htmlComments }) {
+/**
+ * True when the quote at `i` sits where code can start a string literal: at the start, after an
+ * operator or opening bracket, after `=>`, or after a keyword such as `return`. A quote straight
+ * after a word or a closing `>` is JSX text ("We're here", <p>"Hi"</p>), so pairing it with a later
+ * apostrophe would blank the real tags in between.
+ */
+const STRING_KEYWORDS = new Set(['return', 'case', 'typeof', 'in', 'of', 'yield', 'await', 'else', 'do', 'void', 'delete', 'new', 'export', 'default', 'from', 'import']);
+function opensString(text, i) {
+  let k = i - 1;
+  while (k >= 0 && /\s/.test(text[k])) k--;
+  if (k < 0) return true;
+  const p = text[k];
+  if ('=([{,:;!&|?+-*/%<~^'.includes(p)) return true;
+  if (p === '>') return text[k - 1] === '=';
+  if (/[\w$]/.test(p)) {
+    let s = k;
+    while (s > 0 && /[\w$]/.test(text[s - 1])) s--;
+    return STRING_KEYWORDS.has(text.slice(s, k + 1));
+  }
+  return false;
+}
+
+/** True when the `<` at `i` can open a JSX element: a quote could start there, and it is not `a / <b` or a regex. */
+function opensJsx(text, i) {
+  let k = i - 1;
+  while (k >= 0 && /\s/.test(text[k])) k--;
+  if (k >= 0 && '/<*%+-~^'.includes(text[k])) return false;
+  return opensString(text, i);
+}
+
+/**
+ * In JSX files (jsx: true) scrub also tracks where it is: code, inside an opening tag, or in an
+ * element's children. Children are page text, so a quote or backtick there is a word, never a
+ * string; `{...}` inside them is code again. Only code strings and attribute strings are blanked.
+ */
+function scrub(text, { slashComments, htmlComments, jsx = false, mdx = false }) {
   const code = text.split('');
   const bare = text.split('');
   const blank = (arr, a, b) => { for (let k = a; k < b; k++) if (arr[k] !== '\n') arr[k] = ' '; };
   const n = text.length;
+  // MDX starts as page text; other files start as code.
+  const stack = [{ t: mdx ? 'text' : 'code', braces: 0 }];
+  // Index after the tag name of an element opening at `at`, or -1 for a generic such as <T,> or <T extends U>.
+  const openTag = (at) => {
+    let j = at + 1;
+    while (j < n && /[\w.$:-]/.test(text[j])) j++;
+    if (/^\s*(,|extends\b)/.test(text.slice(j, j + 12))) return -1;
+    stack.push({ t: 'tag', name: text.slice(at + 1, j) });
+    return j;
+  };
   let i = 0;
   while (i < n) {
     const c = text[i];
     const d = text[i + 1];
-    if (c === '/' && d === '*') {
+    const top = stack[stack.length - 1];
+    // In JSX page text `//` and `/*` are characters that render, not comments.
+    const inText = jsx && top.t === 'text';
+    if (!inText && c === '/' && d === '*') {
       const e = text.indexOf('*/', i + 2); const end = e < 0 ? n : e + 2;
       blank(code, i, end); blank(bare, i, end); i = end; continue;
     }
@@ -320,7 +378,7 @@ function scrub(text, { slashComments, htmlComments }) {
       const e = text.indexOf('-->', i + 4); const end = e < 0 ? n : e + 3;
       blank(code, i, end); blank(bare, i, end); i = end; continue;
     }
-    if (slashComments && c === '/' && d === '/' && text[i - 1] !== ':' && text[i - 1] !== '(') {
+    if (!inText && slashComments && c === '/' && d === '/' && text[i - 1] !== ':' && text[i - 1] !== '(') {
       const e = text.indexOf('\n', i); const end = e < 0 ? n : e;
       // Evidence view: any // ends the line, so a comment can never fake a hero or motion section.
       blank(bare, i, end);
@@ -331,7 +389,52 @@ function scrub(text, { slashComments, htmlComments }) {
       if (k < 0 || '\n;{})]'.includes(text[k])) blank(code, i, end);
       i = end; continue;
     }
-    if (c === '"' || c === "'" || c === '`') {
+    if (jsx && top.t === 'text') {
+      if (mdx && stack.length === 1 && (i === 0 || text[i - 1] === '\n') && /^(import|export)\s/.test(text.slice(i, i + 7))) {
+        stack.push({ t: 'code', braces: 0, line: true }); i += 6; continue;
+      }
+      if (c === '{') { stack.push({ t: 'code', braces: 0, inner: true }); i++; continue; }
+      if (c === '<' && d === '/') {
+        const e = text.indexOf('>', i);
+        const name = text.slice(i + 2, e < 0 ? n : e).trim();
+        // `</main>` closes main and any element left unclosed inside it (<p>open), so the code
+        // after it is code again. A name with no open element here closes one level.
+        let k = stack.length - 1;
+        while (k > 0 && stack[k].t === 'text' && stack[k].name !== name) k--;
+        if (k > 0 && stack[k].t === 'text') stack.length = k;
+        else if (stack.length > 1) stack.pop();
+        i = e < 0 ? n : e + 1; continue;
+      }
+      if (c === '<' && /[A-Za-z>]/.test(d || '')) { const j = openTag(i); i = j < 0 ? i + 1 : j; continue; }
+      // Page text: quotes and backticks here are words, never strings.
+      i++; continue;
+    }
+    if (jsx && top.t === 'tag') {
+      if (c === '"' || c === "'") { const e = text.indexOf(c, i + 1); const end = e < 0 ? n : e; blank(bare, i + 1, end); i = end + 1; continue; }
+      if (c === '{') { stack.push({ t: 'code', braces: 0, inner: true }); i++; continue; }
+      if (c === '/' && d === '>') { stack.pop(); i += 2; continue; }
+      if (c === '>') { stack.pop(); stack.push({ t: 'text', name: top.name }); i++; continue; }
+      i++; continue;
+    }
+    if (jsx) {
+      if (top.line && c === '\n' && top.braces === 0) { stack.pop(); i++; continue; }
+      if (c === '{') { top.braces++; i++; continue; }
+      if (c === '}') { if (top.braces > 0) top.braces--; else if (top.inner) stack.pop(); i++; continue; }
+      if (c === '<' && /[A-Za-z>]/.test(d || '') && opensJsx(text, i)) { const j = openTag(i); if (j >= 0) { i = j; continue; } }
+      // A regex literal such as /(<div>)/ is code: its `<` must not open a JSX element.
+      if (c === '/' && d !== '/' && opensString(text, i)) {
+        let j = i + 1;
+        let inClass = false;
+        while (j < n && text[j] !== '\n' && (inClass || text[j] !== '/')) {
+          if (text[j] === '\\') j++;
+          else if (text[j] === '[') inClass = true;
+          else if (text[j] === ']') inClass = false;
+          j++;
+        }
+        if (j < n && text[j] === '/') { blank(bare, i + 1, j); i = j + 1; continue; }
+      }
+    }
+    if (c === '`' || ((c === '"' || c === "'") && (jsx || opensString(text, i)))) {
       let j = i + 1;
       while (j < n && text[j] !== c && (c === '`' || text[j] !== '\n')) j += text[j] === '\\' ? 2 : 1;
       if (j < n && text[j] === c) { blank(bare, i + 1, j); i = j + 1; continue; }
@@ -353,53 +456,99 @@ function tagEnd(bare, start) {
   return bare.length;
 }
 
-const EMPTY_VALUE = /^(undefined|null|void 0|false|true|0|'\s*'|"\s*"|`\s*`|\[\s*\]|\{\s*\})?$/;
-function hasHeroMedia(code, bare) {
-  const heroRe = /<PremiumHero\b/g;
-  let m;
-  while ((m = heroRe.exec(bare))) {
-    const end = tagEnd(bare, m.index);
-    const attrsBare = bare.slice(m.index, end);
-    const attrRe = /(?<![\w$-])(media|video)\s*=\s*/g; // not data-media=, heroMedia=
-    let a;
-    while ((a = attrRe.exec(attrsBare))) {
-      const vStart = m.index + a.index + a[0].length;
-      const opener = code[vStart];
-      let value;
-      if (opener === '{') value = code.slice(vStart + 1, matchBrace(bare, vStart)).trim();
-      else if (opener === '"' || opener === "'") value = code.slice(vStart + 1, code.indexOf(opener, vStart + 1)).trim();
-      else continue;
-      if (!EMPTY_VALUE.test(value)) return true;
+const EMPTY_VALUE = /^(undefined|null|false|true|0|'\s*'|"\s*"|`\s*`|\[\s*\]|\{\s*\})?$/;
+
+/**
+ * True when an attribute value renders nothing. `void <operand>` is always undefined, but only a
+ * whole void expression counts: in `void 0 ? "" : "/media/a.avif"` or `void 0 ?? x` the operator
+ * after it gives the real value.
+ */
+function isEmptyValue(value) {
+  if (EMPTY_VALUE.test(value)) return true;
+  const m = /^void\b\s*([\s\S]+)$/.exec(value);
+  return Boolean(m) && isSingleOperand(m[1]);
+}
+
+/** True when `s` is one operand: no binary, ternary or comma operator outside brackets and strings. */
+function isSingleOperand(s) {
+  let depth = 0;
+  let afterOperand = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c === '"' || c === "'" || c === '`') {
+      let j = i + 1;
+      while (j < s.length && s[j] !== c) j += s[j] === '\\' ? 2 : 1;
+      if (j >= s.length) return false;
+      i = j; afterOperand = depth === 0 || afterOperand; continue;
     }
+    if ('([{'.includes(c)) { depth++; continue; }
+    if (')]}'.includes(c)) { depth--; if (depth === 0) afterOperand = true; continue; }
+    if (depth > 0 || /\s/.test(c)) continue;
+    if (/[\w$.]/.test(c)) { afterOperand = true; continue; }
+    if ('?|&,*/%<>=^'.includes(c)) return false;
+    if ((c === '+' || c === '-') && afterOperand) return false;
   }
-  // data-pv-hero on a real element that itself contains a media element with a non-empty src/media.
-  const open = /<([A-Za-z][\w.]*)\b[^>]*?\sdata-pv-hero\b/g;
-  while ((m = open.exec(bare))) {
-    const end = tagEnd(bare, m.index);
-    if (bare[end - 2] === '/') continue; // self-closing: it cannot contain anything
-    const close = bare.indexOf(`</${m[1]}>`, end);
-    if (close < 0) continue;
-    const mediaRe = /<(img|video|picture|Image|PremiumImage|PremiumVideo)\b/g;
-    const inner = bare.slice(end, close);
-    let e;
-    while ((e = mediaRe.exec(inner))) {
-      const tStart = end + e.index;
-      const tEnd = tagEnd(bare, tStart);
-      const attrRe = /(?<![\w$-])(src|media)\s*=\s*/g;
-      const attrsBare = bare.slice(tStart, tEnd);
-      let a;
-      while ((a = attrRe.exec(attrsBare))) {
-        const vStart = tStart + a.index + a[0].length;
-        const opener = code[vStart];
-        let value;
-        if (opener === '{') value = code.slice(vStart + 1, matchBrace(bare, vStart)).trim();
-        else if (opener === '"' || opener === "'") value = code.slice(vStart + 1, code.indexOf(opener, vStart + 1)).trim();
-        else continue;
-        if (!EMPTY_VALUE.test(value)) return true;
-      }
-    }
+  return depth === 0;
+}
+// A JSX tag name ends here: <PremiumHero.Fake> or <MotionSectionX> is another component, not this one.
+const NAME_END = String.raw`(?![\w.$:-])`;
+const MOTION_TAG = new RegExp(String.raw`<MotionSection${NAME_END}`);
+
+/** True when the opening tag at `start` gives one of `names` a value that renders something. */
+function hasNonEmptyAttr(code, bare, start, names) {
+  const attrsBare = bare.slice(start, tagEnd(bare, start));
+  const attrRe = new RegExp(String.raw`(?<![\w$-])(${names})\s*=\s*`, 'g'); // not data-media=, heroMedia=
+  let a;
+  while ((a = attrRe.exec(attrsBare))) {
+    const vStart = start + a.index + a[0].length;
+    const opener = code[vStart];
+    let value;
+    if (opener === '{') value = code.slice(vStart + 1, matchBrace(bare, vStart)).trim();
+    else if (opener === '"' || opener === "'") value = code.slice(vStart + 1, code.indexOf(opener, vStart + 1)).trim();
+    else continue;
+    if (!isEmptyValue(value)) return true;
   }
   return false;
+}
+
+function hasHeroMedia(code, bare) {
+  const heroRe = new RegExp(String.raw`<PremiumHero${NAME_END}`, 'g');
+  let m;
+  while ((m = heroRe.exec(bare))) if (hasNonEmptyAttr(code, bare, m.index, 'media')) return true;
+  // A data-pv-hero element must contain its own image or video with a real src, between its open and close tags.
+  const markerRe = /<([A-Za-z][\w.]*)\b/g;
+  while ((m = markerRe.exec(bare))) {
+    const openEnd = tagEnd(bare, m.index);
+    if (!/\sdata-pv-hero\b/.test(bare.slice(m.index, openEnd)) || bare[openEnd - 2] === '/') continue;
+    const close = closingTag(bare, m[1], openEnd);
+    const mediaRe = new RegExp(String.raw`<(img|Image|picture|video|PremiumImage|PremiumVideo)${NAME_END}`, 'g');
+    mediaRe.lastIndex = openEnd;
+    let e;
+    while ((e = mediaRe.exec(bare)) && e.index < close) if (hasNonEmptyAttr(code, bare, e.index, 'src|media')) return true;
+  }
+  return false;
+}
+
+/** True when some element's opening tag carries `attr`. The same word in page text is not a marker. */
+function hasTagAttr(bare, attr) {
+  const tagRe = /<[A-Za-z][\w.]*\b/g;
+  const attrRe = new RegExp(String.raw`\s${attr}\b`);
+  let m;
+  while ((m = tagRe.exec(bare))) if (attrRe.test(bare.slice(m.index, tagEnd(bare, m.index)))) return true;
+  return false;
+}
+
+/** Index of the `</tag>` that closes a `<tag ...>` whose opening tag ends at `from`, counting nested same-name tags. */
+function closingTag(bare, tag, from) {
+  const re = new RegExp(String.raw`<(/?)${tag.replace(/\./g, '\\.')}\b`, 'g');
+  re.lastIndex = from;
+  let depth = 1;
+  let m;
+  while ((m = re.exec(bare))) {
+    if (m[1]) { if (--depth === 0) return m.index; }
+    else if (bare[tagEnd(bare, m.index) - 2] !== '/') depth++;
+  }
+  return -1;
 }
 
 /** Index of the `}` matching the `{` at `open` (in the bare view, so braces in strings are ignored). */
