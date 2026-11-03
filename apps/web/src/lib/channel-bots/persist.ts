@@ -17,9 +17,9 @@ export async function persistChannelBotRun(db: SupabaseClient, founderId: string
       business_key: 'unite-group',
       run_date: new Date().toISOString().split('T')[0],
       type: 'strategy',
-      title: `Channel bots daily run${out.allFailed ? ' — all bots failing' : ''}`,
+      title: `Channel bots daily run${out.allFailed ? ' — all bots failing' : out.anyFailed ? ' — some bots failing' : ''}`,
       body,
-      priority: out.allFailed || held.length ? 'high' : 'low',
+      priority: out.anyFailed || held.length ? 'high' : 'low',
       status: 'new',
       metadata: { source: 'channel-bots', results: out.results, heldForApproval: out.heldForApproval },
     })

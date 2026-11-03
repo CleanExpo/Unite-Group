@@ -47,6 +47,8 @@ export async function runChannelBots(ctx: ChannelBotContext, bots: ChannelBot[] 
   )
   for (const id of PLANNED_BOTS) results.push({ bot: id, status: 'not_built', actions: [] })
   const { ready, held } = gateActions(results.flatMap((r) => r.actions))
-  const allFailed = results.filter((r) => r.status !== 'not_built').every((r) => r.status !== 'ok')
-  return { results, ready, heldForApproval: held, allFailed }
+  const built = results.filter((r) => r.status !== 'not_built')
+  const allFailed = built.every((r) => r.status !== 'ok')
+  const anyFailed = built.some((r) => r.status !== 'ok')
+  return { results, ready, heldForApproval: held, allFailed, anyFailed }
 }

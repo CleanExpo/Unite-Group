@@ -13,13 +13,21 @@ function fakeDb(insertResult: unknown, readResult: unknown) {
   return { db: db as unknown as SupabaseClient, inserted }
 }
 
-const out = { results: [{ bot: 'youtube' as const, status: 'ok' as const, actions: [] }], ready: [{ bot: 'youtube' as const, kind: 'report' as const, summary: 'YouTube: 5 subs' }], heldForApproval: [], allFailed: false }
+const out = { results: [{ bot: 'youtube' as const, status: 'ok' as const, actions: [] }], ready: [{ bot: 'youtube' as const, kind: 'report' as const, summary: 'YouTube: 5 subs' }], heldForApproval: [], allFailed: false, anyFailed: false }
 
 describe('persistChannelBotRun', () => {
   it('writes a CRM insight and confirms it', async () => {
     const { db, inserted } = fakeDb({ data: { id: 'i1' }, error: null }, { data: { id: 'i1' }, error: null })
     expect(await persistChannelBotRun(db, 'f', out)).toBe('i1')
     expect(JSON.stringify(inserted[0])).toContain('YouTube: 5 subs')
+  })
+  it('marks a partly failing run high priority', async () => {
+    const { db, inserted } = fakeDb({ data: { id: 'i1' }, error: null }, { data: { id: 'i1' }, error: null })
+    await persistChannelBotRun(db, 'f', { ...out, anyFailed: true, results: [...out.results, { bot: 'search-console', status: 'error', actions: [], error: 'Search Console API 403' }] })
+    const row = inserted[0] as { priority: string; title: string; body: string }
+    expect(row.priority).toBe('high')
+    expect(row.title).toContain('some bots failing')
+    expect(row.body).toContain('Search Console API 403')
   })
   it('throws when the write is not confirmed', async () => {
     const { db } = fakeDb({ data: { id: 'i1' }, error: null }, { data: null, error: { message: 'x' } })

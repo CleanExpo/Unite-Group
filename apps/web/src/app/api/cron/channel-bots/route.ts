@@ -29,6 +29,6 @@ export async function GET(request: Request) {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'persist failed', ...out }, { status: 500 })
   }
-  // A run where every built bot failed is a failure, not a quiet success.
-  return NextResponse.json({ insightId, ...out }, { status: out.allFailed ? 502 : 200 })
+  // Any built bot failing is a failed run, so cron monitoring sees it.
+  return NextResponse.json({ insightId, ...out }, { status: out.anyFailed ? 502 : 200 })
 }
