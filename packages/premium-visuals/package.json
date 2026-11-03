@@ -1,0 +1,18 @@
+{
+  "name": "@cleanexpo/premium-visuals",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CleanExpo standard premium visual + motion package: real/generated photography, video, Blender renders, motion, transitions, carousels. Checked by check-visuals.",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": { ".": "./src/index.ts", "./fonts": "./src/fonts.ts", "./manifest": "./src/manifest.ts" },
+  "bin": {
+    "check-visuals": "bin/check-visuals.mjs",
+    "generate-media": "bin/generate-media.mjs",
+    "blender-render": "bin/blender-render.mjs"
+  },
+  "scripts": { "test": "node --test test/*.test.mjs" },
+  "peerDependencies": { "next": ">=14", "react": ">=18", "motion": ">=11", "embla-carousel-react": ">=8", "lucide-react": ">=0.300" },
+  "peerDependenciesMeta": { "motion": { "optional": false }, "embla-carousel-react": { "optional": false } },
+  "engines": { "node": ">=20" }
+}

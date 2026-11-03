@@ -1,0 +1,5 @@
+{
+  "mode": "report",
+  "allowlist": ["**/icons/**", "**/*logo*"],
+  "budgets": { "imageMaxKB": 450, "videoMaxKB": 6000, "legacyRasterMaxKB": 80 }
+}
