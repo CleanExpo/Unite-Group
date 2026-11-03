@@ -26,7 +26,7 @@ export async function persistChannelBotRun(db: SupabaseClient, founderId: string
     .select('id')
     .single()
   if (error || !data) throw new Error(`channel-bots insight write failed: ${error?.message ?? 'no row'}`)
-  const { data: check, error: readErr } = await db.from('strategy_insights').select('id').eq('id', data.id).single()
+  const { data: check, error: readErr } = await db.from('strategy_insights').select('id').eq('id', data.id).eq('founder_id', founderId).single()
   if (readErr || !check) throw new Error('channel-bots insight write not confirmed')
   return data.id as string
 }

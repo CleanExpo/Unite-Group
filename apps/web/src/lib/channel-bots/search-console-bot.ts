@@ -1,4 +1,5 @@
 import { type ChannelBot, SEARCH_CONSOLE_PROPERTY } from './types'
+import { GOOGLE_REQUEST_TIMEOUT_MS, errorMessage, tokenFailureStatus } from './google-request'
 
 /** UNI-3229 — read-only Search Console bot (Bing to follow). */
 export const searchConsoleBot: ChannelBot = {
@@ -8,20 +9,30 @@ export const searchConsoleBot: ChannelBot = {
     let token: string
     try {
       token = await ctx.getGoogleToken()
-    } catch {
-      return { bot: 'search-console', status: 'not_connected', actions: [], error: `Google not connected for ${ctx.accountEmail}` }
+    } catch (e) {
+      const status = tokenFailureStatus(e)
+      return status === 'not_connected'
+        ? { bot: 'search-console', status, actions: [], error: `Google not connected for ${ctx.accountEmail}` }
+        : { bot: 'search-console', status, actions: [], error: `Google token unavailable: ${errorMessage(e)}` }
     }
     const end = new Date()
-    const start = new Date(end.getTime() - 28 * 86400000)
+    // startDate and endDate are both inclusive: 27 days back gives exactly 28 dates.
+    const start = new Date(end.getTime() - 27 * 86400000)
     const iso = (d: Date) => d.toISOString().slice(0, 10)
-    const res = await f(
-      `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(SEARCH_CONSOLE_PROPERTY)}/searchAnalytics/query`,
-      {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ startDate: iso(start), endDate: iso(end), dimensions: [], rowLimit: 1 }),
-      },
-    )
+    let res: Response
+    try {
+      res = await f(
+        `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(SEARCH_CONSOLE_PROPERTY)}/searchAnalytics/query`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ startDate: iso(start), endDate: iso(end), dimensions: [], rowLimit: 1 }),
+          signal: AbortSignal.timeout(GOOGLE_REQUEST_TIMEOUT_MS),
+        },
+      )
+    } catch (e) {
+      return { bot: 'search-console', status: 'error', actions: [], error: `Search Console request failed: ${errorMessage(e)}` }
+    }
     if (!res.ok) return { bot: 'search-console', status: 'error', actions: [], error: `Search Console API ${res.status}` }
     const data = (await res.json()) as { rows?: unknown }
     if (data.rows !== undefined && !Array.isArray(data.rows)) {

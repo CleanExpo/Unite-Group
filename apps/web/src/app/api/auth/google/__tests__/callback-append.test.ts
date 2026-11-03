@@ -159,6 +159,21 @@ describe('Google callback — append-not-overwrite', () => {
     expect(upsertMock).toHaveBeenCalledTimes(1)
   })
 
+  it('refuses to store a brand grant missing any channel-bot scope, so it never overwrites a full grant', async () => {
+    for (const scope of [
+      'https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/youtube.readonly',
+      'https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/webmasters.readonly',
+      'https://www.googleapis.com/auth/gmail.modify',
+      undefined,
+    ]) {
+      upsertMock.mockClear()
+      grantedScope = scope
+      const res = await runCallback('contact@unite-group.in')
+      expect(res.headers.get('location')).toMatch(/error=brand_scope_incomplete$/)
+      expect(upsertMock).not.toHaveBeenCalled()
+    }
+  })
+
   it('upserts keyed on (founder_id, service, label) so a second account appends', async () => {
     const res = await runCallback('brand-new@gmail.com')
 

@@ -19,6 +19,13 @@ export function hasBrandScopes(grantedScope: string | undefined): boolean {
   return BRAND_EXTRA_SCOPES.some((s) => granted.has(s))
 }
 
+/** True only when a granted scope string contains EVERY brand channel-bot scope. */
+export function hasAllBrandScopes(grantedScope: unknown): boolean {
+  if (typeof grantedScope !== 'string') return false
+  const granted = new Set(grantedScope.split(/\s+/))
+  return BRAND_EXTRA_SCOPES.every((s) => granted.has(s))
+}
+
 export function isBrandAccount(email: string): boolean {
   return email.trim().toLowerCase() === BRAND_ACCOUNT_EMAIL
 }

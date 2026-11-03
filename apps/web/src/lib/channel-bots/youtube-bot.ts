@@ -1,4 +1,5 @@
 import { type ChannelBot, YOUTUBE_CHANNEL_ID } from './types'
+import { GOOGLE_REQUEST_TIMEOUT_MS, errorMessage, tokenFailureStatus } from './google-request'
 
 /** UNI-3224 — read-only YouTube bot for @UniteGroupNexus. */
 export const youtubeBot: ChannelBot = {
@@ -8,13 +9,21 @@ export const youtubeBot: ChannelBot = {
     let token: string
     try {
       token = await ctx.getGoogleToken()
-    } catch {
-      return { bot: 'youtube', status: 'not_connected', actions: [], error: `Google not connected for ${ctx.accountEmail}` }
+    } catch (e) {
+      const status = tokenFailureStatus(e)
+      return status === 'not_connected'
+        ? { bot: 'youtube', status, actions: [], error: `Google not connected for ${ctx.accountEmail}` }
+        : { bot: 'youtube', status, actions: [], error: `Google token unavailable: ${errorMessage(e)}` }
     }
-    const res = await f(
-      `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${YOUTUBE_CHANNEL_ID}`,
-      { headers: { Authorization: `Bearer ${token}` } },
-    )
+    let res: Response
+    try {
+      res = await f(
+        `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${YOUTUBE_CHANNEL_ID}`,
+        { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(GOOGLE_REQUEST_TIMEOUT_MS) },
+      )
+    } catch (e) {
+      return { bot: 'youtube', status: 'error', actions: [], error: `YouTube request failed: ${errorMessage(e)}` }
+    }
     if (!res.ok) return { bot: 'youtube', status: 'error', actions: [], error: `YouTube API ${res.status}` }
     const data = (await res.json()) as {
       items?: Array<{ snippet?: { title?: string }; statistics?: { subscriberCount?: string; videoCount?: string; viewCount?: string } }>

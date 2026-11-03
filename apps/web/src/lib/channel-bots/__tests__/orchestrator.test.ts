@@ -58,7 +58,7 @@ describe('channel bots', () => {
   })
 
   it('reports not_connected when Google is not linked', async () => {
-    const out = await runChannelBots({ founderId: 'f', accountEmail: 'a', getGoogleToken: async () => { throw new Error('x') } })
+    const out = await runChannelBots({ founderId: 'f', accountEmail: 'a', getGoogleToken: async () => { throw new Error('No Google credentials found for a') } })
     expect(out.results.find((r) => r.bot === 'youtube')?.status).toBe('not_connected')
     expect(out.results.filter((r) => r.status === 'not_built')).toHaveLength(5)
     expect(out.allFailed).toBe(true)

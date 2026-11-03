@@ -8,7 +8,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { encrypt } from '@/lib/vault'
 import { accountByEmail } from '@/lib/email-accounts'
 import { verifyOAuthState } from '@/lib/oauth-state'
-import { hasBrandScopes, isBrandAccount } from '@/lib/channel-bots/brand-scopes'
+import { hasAllBrandScopes, hasBrandScopes, isBrandAccount } from '@/lib/channel-bots/brand-scopes'
 
 export const dynamic = 'force-dynamic'
 
@@ -139,6 +139,13 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${APP_URL}/founder/email?error=brand_scope_wrong_account_revoke_failed`)
     }
     return NextResponse.redirect(`${APP_URL}/founder/email?error=brand_scope_wrong_account`)
+  }
+
+  // The brand account must grant every channel-bot scope. A partial grant (a box
+  // left unticked, or no scope string) is not stored, so it can never overwrite an
+  // existing full brand grant; the founder reconnects and ticks every box.
+  if (isBrandAccount(email) && !hasAllBrandScopes(tokens.scope)) {
+    return NextResponse.redirect(`${APP_URL}/founder/email?error=brand_scope_incomplete`)
   }
 
   // Encrypt the token bundle
