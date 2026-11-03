@@ -36,11 +36,13 @@ export default async function OwnerCardPage({ params, searchParams }: Props) {
   const { slug } = await params
   // enquiries stay closed on the sample: there is no owner to receive them
   if (isSampleSlug(slug)) return <CardView card={SAMPLE_CARD} sample />
-  // the review link is a separate read: a failure there hides the button but never takes the card down
-  const [card, review] = await Promise.all([getCard(slug), getCardReviewLink(slug)])
+  const card = await getCard(slug)
   if (!card) notFound()
   // Staff cards take no enquiries and no review button: card_enquiries and the review link are keyed on card_owners, which a staff card is not in.
+  // Return before the review read so a staff card never depends on it.
   if (card.staff) return <CardView card={card} />
+  // the review link is a separate read: a failure there hides the button but never takes the card down
+  const review = await getCardReviewLink(slug)
   const reviewOpen = review.state === 'ready'
   const highlightReview = reviewOpen && (await searchParams).r === '1'
   if (reviewOpen) {
