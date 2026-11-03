@@ -48,7 +48,7 @@ function signedState(email: string) {
 let currentEmail = ''
 let revokeOk = true
 let userinfoOk = true
-let grantedScope = 'https://www.googleapis.com/auth/gmail.modify'
+let grantedScope: string | undefined = 'https://www.googleapis.com/auth/gmail.modify'
 
 async function runCallback(email: string) {
   currentEmail = email
@@ -128,6 +128,13 @@ describe('Google callback — append-not-overwrite', () => {
     revokeOk = false
     const failed = await runCallback('someone-else@gmail.com')
     expect(failed.headers.get('location')).toContain('error=identity_unconfirmed_revoke_failed')
+  })
+
+  it('revokes when the token response omits scope for a non-brand account', async () => {
+    grantedScope = undefined
+    const res = await runCallback('someone-else@gmail.com')
+    expect(res.headers.get('location')).toMatch(/error=brand_scope_wrong_account$/)
+    expect(upsertMock).not.toHaveBeenCalled()
   })
 
   it('stores brand-only scopes for the brand account', async () => {

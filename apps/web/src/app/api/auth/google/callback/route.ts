@@ -89,8 +89,14 @@ export async function GET(request: Request) {
     access_token: string
     refresh_token?: string
     expires_in: number
-    scope: string
+    scope?: unknown
   }
+
+  // Brand-only scopes may be held if the brand account was requested, the grant
+  // lists them, or Google omitted/garbled the scope string (assume the worst).
+  const requestedEmail = email
+  const mayHoldBrandScopes =
+    typeof tokens.scope !== 'string' || hasBrandScopes(tokens.scope) || isBrandAccount(requestedEmail)
 
   // Identity = the account that ACTUALLY authenticated, read from Google
   // userinfo — NOT the requested `email` from state. Without this, Google
@@ -117,7 +123,7 @@ export async function GET(request: Request) {
     // identity. Discard the tokens and surface an error redirect instead.
     console.error('[Google OAuth] userinfo failed — failing closed:', e)
     // Identity unknown: a brand-only grant can't be attributed, so revoke it.
-    if (hasBrandScopes(tokens.scope) && !(await revokeGrant(tokens))) {
+    if (mayHoldBrandScopes && !(await revokeGrant(tokens))) {
       return NextResponse.redirect(`${APP_URL}/founder/email?error=identity_unconfirmed_revoke_failed`)
     }
     return NextResponse.redirect(`${APP_URL}/founder/email?error=identity_unconfirmed`)
@@ -126,7 +132,7 @@ export async function GET(request: Request) {
 
   // Brand-only channel-bot scopes must belong to the brand account. If a
   // different Google account consented to them, revoke and store nothing.
-  if (hasBrandScopes(tokens.scope) && !isBrandAccount(email)) {
+  if (mayHoldBrandScopes && !isBrandAccount(email)) {
     const revoked = await revokeGrant(tokens)
     if (!revoked) {
       // Tokens are still discarded, but tell the founder the grant may still be active.
@@ -140,7 +146,7 @@ export async function GET(request: Request) {
     access_token: tokens.access_token,
     refresh_token: tokens.refresh_token ?? null,
     expires_at: Date.now() + tokens.expires_in * 1000,
-    scope: tokens.scope,
+    scope: typeof tokens.scope === 'string' ? tokens.scope : '',
   }))
 
   // Map the REAL authenticated email → business slug + label
