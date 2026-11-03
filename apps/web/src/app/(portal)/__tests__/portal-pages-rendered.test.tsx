@@ -20,7 +20,7 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(async () => ({ auth: { mfa: { getAuthenticatorAssuranceLevel: aal } } })),
 }))
 vi.mock('@/lib/portal/changes/server', () => ({ portalContext: vi.fn() }))
-vi.mock('@/lib/portal/changes/owner-stub', () => ({ getPortalOwner: vi.fn() }))
+vi.mock('@/lib/portal/owner', () => ({ getPortalOwner: vi.fn() }))
 vi.mock('@/lib/portal/setup/service', () => ({ listConnections: vi.fn() }))
 vi.mock('@/lib/portal/changes/service', () => ({ listChangeRequests: vi.fn() }))
 vi.mock('../portal/changes/actions', () => ({ submitChangeAction: vi.fn(), approveChangeAction: vi.fn(), askForEditsAction: vi.fn() }))
@@ -29,7 +29,7 @@ vi.mock('../portal/join/actions', () => ({ requestJoinLinkAction: vi.fn(), redee
 
 import { getUser } from '@/lib/supabase/server'
 import { portalContext } from '@/lib/portal/changes/server'
-import { getPortalOwner } from '@/lib/portal/changes/owner-stub'
+import { getPortalOwner } from '@/lib/portal/owner'
 import { listConnections } from '@/lib/portal/setup/service'
 import { listChangeRequests } from '@/lib/portal/changes/service'
 import type { PortalAccess } from '@/lib/portal/changes/access'

@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { ConfirmItIsYou, NoPortalYet } from '@/components/portal/portal-notice'
 import { PortalWelcome } from '@/components/portal/portal-welcome'
 import { decidePortalAccess } from '@/lib/portal/changes/access'
-import { getPortalOwner } from '@/lib/portal/changes/owner-stub'
+import { getPortalOwner } from '@/lib/portal/owner'
 import { PORTAL_LOGIN_URL } from '@/lib/portal/paths'
 import { getUser } from '@/lib/supabase/server'
 
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
  * there is no (portal) layout guard: that would also lock signed-out invite holders out of /portal/join.
  * Signed out -> sign in, then straight back to /portal. Signed in with no portal -> a friendly "no portal yet" page.
  * Owner on the emailed link only (aal1) -> confirm the second step. Owner on aal2 -> the welcome page.
- * The owner is the same one the portal tables' row rules use (tenant claim in app_metadata, aal2).
+ * The owner is the same one the portal tables' row rules use (their portal_tenant_members row, aal2): lib/portal/owner.ts.
  */
 export default async function PortalPage() {
   const user = await getUser()

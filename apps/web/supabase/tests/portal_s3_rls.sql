@@ -1,10 +1,16 @@
 -- Two-tenant proof for 20261102180000_portal_change_requests.sql, 20261102180100_portal_change_photos_bucket.sql and
--- 20261102180200_portal_connections.sql. Run as a superuser on a THROWAWAY database after the three migrations (twice).
+-- 20261102180200_portal_connections.sql, with the owner helper from 20261103120000_portal_owner_tenant_from_membership.sql.
+-- Run as a superuser on a THROWAWAY database after every portal migration (twice): scripts/portal-owner-db-proof.sh.
 -- Never run on a live project. Any failed expectation raises, so PORTAL_S3_RLS_PROOF_PASS prints only when all held.
--- A = owner ...a1 of tenant "alpha". B = owner ...b2 of tenant "beta". B is malicious.
--- Sessions are simulated the way Supabase does it: role + request.jwt.claims (sub, aal, app_metadata).
+-- A = owner ...a1 of tenant "alpha". B = owner ...b2 of tenant "beta". B is malicious. C = ...c3, signed in, no portal.
+-- Owners are portal_tenant_members rows (the invite redeem writes them; supabase/tests/portal_owner_journey.sql).
+-- Sessions are simulated the way Supabase does it: role + request.jwt.claims (sub, aal, app_metadata). The
+-- app_metadata tenant claim is still sent, to prove it no longer decides anything.
 
-insert into auth.users (id) values ('00000000-0000-0000-0000-0000000000a1'), ('00000000-0000-0000-0000-0000000000b2');
+insert into auth.users (id) values ('00000000-0000-0000-0000-0000000000a1'), ('00000000-0000-0000-0000-0000000000b2'),
+  ('00000000-0000-0000-0000-0000000000c3');
+insert into public.portal_tenant_members (tenant_slug, user_id) values
+  ('alpha', '00000000-0000-0000-0000-0000000000a1'), ('beta', '00000000-0000-0000-0000-0000000000b2');
 
 create function pg_temp.expect_error(stmt text, state text, label text) returns void
 language plpgsql as $$
@@ -62,9 +68,14 @@ select pg_temp.claims('00000000-0000-0000-0000-0000000000a1', 'aal1', 'alpha');
 select pg_temp.expect_value('select public.portal_owner_tenant_slug()', null, 'aal1 has no tenant');
 select pg_temp.expect_raise($$select public.portal_create_change_request('home', 'Change the phone number', null)$$, 'portal_not_owner', 'aal1 submits');
 select pg_temp.expect_raise($$select public.portal_save_connection('facebook', 'https://www.facebook.com/brii', null, null)$$, 'portal_not_owner', 'aal1 saves a link');
--- an aal2 user with no tenant claim is not an owner either
+-- an aal2 user with no membership is not an owner, even with a tenant claim in her token
+select pg_temp.claims('00000000-0000-0000-0000-0000000000c3', 'aal2', 'alpha');
+select pg_temp.expect_value('select public.portal_owner_tenant_slug()', null, 'a claim without a membership has no tenant');
+select pg_temp.expect_raise($$select public.portal_create_change_request('home', 'Change the phone number', null)$$, 'portal_not_owner', 'no membership submits');
+select pg_temp.expect_raise($$select public.portal_save_connection('facebook', 'https://www.facebook.com/brii', null, null)$$, 'portal_not_owner', 'no membership saves a link');
+-- an owner's tenant does not depend on the claim at all
 select pg_temp.claims('00000000-0000-0000-0000-0000000000a1', 'aal2', null);
-select pg_temp.expect_raise($$select public.portal_create_change_request('home', 'Change the phone number', null)$$, 'portal_not_owner', 'no tenant claim submits');
+select pg_temp.expect_value('select public.portal_owner_tenant_slug()', 'alpha', 'member with no claim has her tenant');
 reset role;
 
 -- ===== A at aal2 =====
@@ -102,7 +113,12 @@ select pg_temp.expect_value('select count(*)::text from public.portal_change_req
 select pg_temp.expect_value('select count(*)::text from public.portal_change_request_events', '0', 'B sees none of A''s events');
 select pg_temp.expect_raise($$select public.portal_approve_change_request((select id from ids where name = 'r1'))$$, 'portal_not_found', 'B approves A''s request');
 select pg_temp.expect_raise($$select public.portal_ask_for_change_edits((select id from ids where name = 'r1'), 'make it red')$$, 'portal_not_found', 'B asks edits on A''s request');
--- B claiming alpha in a token she does not have is the app_metadata guarantee; aal1 A is checked again here
+-- B forging an alpha claim in her token changes nothing: her tenant is her membership
+select pg_temp.claims('00000000-0000-0000-0000-0000000000b2', 'aal2', 'alpha');
+select pg_temp.expect_value('select public.portal_owner_tenant_slug()', 'beta', 'B with a forged alpha claim is still beta');
+select pg_temp.expect_value('select count(*)::text from public.portal_change_requests', '0', 'B with a forged alpha claim sees none of A''s requests');
+select pg_temp.expect_raise($$select public.portal_approve_change_request((select id from ids where name = 'r1'))$$, 'portal_not_found', 'B with a forged alpha claim approves A''s request');
+-- aal1 A is checked again here
 select pg_temp.claims('00000000-0000-0000-0000-0000000000a1', 'aal1', 'alpha');
 select pg_temp.expect_raise($$select public.portal_approve_change_request((select id from ids where name = 'r1'))$$, 'portal_not_owner', 'aal1 A cannot approve');
 select pg_temp.expect_value('select count(*)::text from public.portal_change_requests', '0', 'aal1 A reads nothing');
@@ -141,6 +157,8 @@ select pg_temp.claims('00000000-0000-0000-0000-0000000000a1', 'aal1', 'alpha');
 select pg_temp.expect_error($$insert into storage.objects (bucket_id, name) values ('portal-change-photos', 'alpha/33333333-3333-3333-3333-333333333333.jpg')$$, '42501', 'aal1 A uploads');
 select pg_temp.claims('00000000-0000-0000-0000-0000000000b2', 'aal2', 'beta');
 select pg_temp.expect_value($$select count(*)::text from storage.objects where bucket_id = 'portal-change-photos'$$, '0', 'B sees none of A''s photos');
+select pg_temp.claims('00000000-0000-0000-0000-0000000000b2', 'aal2', 'alpha');
+select pg_temp.expect_error($$insert into storage.objects (bucket_id, name) values ('portal-change-photos', 'alpha/44444444-4444-4444-4444-444444444444.jpg')$$, '42501', 'B with a forged alpha claim uploads into A''s folder');
 reset role;
 
 -- ===== connections =====

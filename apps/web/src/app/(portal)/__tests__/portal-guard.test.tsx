@@ -12,11 +12,11 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/lib/supabase/client', () => ({ createClient: vi.fn() }))
 vi.mock('@/lib/error-reporting', () => ({ captureClientError: vi.fn() }))
 vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn(), createClient: vi.fn() }))
-vi.mock('@/lib/portal/changes/owner-stub', () => ({ getPortalOwner: vi.fn() }))
+vi.mock('@/lib/portal/owner', () => ({ getPortalOwner: vi.fn() }))
 
 import { redirect } from 'next/navigation'
 import { getUser } from '@/lib/supabase/server'
-import { getPortalOwner } from '@/lib/portal/changes/owner-stub'
+import { getPortalOwner } from '@/lib/portal/owner'
 import type { PortalOwner } from '@/lib/portal/changes/types'
 import { NO_PASSWORD_LINE, PORTAL_STEPS } from '@/components/portal/portal-copy'
 import { NO_PASSWORD_LINE as SETUP_NO_PASSWORD_LINE } from '@/lib/portal/setup/items'

@@ -36,9 +36,12 @@ describe('portal proxy guard', () => {
     expect(isPublicPath('/portal')).toBe(false)
   })
 
-  it('lets a signed-in business owner (not on the founder allow-list) reach /portal', async () => {
+  // Each of these pages then checks the owner itself (lib/portal/owner.ts: her portal_tenant_members row, aal2).
+  it('lets a signed-in business owner (not on the founder allow-list) reach the home, changes, setup and verify pages', async () => {
     as(owner)
-    expect(served(await get('/portal'))).toBe(true)
+    for (const path of ['/portal', '/portal/changes', '/portal/setup', '/portal/verify']) {
+      expect(served(await get(path)), path).toBe(true)
+    }
   })
 
   it('still lets the founder reach /portal', async () => {
