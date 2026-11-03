@@ -8,8 +8,25 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { encrypt } from '@/lib/vault'
 import { accountByEmail } from '@/lib/email-accounts'
 import { verifyOAuthState } from '@/lib/oauth-state'
+import { hasAllBrandScopes, hasBrandScopes, isBrandAccount } from '@/lib/channel-bots/brand-scopes'
 
 export const dynamic = 'force-dynamic'
+
+/** Best-effort Google grant revocation; true only when Google confirms it. */
+async function revokeGrant(tokens: { access_token: string; refresh_token?: string }): Promise<boolean> {
+  try {
+    const res = await fetch('https://oauth2.googleapis.com/revoke', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ token: tokens.refresh_token ?? tokens.access_token }),
+    })
+    if (!res.ok) console.error('[Google OAuth] grant revoke failed:', res.status)
+    return res.ok
+  } catch (e) {
+    console.error('[Google OAuth] grant revoke failed:', e)
+    return false
+  }
+}
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
@@ -72,8 +89,14 @@ export async function GET(request: Request) {
     access_token: string
     refresh_token?: string
     expires_in: number
-    scope: string
+    scope?: unknown
   }
+
+  // Brand-only scopes may be held if the brand account was requested, the grant
+  // lists them, or Google omitted/garbled the scope string (assume the worst).
+  const requestedEmail = email
+  const mayHoldBrandScopes =
+    typeof tokens.scope !== 'string' || hasBrandScopes(tokens.scope) || isBrandAccount(requestedEmail)
 
   // Identity = the account that ACTUALLY authenticated, read from Google
   // userinfo — NOT the requested `email` from state. Without this, Google
@@ -99,16 +122,38 @@ export async function GET(request: Request) {
     // Google riding a different session store credentials under the wrong
     // identity. Discard the tokens and surface an error redirect instead.
     console.error('[Google OAuth] userinfo failed — failing closed:', e)
+    // Identity unknown: a brand-only grant can't be attributed, so revoke it.
+    if (mayHoldBrandScopes && !(await revokeGrant(tokens))) {
+      return NextResponse.redirect(`${APP_URL}/founder/email?error=identity_unconfirmed_revoke_failed`)
+    }
     return NextResponse.redirect(`${APP_URL}/founder/email?error=identity_unconfirmed`)
   }
   email = authenticatedEmail
+
+  // Brand-only channel-bot scopes must belong to the brand account. If a
+  // different Google account consented to them, revoke and store nothing.
+  if (mayHoldBrandScopes && !isBrandAccount(email)) {
+    const revoked = await revokeGrant(tokens)
+    if (!revoked) {
+      // Tokens are still discarded, but tell the founder the grant may still be active.
+      return NextResponse.redirect(`${APP_URL}/founder/email?error=brand_scope_wrong_account_revoke_failed`)
+    }
+    return NextResponse.redirect(`${APP_URL}/founder/email?error=brand_scope_wrong_account`)
+  }
+
+  // The brand account must grant every channel-bot scope. A partial grant (a box
+  // left unticked, or no scope string) is not stored, so it can never overwrite an
+  // existing full brand grant; the founder reconnects and ticks every box.
+  if (isBrandAccount(email) && !hasAllBrandScopes(tokens.scope)) {
+    return NextResponse.redirect(`${APP_URL}/founder/email?error=brand_scope_incomplete`)
+  }
 
   // Encrypt the token bundle
   const payload = encrypt(JSON.stringify({
     access_token: tokens.access_token,
     refresh_token: tokens.refresh_token ?? null,
     expires_at: Date.now() + tokens.expires_in * 1000,
-    scope: tokens.scope,
+    scope: typeof tokens.scope === 'string' ? tokens.scope : '',
   }))
 
   // Map the REAL authenticated email → business slug + label

@@ -7,6 +7,7 @@ import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { signOAuthState } from '@/lib/oauth-state'
 import { isGoogleConfigured } from '@/lib/integrations/google-oauth'
+import { withBrandScopes } from '@/lib/channel-bots/brand-scopes'
 
 const SCOPES = [
   'https://www.googleapis.com/auth/gmail.readonly',
@@ -47,7 +48,7 @@ export async function GET(request: Request) {
     client_id: process.env.GOOGLE_CLIENT_ID!.trim(),
     redirect_uri: `${appUrl}/api/auth/google/callback`,
     response_type: 'code',
-    scope: SCOPES,
+    scope: withBrandScopes(SCOPES, email),
     access_type: 'offline',
     // `select_account` shows Google's account chooser so a DIFFERENT Google
     // account can be added — without it Google silently rides the currently

@@ -120,7 +120,7 @@ export async function getAccessTokenForEmail(founderId: string, email: string): 
   const { decrypt } = await import('@/lib/vault')
   const supabase = createServiceClient()
 
-  const { data: row } = await supabase
+  const { data: row, error } = await supabase
     .from('credentials_vault')
     .select('encrypted_value, iv, salt')
     .eq('founder_id', founderId)
@@ -128,6 +128,9 @@ export async function getAccessTokenForEmail(founderId: string, email: string): 
     .eq('notes', email)
     .single()
 
+  // PGRST116 is .single()'s "no (or several) rows" result. Any other error is a failed
+  // read, which must not look like a disconnected account (UNI-3223).
+  if (error && error.code !== 'PGRST116') throw new Error(`Google credentials read failed: ${error.message}`)
   if (!row) throw new Error(`No Google credentials found for ${email}`)
 
   const tokens: StoredTokens = JSON.parse(
