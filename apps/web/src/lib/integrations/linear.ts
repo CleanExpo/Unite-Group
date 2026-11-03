@@ -97,6 +97,7 @@ export const BUSINESS_TO_TEAM: Record<string, string> = {
   ccw:      'UNI',
   ato:      'UNI',
   itr:      'UNI',
+  'unite-group': 'UNI',
 }
 
 // Actual Linear project names per business key, for businesses that SHARE a
