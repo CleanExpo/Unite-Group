@@ -242,7 +242,7 @@ function main() {
     const r = rel(f);
     const { code, bare } = views.get(f);
     if (!hasHeroMedia(code, bare)) add('hero-missing-media', r, 0, 'marketing page needs a rendered <PremiumHero media={...} video={...}> with a real/generated photo or video');
-    if (!/<MotionSection\b|\bdata-pv-motion\b/.test(bare)) add('no-motion', r, 0, 'marketing page needs at least one rendered <MotionSection> (hero motion alone is not enough)');
+    if (!/<MotionSection\b/.test(bare) && !hasTagAttr(bare, 'data-pv-motion')) add('no-motion', r, 0, 'marketing page needs at least one rendered <MotionSection> (hero motion alone is not enough)');
   }
   if (marketing.length < cfg.minMarketingPages)
     add('marketing-coverage', '.', 0, `${marketing.length} marketing page(s) found, expected at least ${cfg.minMarketingPages}; check marketingPages/nonMarketing patterns (set minMarketingPages: 0 only for a repo with no public pages)`);
@@ -387,6 +387,15 @@ function hasHeroMedia(code, bare) {
     let e;
     while ((e = mediaRe.exec(bare)) && e.index < close) if (hasNonEmptyAttr(code, bare, e.index, 'src|media')) return true;
   }
+  return false;
+}
+
+/** True when some element's opening tag carries `attr`. The same word in page text is not a marker. */
+function hasTagAttr(bare, attr) {
+  const tagRe = /<[A-Za-z][\w.]*\b/g;
+  const attrRe = new RegExp(String.raw`\s${attr}\b`);
+  let m;
+  while ((m = tagRe.exec(bare))) if (attrRe.test(bare.slice(m.index, tagEnd(bare, m.index)))) return true;
   return false;
 }
 

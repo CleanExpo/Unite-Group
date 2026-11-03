@@ -76,6 +76,16 @@ test('a PremiumHero with media={void(0)} fails', () => {
     assert.equal(code, 1, v); assert.ok(out.byRule['hero-missing-media'], v);
   }
 });
+test('the words data-pv-motion in page text are not a motion section', () => {
+  const files = {
+    'media.manifest.json': JSON.stringify({ version: 1, entries: [entry('/media/hero/a.avif')] }),
+    'public/media/hero/a.avif': 'x',
+  };
+  const bad = run({ ...files, 'app/page.tsx': `<PremiumHero media={m('/media/hero/a.avif')} title="t"/><p>data-pv-motion</p>` });
+  assert.equal(bad.code, 1); assert.ok(bad.out.byRule['no-motion']);
+  const good = run({ ...files, 'app/page.tsx': `<PremiumHero media={m('/media/hero/a.avif')} title="t"/><section data-pv-motion>x</section>` });
+  assert.equal(good.code, 0, JSON.stringify(good.out.violations));
+});
 test('a data-pv-hero around an image with an empty src fails', () => {
   const { code, out } = run({ 'app/page.tsx': `<header data-pv-hero><img src={""} alt="x"/></header><MotionSection>x</MotionSection>` });
   assert.equal(code, 1); assert.ok(out.byRule['hero-missing-media']);
