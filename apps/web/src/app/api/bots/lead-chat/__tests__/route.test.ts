@@ -10,7 +10,7 @@ vi.mock('@/lib/site-agent/quota', async (importOriginal) => {
 
 import { getAIClient } from '@/lib/ai/client'
 import { recordAiUsage } from '@/lib/ai/usage-recorder'
-import { BOT_LIMITS, SAFE_DEFLECTION } from '@/lib/bots/guard'
+import { BOT_LIMITS, REPLY_TEMPLATES, allPossibleReplies } from '@/lib/bots/guard'
 import { resetRateLimit } from '@/lib/bots/rate-limit'
 import { claimPublicAgentQuota } from '@/lib/site-agent/quota'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -19,6 +19,8 @@ import { isPublicPath } from '@/proxy'
 import { POST } from '../route'
 
 const create = vi.fn()
+
+const json = (o: Record<string, unknown>) => JSON.stringify({ name: '', email: '', phone: '', need: '', phoneDeclined: false, askedAbout: 'none', ...o })
 
 function modelSays(text: string) {
   create.mockResolvedValueOnce({ id: 'msg_1', content: [{ type: 'text', text }], usage: { input_tokens: 50, output_tokens: 20 } })
@@ -55,50 +57,71 @@ describe('POST /api/bots/lead-chat', () => {
     expect(isPublicPath('/bots/x')).toBe(false)
   })
 
-  it('answers with the model reply, server-side, with a hard max_tokens and the guarded system prompt', async () => {
-    modelSays('Thanks. What is your name?')
+  it('reads the chat server-side with a hard max_tokens and the guarded prompt, and replies with a fixed sentence', async () => {
+    modelSays(json({ need: 'miss enquiries' }))
     const res = await POST(req(hello))
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ reply: 'Thanks. What is your name?', capture: null, turnsLeft: BOT_LIMITS.maxMessages / 2 - 1 })
+    expect(await res.json()).toEqual({ reply: REPLY_TEMPLATES.askName, capture: null, turnsLeft: BOT_LIMITS.maxMessages / 2 - 1 })
     const call = create.mock.calls[0][0]
     expect(call.max_tokens).toBe(BOT_LIMITS.maxOutputTokens)
     expect(call.system).toMatch(/CONFIDENTIAL/)
-    // The page's opening bot greeting is dropped so the first turn is the visitor's.
-    expect(call.messages).toEqual([{ role: 'user', content: 'I run a cafe and miss enquiries' }])
+    // The model reads a transcript of the visitor's turns; the page's opening greeting is dropped.
+    expect(call.messages).toHaveLength(1)
+    expect(call.messages[0].content).toContain('Visitor: I run a cafe and miss enquiries')
     expect(vi.mocked(claimPublicAgentQuota).mock.calls[0].slice(1)).toEqual(['founder-1', 'bots:lead-follow-up', 'chat'])
     expect(recordAiUsage).toHaveBeenCalledWith(expect.objectContaining({ taskType: 'bots-lead-follow-up', inputTokens: 50, outputTokens: 20 }))
   })
 
-  it('replaces a reply that leaks a price', async () => {
-    modelSays('The lead bot is $99 a month plus GST.')
-    const res = await POST(req(hello))
-    expect((await res.json()).reply).toBe(SAFE_DEFLECTION)
+  // Codex review rounds 1 and 2: model prose that a filter missed reached the visitor. The bot now only ever
+  // sends a fixed sentence, whatever the model returns, and captures only words the visitor typed.
+  it.each([
+    'We submit your business to online directories.',
+    'We can build it for 99 per bot.',
+    'The amount is 99.',
+    'Restore Assist handles that.',
+    'The founder also runs a restoration company.',
+    'We add a sitemap and metadata so Google discovers your business in its AI results.',
+    'The lead bot is $99 a month plus GST.',
+  ])('never lets model words reach the visitor: %s', async (leak) => {
+    for (const output of [
+      leak,
+      json({ need: leak, name: leak, email: 'sam@example.com', phone: '0400000000' }),
+      `${leak}\n${json({ need: leak })}`,
+    ]) {
+      modelSays(output)
+      const body = await (await POST(req(hello))).json()
+      expect(allPossibleReplies()).toContain(body.reply)
+      expect(JSON.stringify(body)).not.toContain(leak)
+    }
   })
 
-  it('replaces a reply that describes the confidential search method', async () => {
-    modelSays('We add schema and structured data so you rank in AI search.')
-    const res = await POST(req(hello))
-    expect((await res.json()).reply).toBe(SAFE_DEFLECTION)
+  it('returns the capture once the visitor has typed every detail', async () => {
+    const chat = {
+      messages: [
+        { role: 'user', content: 'I run a cafe and miss enquiries' },
+        { role: 'assistant', content: REPLY_TEMPLATES.askName },
+        { role: 'user', content: 'Sam Lee' },
+        { role: 'assistant', content: REPLY_TEMPLATES.askEmail },
+        { role: 'user', content: 'sam@example.com' },
+        { role: 'assistant', content: REPLY_TEMPLATES.askPhone },
+        { role: 'user', content: '0400 000 000' },
+      ],
+    }
+    modelSays(json({ name: 'Sam Lee', email: 'sam@example.com', phone: '0400 000 000', need: 'miss enquiries' }))
+    const body = await (await POST(req(chat))).json()
+    expect(body.reply).toBe(REPLY_TEMPLATES.captured)
+    expect(body.capture).toEqual({ name: 'Sam Lee', email: 'sam@example.com', phone: '0400 000 000', need: 'miss enquiries' })
   })
 
-  it('returns the captured lead, and never shows the raw block', async () => {
-    modelSays('Got it, Sam.\n<lead>{"name":"Sam Lee","email":"sam@example.com","phone":"0400000000","need":"Reply to cafe enquiries"}</lead>')
+  it('answers with the fixed deflection when the visitor asks about prices', async () => {
+    modelSays(json({ askedAbout: 'price' }))
     const body = await (await POST(req(hello))).json()
-    expect(body.reply).toBe('Got it, Sam.')
-    expect(body.capture).toEqual({ name: 'Sam Lee', email: 'sam@example.com', phone: '0400000000', need: 'Reply to cafe enquiries' })
-    expect(JSON.stringify(body)).not.toContain('<lead>')
-  })
-
-  it('keeps the lead but replaces the words when the reply around it trips the guard', async () => {
-    modelSays('Our pricing is great.\n<lead>{"name":"Sam","email":"sam@example.com","phone":"","need":"bookings"}</lead>')
-    const body = await (await POST(req(hello))).json()
-    expect(body.reply).not.toMatch(/pricing/i)
-    expect(body.capture).toMatchObject({ email: 'sam@example.com' })
+    expect(body.reply).toBe(`${REPLY_TEMPLATES.deflect} ${REPLY_TEMPLATES.askNeed}`)
   })
 
   it(`rate-limits one IP after ${BOT_LIMITS.ratePerWindow} messages a minute, before any quota or model call`, async () => {
     for (let i = 0; i < BOT_LIMITS.ratePerWindow; i += 1) {
-      modelSays('ok')
+      modelSays(json({}))
       expect((await POST(req(hello, '9.9.9.9'))).status).toBe(200)
     }
     vi.clearAllMocks()
@@ -107,7 +130,7 @@ describe('POST /api/bots/lead-chat', () => {
     expect(res.headers.get('Retry-After')).toBe('60')
     expect(claimPublicAgentQuota).not.toHaveBeenCalled()
     expect(create).not.toHaveBeenCalled()
-    modelSays('ok')
+    modelSays(json({}))
     expect((await POST(req(hello, '9.9.9.10'))).status).toBe(200)
   })
 
@@ -165,13 +188,6 @@ describe('POST /api/bots/lead-chat', () => {
     expect(JSON.stringify(body)).not.toMatch(/SUPABASE/)
     expect(claimPublicAgentQuota).not.toHaveBeenCalled()
     expect(create).not.toHaveBeenCalled()
-  })
-
-  it('never returns a model-written need that breaks a content rule', async () => {
-    modelSays('Thanks.\n<lead>{"name":"Sam","email":"sam@example.com","phone":"","need":"We use schema markup to rank your business"}</lead>')
-    const body = await (await POST(req(hello))).json()
-    expect(body.capture).toEqual({ name: 'Sam', email: 'sam@example.com', phone: '', need: '' })
-    expect(JSON.stringify(body)).not.toMatch(/schema|rank/i)
   })
 
   it('hides provider errors from the caller', async () => {

@@ -1,65 +1,63 @@
 import { describe, expect, it } from 'vitest'
 
-import { BOT_LIMITS, SAFE_DEFLECTION, buildLeadBotSystemPrompt, extractLead, guardReply } from '../guard'
+import {
+  BOT_LIMITS,
+  REPLY_TEMPLATES,
+  allPossibleReplies,
+  buildLeadBotSystemPrompt,
+  guardReply,
+  nextReply,
+  readModelOutput,
+  visitorDetails,
+  type ModelRead,
+} from '../guard'
 import { isRateLimited, resetRateLimit } from '../rate-limit'
 
-describe('guardReply', () => {
-  it('lets a clean reply through unchanged', () => {
-    const clean = 'Thanks Sam. What is the best email for the team to reach you on?'
-    expect(guardReply(clean)).toEqual({ text: clean, blocked: false })
-  })
+const read = (over: Partial<ModelRead> = {}): ModelRead => ({
+  name: '',
+  email: '',
+  phone: '',
+  need: '',
+  phoneDeclined: false,
+  askedAbout: 'none',
+  ...over,
+})
 
+describe('the fixed reply set', () => {
+  it('has no placeholders, and every possible reply passes every content rule', () => {
+    const replies = allPossibleReplies()
+    expect(replies.length).toBe((Object.keys(REPLY_TEMPLATES).length - 1) * 2)
+    for (const r of replies) {
+      expect(r).not.toMatch(/[{}<>]/)
+      expect(guardReply(r)).toEqual({ blocked: false })
+    }
+  })
+})
+
+describe('guardReply (second layer, used on the templates and the visitor-typed need)', () => {
   it.each([
     'We add schema markup to your site so Google understands it.',
-    'Structured data is how we do it.',
-    'Our JSON-LD setup gets you cited.',
-    'We use SEO and GEO tactics.',
-    'Your business gets found in AI search answers.',
-    'We improve your search visibility over time.',
-    'This lifts your rankings in a few weeks.',
-    'We publish an llms.txt file for you.',
-    // Codex review, c4cd9a75: paraphrases the first guard let through.
     'We add a sitemap and metadata so Google discovers your business in its AI results.',
-    'Your site will show up on Google Maps and in ChatGPT answers.',
-    'We tune your keywords and backlinks so customers find you first.',
     'People searching for a cafe near them will see you at the top.',
-    'Perplexity and Gemini will recommend you.',
-    'We make sure you are listed in the local directories that matter.',
-  ])('replaces a reply that describes the confidential method: %s', (reply) => {
-    expect(guardReply(reply)).toEqual({ text: SAFE_DEFLECTION, blocked: true, rule: 'confidential' })
+    // Codex review, 3e71470f.
+    'We submit your business to online directories.',
+  ])('flags the confidential method: %s', (text) => {
+    expect(guardReply(text)).toEqual({ blocked: true, rule: 'confidential' })
   })
 
-  it.each([
-    'The lead bot is $99 a month.',
-    'It is A$1,500 to set up.',
-    'That comes to 200 dollars.',
-    'Prices start low, plus GST.',
-    'Our pricing is simple.',
-    'It costs less than a receptionist.',
-    // Codex review, c4cd9a75: non-dollar amounts.
-    'The bot is 99 euros.',
-    'Setup is about 2k.',
-    'It is \u00a3150 to start.',
-    'You pay monthly and can stop any time.',
-    'We can quote that for you now: 300 AUD.',
-  ])('replaces a reply that gives a price: %s', (reply) => {
-    expect(guardReply(reply)).toEqual({ text: SAFE_DEFLECTION, blocked: true, rule: 'price' })
-  })
-
-  it.each(['CARSI can help with that.', 'Try Disaster Recovery.', 'NRPG members get this.', 'RestoreAssist does that.'])(
-    'replaces a reply that names one of the founder\'s other businesses: %s',
-    (reply) => {
-      expect(guardReply(reply)).toMatchObject({ blocked: true, rule: 'other-business' })
+  it.each(['The lead bot is $99 a month.', 'The bot is 99 euros.', 'We can build it for 99 per bot.', 'The amount is 99.', 'Prices start low, plus GST.'])(
+    'flags a price: %s',
+    (text) => {
+      expect(guardReply(text)).toMatchObject({ blocked: true, rule: 'price' })
     },
   )
 
-  it('does not let a restaurant or cafe enquiry trip the guard', () => {
-    expect(guardReply('Happy to help your restaurant answer more enquiries.').blocked).toBe(false)
-  })
-
-  it('the deflection itself is clean', () => {
-    expect(guardReply(SAFE_DEFLECTION).blocked).toBe(false)
-  })
+  it.each(['CARSI can help with that.', 'Restore Assist handles that.', 'The founder also runs a restoration company.', 'N R P G members get this.'])(
+    'flags the founder\'s other businesses: %s',
+    (text) => {
+      expect(guardReply(text)).toMatchObject({ blocked: true })
+    },
+  )
 })
 
 describe('buildLeadBotSystemPrompt', () => {
@@ -71,55 +69,85 @@ describe('buildLeadBotSystemPrompt', () => {
     expect(prompt).toMatch(/never mention restoration, disaster recovery or training businesses/)
   })
 
+  it('tells the model it does not write replies, only JSON of the visitor\'s own words', () => {
+    expect(prompt).toMatch(/You do not write the bot's replies/)
+    expect(prompt).toMatch(/copy the visitor's own words exactly/)
+    for (const k of ['"name"', '"email"', '"phone"', '"need"', '"phoneDeclined"', '"askedAbout"']) expect(prompt).toContain(k)
+  })
+
   it('contains no amount of money, so it cannot leak one', () => {
     expect(prompt).not.toMatch(/\$\s?\d|\d\s?(?:dollars|aud)\b/i)
   })
+})
 
-  it('asks for the four lead fields', () => {
-    for (const k of ['"name"', '"email"', '"phone"', '"need"']) expect(prompt).toContain(k)
+describe('readModelOutput', () => {
+  it('reads the JSON object, ignoring text around it, and coerces unknown values', () => {
+    expect(readModelOutput('Sure: {"name":"Sam","email":"sam@example.com","phone":"","need":"x","phoneDeclined":"yes","askedAbout":"hack"} ok')).toEqual(
+      read({ name: 'Sam', email: 'sam@example.com', need: 'x' }),
+    )
+  })
+
+  it('returns null for prose or malformed JSON', () => {
+    expect(readModelOutput('Thanks Sam, it is $99 a month.')).toBeNull()
+    expect(readModelOutput('{not json}')).toBeNull()
+    expect(readModelOutput('[1,2]')).toBeNull()
   })
 })
 
-describe('extractLead', () => {
-  it('returns the lead and strips the block from the visible text', () => {
-    const reply = 'Thanks Sam, I have it all.\n<lead>{"name":"Sam Lee","email":"Sam@Example.com","phone":"0400 000 000","need":"More bookings"}</lead>'
-    expect(extractLead(reply)).toEqual({
-      text: 'Thanks Sam, I have it all.',
-      lead: { name: 'Sam Lee', email: 'sam@example.com', phone: '0400 000 000', need: 'More bookings' },
-    })
-  })
+describe('visitorDetails: only the visitor\'s own words get through', () => {
+  const said = ['I run a cafe and want more bookings', "I'm Zoë O'Brien-Ngata", 'zoe.ob+cafe@example.com.au', '+61 (0)400 123-456']
 
-  it('drops a block with an invalid email, never showing it', () => {
-    expect(extractLead('Ok <lead>{"name":"Sam","email":"nope","phone":"","need":"x"}</lead>')).toEqual({ text: 'Ok', lead: null })
-  })
-
-  // Codex review, c4cd9a75: every model-written field is shown back to the visitor.
-  it('blanks a need that breaks a content rule, so the visitor types it in their own words', () => {
-    const reply = 'Thanks.\n<lead>{"name":"Sam","email":"sam@example.com","phone":"","need":"We use schema markup to rank your business"}</lead>'
-    expect(extractLead(reply)).toEqual({ text: 'Thanks.', lead: { name: 'Sam', email: 'sam@example.com', phone: '', need: '' } })
+  it('keeps details that are verbatim in what the visitor typed', () => {
+    expect(
+      visitorDetails(read({ name: "Zoë O'Brien-Ngata", email: 'Zoe.OB+cafe@example.com.au', phone: '+61 (0)400 123-456', need: 'want more bookings' }), said),
+    ).toEqual({ name: "Zoë O'Brien-Ngata", email: 'zoe.ob+cafe@example.com.au', phone: '+61 (0)400 123-456', need: 'want more bookings' })
   })
 
   it.each([
-    ['name', '{"name":"Sam. We rank you on Google","email":"sam@example.com","phone":"","need":"x"}'],
-    ['name', '{"name":"<img src=x onerror=alert(1)>","email":"sam@example.com","phone":"","need":"x"}'],
-    ['email', '{"name":"Sam","email":"prices start at $99@example.com","phone":"","need":"x"}'],
-    ['phone', '{"name":"Sam","email":"sam@example.com","phone":"call us, it is $99 a month","need":"x"}'],
-  ])('drops the whole lead when the %s is not a plain value', (_field, block) => {
-    expect(extractLead(`Ok <lead>${block}</lead>`).lead).toBeNull()
+    ['need', read({ need: 'We submit your business to online directories.' })],
+    ['need', read({ need: 'Our pricing is great' })],
+    ['name', read({ name: 'Restore Assist' })],
+    ['email', read({ email: 'prices@example.com' })],
+    ['phone', read({ phone: '0499 999 999' })],
+  ])('drops a model-written %s the visitor never typed', (field, r) => {
+    expect(visitorDetails(r, said)[field as 'need']).toBe('')
   })
 
-  it('accepts real-world names and phone numbers', () => {
-    const lead = extractLead('Ok <lead>{"name":"Zoë O\'Brien-Ngata","email":"zoe.ob+cafe@example.com.au","phone":"+61 (0)400 123-456","need":"More bookings"}</lead>').lead
-    expect(lead).toEqual({ name: "Zoë O'Brien-Ngata", email: 'zoe.ob+cafe@example.com.au', phone: '+61 (0)400 123-456', need: 'More bookings' })
+  it('blanks a visitor-typed need that touches a guarded topic, and refuses prose as a name', () => {
+    const typed = ['How much is it a month? I need help with my search ranking', 'Sam. We rank you on Google']
+    expect(visitorDetails(read({ need: 'I need help with my search ranking', name: 'Sam. We rank you on Google' }), typed)).toEqual({
+      name: '',
+      email: '',
+      phone: '',
+      need: '',
+    })
+  })
+})
+
+describe('nextReply', () => {
+  const lead = { name: 'Sam', email: 'sam@example.com', phone: '0400000000', need: 'more bookings' }
+
+  it('asks for what is missing, in order, and only returns the capture once complete', () => {
+    expect(nextReply(read(), { name: '', email: '', phone: '', need: '' })).toEqual({ reply: REPLY_TEMPLATES.askNeed, capture: null })
+    expect(nextReply(read({ need: 'x' }), { ...lead, name: '', email: '', phone: '' })).toEqual({ reply: REPLY_TEMPLATES.askName, capture: null })
+    expect(nextReply(read({ need: 'x' }), { ...lead, email: '', phone: '' }).reply).toBe(REPLY_TEMPLATES.askEmail)
+    expect(nextReply(read({ need: 'x' }), { ...lead, phone: '' }).reply).toBe(REPLY_TEMPLATES.askPhone)
+    expect(nextReply(read({ need: 'x', phoneDeclined: true }), { ...lead, phone: '' })).toEqual({
+      reply: REPLY_TEMPLATES.captured,
+      capture: { ...lead, phone: '' },
+    })
+    expect(nextReply(read({ need: 'x' }), lead)).toEqual({ reply: REPLY_TEMPLATES.captured, capture: lead })
   })
 
-  it('drops a malformed block', () => {
-    expect(extractLead('Ok <lead>{not json</lead>')).toEqual({ text: 'Ok', lead: null })
-    expect(extractLead('Ok <lead>{"name":"a"')).toEqual({ text: 'Ok', lead: null })
+  it('moves on when a need was stated but could not be shown back', () => {
+    expect(nextReply(read({ need: 'paraphrased by the model' }), { name: '', email: '', phone: '', need: '' }).reply).toBe(REPLY_TEMPLATES.askName)
   })
 
-  it('returns plain text when there is no block', () => {
-    expect(extractLead('  What is your name?  ')).toEqual({ text: 'What is your name?', lead: null })
+  it('prefixes the fixed deflection when the visitor asks about prices or methods, and retries on bad output', () => {
+    expect(nextReply(read({ askedAbout: 'price' }), { name: '', email: '', phone: '', need: '' }).reply).toBe(
+      `${REPLY_TEMPLATES.deflect} ${REPLY_TEMPLATES.askNeed}`,
+    )
+    expect(nextReply(null, lead)).toEqual({ reply: REPLY_TEMPLATES.retry, capture: null })
   })
 })
 

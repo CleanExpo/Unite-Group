@@ -1,7 +1,7 @@
 /**
  * POST /api/bots/lead-chat — the lead follow-up demo bot on /bots (UNI-3217, epic UNI-3214)
  *
- * PUBLIC ROUTE (listed in PUBLIC_PATHS, src/proxy.ts). A visitor on /bots has no account and no site key, so
+ * PUBLIC ROUTE (exact path in EXACT_PUBLIC_FILES, src/proxy.ts). A visitor on /bots has no account and no site key, so
  * this is a documented exception to "auth on every route", like /api/leads. What stands in for auth:
  * - a per-IP burst limit in this route (src/lib/bots/rate-limit.ts) on top of the middleware's 30/min per IP,
  * - a cap on messages per chat and characters per message, and a hard max_tokens per reply,
@@ -12,7 +12,9 @@
  * The route only runs the model turn. It never writes the lead: when the bot has the visitor's details it
  * returns them as `capture`, and the page shows them back with a consent box before posting to the existing
  * /api/leads. The model key is the existing server-only ANTHROPIC_API_KEY (via getAIClient).
- * Every reply passes guardReply (src/lib/bots/guard.ts) before it leaves the server.
+ * No model prose reaches the visitor (src/lib/bots/guard.ts): the model only returns JSON about what the visitor
+ * typed, the reply is always one of the fixed REPLY_TEMPLATES, and every captured detail must be the visitor's own
+ * words, found verbatim in their messages.
  */
 
 import { NextResponse } from 'next/server'
@@ -21,7 +23,7 @@ import type Anthropic from '@anthropic-ai/sdk'
 import { getAIClient } from '@/lib/ai/client'
 import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 import { recordAiUsage } from '@/lib/ai/usage-recorder'
-import { BOT_LIMITS, buildLeadBotSystemPrompt, extractLead, guardReply } from '@/lib/bots/guard'
+import { BOT_LIMITS, buildLeadBotSystemPrompt, nextReply, readModelOutput, visitorDetails } from '@/lib/bots/guard'
 import { clientIp, isRateLimited } from '@/lib/bots/rate-limit'
 import { claimPublicAgentQuota, quotaRefusalResponse } from '@/lib/site-agent/quota'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -34,9 +36,6 @@ const MODEL = ANTHROPIC_MODELS.HAIKU
 const QUOTA_SCOPE = 'bots:lead-follow-up'
 
 const UNAVAILABLE = { error: 'The demo bot is not available right now. You can send your details with the form instead.', fallback: 'form' } as const
-
-/** Said when the model gave us the details but its own words tripped the guard. */
-const CAPTURED_CONFIRMATION = 'Thanks, I have your details. Check them below and send them through, and the Unite Group team will be in touch.'
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string }
 
@@ -60,6 +59,11 @@ function parseBody(raw: unknown): Parsed {
   if (messages[messages.length - 1].role !== 'user') return { ok: false, error: 'the last message must be from the visitor' }
   // Anthropic needs the first turn to be the visitor's. The page opens with a bot greeting, which is dropped here.
   return { ok: true, messages: messages.slice(messages.findIndex((m) => m.role === 'user')) }
+}
+
+function transcriptFor(messages: ChatMessage[]): string {
+  const lines = messages.map((m) => `${m.role === 'user' ? 'Visitor' : 'Bot'}: ${m.content}`)
+  return `The chat so far:\n\n${lines.join('\n')}\n\nReturn the JSON object only.`
 }
 
 export async function POST(request: Request) {
@@ -119,7 +123,8 @@ export async function POST(request: Request) {
       model: MODEL,
       max_tokens: BOT_LIMITS.maxOutputTokens,
       system: buildLeadBotSystemPrompt(),
-      messages: parsed.messages,
+      // The model reads the chat as a transcript and returns JSON; it is not playing the bot.
+      messages: [{ role: 'user', content: transcriptFor(parsed.messages) }],
     })
   } catch {
     // Never pass provider internals to a public caller.
@@ -139,16 +144,13 @@ export async function POST(request: Request) {
   })
 
   const rawText = message.content.map((block) => (block.type === 'text' ? block.text : '')).join('')
-  const { text, lead } = extractLead(rawText)
-  const guarded = guardReply(text)
-  if (guarded.blocked) console.warn(`[bots/lead-chat] reply replaced by guard: ${guarded.rule}`)
+  const read = readModelOutput(rawText)
+  if (!read) console.warn('[bots/lead-chat] model output was not the expected JSON')
+  const visitorMessages = parsed.messages.filter((m) => m.role === 'user').map((m) => m.content)
+  const { reply, capture } = nextReply(read, visitorDetails(read, visitorMessages))
 
-  let reply = guarded.text
-  if (lead && (guarded.blocked || !reply)) reply = CAPTURED_CONFIRMATION
-  if (!reply) reply = 'Sorry, could you say that another way?'
-
-  const visitorTurns = parsed.messages.filter((m) => m.role === 'user').length
+  const visitorTurns = visitorMessages.length
   const turnsLeft = Math.max(0, Math.floor(BOT_LIMITS.maxMessages / 2) - visitorTurns)
 
-  return NextResponse.json({ reply, capture: lead, turnsLeft }, { status: 200 })
+  return NextResponse.json({ reply, capture, turnsLeft }, { status: 200 })
 }
