@@ -158,30 +158,54 @@ const EMAIL_RE = /^[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-
 const NAME_RE = /^[\p{L}][\p{L}\p{M} .'-]{0,79}$/u
 const PHONE_RE = /^\+?[\d ()-]{6,20}$/
 
-const norm = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim()
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 /**
- * Keeps only the details the visitor typed themselves. Each value must appear verbatim (ignoring case and
- * spacing) inside ONE of the visitor's messages and have the right shape; otherwise it becomes "". Messages are
- * never joined, so the model cannot assemble a value from words split across turns (Codex review, 17cd67c0).
- * The need is also blanked if it touches a guarded topic, so the visitor types it in the form instead.
+ * The visitor's own text for a value: the exact slice of ONE visitor message that matches it, ignoring case and
+ * spacing, or "" when no single message contains it. Messages are never joined (Codex review, 17cd67c0), and the
+ * slice is returned rather than the model's string, so the model cannot change a character (Codex review,
+ * 6769c13e).
+ */
+function visitorText(value: string, visitorMessages: string[]): string {
+  const tokens = value.trim().split(/\s+/).filter(Boolean)
+  if (tokens.length === 0) return ''
+  const re = new RegExp(tokens.map(escapeRe).join('\\s+'), 'iu')
+  for (const m of visitorMessages) {
+    const hit = re.exec(m)
+    if (hit) return hit[0]
+  }
+  return ''
+}
+
+/** The phone-shaped run in ONE visitor message whose digits are exactly the model's digits, as the visitor typed it. */
+function visitorPhone(value: string, visitorMessages: string[]): string {
+  const digits = value.replace(/\D/g, '')
+  if (digits.length < 8 || digits.length > 15) return ''
+  for (const m of visitorMessages) {
+    for (const run of m.match(/\+?\(?\d[\d ()-]*\d/g) ?? []) {
+      const candidate = run.trim()
+      if (candidate.replace(/\D/g, '') === digits && PHONE_RE.test(candidate)) return candidate
+    }
+  }
+  return ''
+}
+
+/**
+ * Keeps only the details the visitor typed themselves. Every captured value is an exact slice of one visitor
+ * message (see visitorText and visitorPhone), never the model's string, and must have the right shape; otherwise
+ * it becomes "". The need is also blanked if it touches a guarded topic, so the visitor types it in the form.
  */
 export function visitorDetails(read: ModelRead | null, visitorMessages: string[]): CapturedLead {
-  const said = visitorMessages.map(norm)
-  const saidDigits = visitorMessages.map((m) => m.replace(/\D/g, ''))
-  const fromVisitor = (v: string) => v.length > 0 && said.some((m) => m.includes(norm(v)))
   const lead: CapturedLead = { name: '', email: '', phone: '', need: '' }
   if (!read) return lead
 
-  if (fromVisitor(read.name) && NAME_RE.test(read.name) && read.name.split(/\s+/).length <= 5 && !guardReply(read.name).blocked) {
-    lead.name = read.name
-  }
-  if (fromVisitor(read.email) && EMAIL_RE.test(read.email)) lead.email = read.email.toLowerCase()
-  const digits = read.phone.replace(/\D/g, '')
-  if (PHONE_RE.test(read.phone) && digits.length >= 8 && digits.length <= 15 && saidDigits.some((d) => d.includes(digits))) {
-    lead.phone = read.phone
-  }
-  if (fromVisitor(read.need) && read.need.length >= 3 && !guardReply(read.need).blocked) lead.need = read.need
+  const name = visitorText(read.name, visitorMessages)
+  if (NAME_RE.test(name) && name.split(/\s+/).length <= 5 && !guardReply(name).blocked) lead.name = name
+  const email = visitorText(read.email, visitorMessages)
+  if (EMAIL_RE.test(email)) lead.email = email.toLowerCase()
+  lead.phone = visitorPhone(read.phone, visitorMessages)
+  const need = visitorText(read.need, visitorMessages)
+  if (need.length >= 3 && !guardReply(need).blocked) lead.need = need
   return lead
 }
 

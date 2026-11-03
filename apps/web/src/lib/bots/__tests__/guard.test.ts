@@ -124,6 +124,19 @@ describe('visitorDetails: only the visitor\'s own words get through', () => {
     })
   })
 
+  // Codex review, 6769c13e: the model must not be able to change a character of what the visitor typed.
+  it('returns the visitor\'s exact text, never the model\'s altered copy', () => {
+    const typed = ['want MORE   bookings please', 'sam lee', 'Sam@Example.com', 'call me on 0412 345 678']
+    expect(visitorDetails(read({ need: 'want more bookings', name: 'Sam Lee', email: 'sam@example.com', phone: '+0412345678' }), typed)).toEqual({
+      name: 'sam lee',
+      email: 'sam@example.com',
+      phone: '0412 345 678',
+      need: 'want MORE   bookings',
+    })
+    expect(visitorDetails(read({ phone: '0412 345 6789' }), typed).phone).toBe('')
+    expect(visitorDetails(read({ phone: '041234567' }), typed).phone).toBe('')
+  })
+
   it('blanks a visitor-typed need that touches a guarded topic, and refuses prose as a name', () => {
     const typed = ['How much is it a month? I need help with my search ranking', 'Sam. We rank you on Google']
     expect(visitorDetails(read({ need: 'I need help with my search ranking', name: 'Sam. We rank you on Google' }), typed)).toEqual({

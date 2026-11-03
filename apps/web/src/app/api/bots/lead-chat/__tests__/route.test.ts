@@ -133,6 +133,23 @@ describe('POST /api/bots/lead-chat', () => {
     expect(body.capture).toEqual({ name: 'Sam Lee', email: 'sam@example.com', phone: '0400000000', need: '' })
   })
 
+  it('captures the phone exactly as the visitor typed it, even when the model reformats it', async () => {
+    const chat = {
+      messages: [
+        { role: 'user', content: 'I run a cafe and miss enquiries' },
+        { role: 'assistant', content: REPLY_TEMPLATES.askName },
+        { role: 'user', content: 'Sam Lee' },
+        { role: 'assistant', content: REPLY_TEMPLATES.askEmail },
+        { role: 'user', content: 'sam@example.com' },
+        { role: 'assistant', content: REPLY_TEMPLATES.askPhone },
+        { role: 'user', content: '0412345678' },
+      ],
+    }
+    modelSays(json({ name: 'SAM LEE', email: 'sam@example.com', phone: '+0412345678', need: 'miss enquiries' }))
+    const body = await (await POST(req(chat))).json()
+    expect(body.capture).toEqual({ name: 'Sam Lee', email: 'sam@example.com', phone: '0412345678', need: 'miss enquiries' })
+  })
+
   it('answers with the fixed deflection when the visitor asks about prices', async () => {
     modelSays(json({ askedAbout: 'price' }))
     const body = await (await POST(req(hello))).json()
