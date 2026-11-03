@@ -258,9 +258,11 @@ rather than letting a PASS imply cross-vendor review happened.
 
 ## Premium Visual & Motion Standard (HARD RULE — Phill McGurk, 2 Nov 2026)
 
-This applies to every page a customer can see. A page with a finding is not done, even while the check only reports.
+This applies to every page a customer can see.
 
 **Current enforcement state (GP-667):** `check-visuals` runs in CI in **report-only** mode while `visuals.config.json` sets `"mode": "report"`. It lists findings in the job summary and does not fail the PR. Switching to `"enforce"` is a separate, owner-approved change once the baseline findings are cleared. A configuration error (exit 2) fails in either mode. The scanner is a static text heuristic: a clean run, in either mode, is **not visual acceptance**. Rule 7's SDA evidence gate and the owner's review of the rendered page are still required, and manifest `credit`/`source` fields are declarations only, not verified rights. Runtime: Node 20 or later, no dependencies (`node packages/premium-visuals/bin/check-visuals.mjs --root .`, or the vendored copy at `scripts/premium-visuals/check-visuals.mjs`; add `--json` for the full machine-readable report).
+
+A page with a violation is not done, even while the check only reports.
 
 1. **No code-drawn graphics.** Zero TypeScript/CSS/SVG/canvas illustrations, decorative shapes, conic/radial gradient "art", clip-path shapes or placeholder images. UI icons come from a real icon set (lucide-react); logos are marked `data-pv-allow="logo"`.
 2. **Real media only, in this order:** the client's own photos/video → licensed real stock (downloaded and self-hosted, never hot-linked) → Higgsfield photoreal images/video using the `cinematic-au-restoration` preset → Blender renders for products/equipment (offline turntables, never heavy runtime WebGL). Every file is listed in `media.manifest.json` with `source` (client|stock|generated|blender), `credit` and `alt`.
