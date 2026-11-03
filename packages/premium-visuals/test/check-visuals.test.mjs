@@ -146,6 +146,24 @@ test('// or /* in page text is text, so it does not hide a real hero or motion s
   assert.equal(comment.code, 1);
   for (const r of ['hero-missing-media', 'no-motion']) assert.ok(comment.out.byRule[r], r);
 });
+test('a < inside a regex literal is code, so a later comment cannot fake a hero or motion section', () => {
+  const files = {
+    'media.manifest.json': JSON.stringify({ version: 1, entries: [entry('/media/hero/a.avif')] }),
+    'public/media/hero/a.avif': 'x',
+  };
+  const tags = `<PremiumHero media={m('/media/hero/a.avif')}/><MotionSection/>`;
+  for (const rx of ['/(<div>)/', '/<div>/g', '/[/]|(<b>)/', '/a\\/(<b>)/']) {
+    const fake = run({ ...files, 'app/page.tsx': `const rx = ${rx}; // ${tags}\nexport default () => <main>Hello</main>` });
+    assert.equal(fake.code, 1, rx);
+    for (const r of ['hero-missing-media', 'no-motion']) assert.ok(fake.out.byRule[r], rx + ' ' + r);
+    // Positive control: the same regex beside a real hero and motion section passes.
+    const real = run({ ...files, 'app/page.tsx': `const rx = ${rx};\nexport default () => <main>It's ${tags}</main>` });
+    assert.equal(real.code, 0, rx + ' ' + JSON.stringify(real.out.violations));
+  }
+  // Division is not a regex: a / b / c leaves the real tags visible.
+  const div = run({ ...files, 'app/page.tsx': `const q = a / b / c;\nexport default () => <main>${tags}</main>` });
+  assert.equal(div.code, 0, JSON.stringify(div.out.violations));
+});
 test('an icons/ or logos/ folder does not excuse an SVG illustration', () => {
   for (const p of ['public/icons/illustration.svg', 'public/logos/illustration.svg', 'public/favicons/scene.svg']) {
     const { out } = run({ [p]: '<svg></svg>' });

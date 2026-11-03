@@ -411,6 +411,18 @@ function scrub(text, { slashComments, htmlComments, jsx = false, mdx = false }) 
       if (c === '{') { top.braces++; i++; continue; }
       if (c === '}') { if (top.braces > 0) top.braces--; else if (top.inner) stack.pop(); i++; continue; }
       if (c === '<' && /[A-Za-z>]/.test(d || '') && opensJsx(text, i)) { const j = openTag(i); if (j >= 0) { i = j; continue; } }
+      // A regex literal such as /(<div>)/ is code: its `<` must not open a JSX element.
+      if (c === '/' && d !== '/' && opensString(text, i)) {
+        let j = i + 1;
+        let inClass = false;
+        while (j < n && text[j] !== '\n' && (inClass || text[j] !== '/')) {
+          if (text[j] === '\\') j++;
+          else if (text[j] === '[') inClass = true;
+          else if (text[j] === ']') inClass = false;
+          j++;
+        }
+        if (j < n && text[j] === '/') { blank(bare, i + 1, j); i = j + 1; continue; }
+      }
     }
     if (c === '`' || ((c === '"' || c === "'") && (jsx || opensString(text, i)))) {
       let j = i + 1;
