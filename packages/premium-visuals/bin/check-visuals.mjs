@@ -360,7 +360,7 @@ function scrub(text, { slashComments, htmlComments, jsx = false, mdx = false }) 
     let j = at + 1;
     while (j < n && /[\w.$:-]/.test(text[j])) j++;
     if (/^\s*(,|extends\b)/.test(text.slice(j, j + 12))) return -1;
-    stack.push({ t: 'tag' });
+    stack.push({ t: 'tag', name: text.slice(at + 1, j) });
     return j;
   };
   let i = 0;
@@ -394,7 +394,17 @@ function scrub(text, { slashComments, htmlComments, jsx = false, mdx = false }) 
         stack.push({ t: 'code', braces: 0, line: true }); i += 6; continue;
       }
       if (c === '{') { stack.push({ t: 'code', braces: 0, inner: true }); i++; continue; }
-      if (c === '<' && d === '/') { const e = text.indexOf('>', i); if (stack.length > 1) stack.pop(); i = e < 0 ? n : e + 1; continue; }
+      if (c === '<' && d === '/') {
+        const e = text.indexOf('>', i);
+        const name = text.slice(i + 2, e < 0 ? n : e).trim();
+        // `</main>` closes main and any element left unclosed inside it (<p>open), so the code
+        // after it is code again. A name with no open element here closes one level.
+        let k = stack.length - 1;
+        while (k > 0 && stack[k].t === 'text' && stack[k].name !== name) k--;
+        if (k > 0 && stack[k].t === 'text') stack.length = k;
+        else if (stack.length > 1) stack.pop();
+        i = e < 0 ? n : e + 1; continue;
+      }
       if (c === '<' && /[A-Za-z>]/.test(d || '')) { const j = openTag(i); i = j < 0 ? i + 1 : j; continue; }
       // Page text: quotes and backticks here are words, never strings.
       i++; continue;
@@ -403,7 +413,7 @@ function scrub(text, { slashComments, htmlComments, jsx = false, mdx = false }) 
       if (c === '"' || c === "'") { const e = text.indexOf(c, i + 1); const end = e < 0 ? n : e; blank(bare, i + 1, end); i = end + 1; continue; }
       if (c === '{') { stack.push({ t: 'code', braces: 0, inner: true }); i++; continue; }
       if (c === '/' && d === '>') { stack.pop(); i += 2; continue; }
-      if (c === '>') { stack.pop(); stack.push({ t: 'text' }); i++; continue; }
+      if (c === '>') { stack.pop(); stack.push({ t: 'text', name: top.name }); i++; continue; }
       i++; continue;
     }
     if (jsx) {

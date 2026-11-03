@@ -126,6 +126,10 @@ test('a string inside a JSX expression is still not a hero or motion section', (
   const { code, out } = run({ 'app/page.tsx': `export default () => <main>{'<MotionSection />'}{"<PremiumHero media={x}/>"}{\`<MotionSection/>\`}Hi</main>;` });
   assert.equal(code, 1);
   for (const r of ['hero-missing-media', 'no-motion']) assert.ok(out.byRule[r], r);
+  // A closing tag closes its own element and any unclosed ones inside it, so code after it is code.
+  const unclosed = run({ 'app/page.tsx': `export default () => <main><p>open <b>x\n</main>;\nconst s = '<MotionSection />', h = "<PremiumHero media={x}/>";` });
+  assert.equal(unclosed.code, 1);
+  for (const r of ['hero-missing-media', 'no-motion']) assert.ok(unclosed.out.byRule[r], 'unclosed ' + r);
   // After the element closes the file is code again, so a later string is still not evidence.
   const after = run({ 'app/page.tsx': `export default () => <main><p>Hi</p></main>;\nconst s = '<MotionSection />', h = "<PremiumHero media={x}/>";` });
   assert.equal(after.code, 1);
