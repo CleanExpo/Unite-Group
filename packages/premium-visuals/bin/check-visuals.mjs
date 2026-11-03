@@ -40,6 +40,7 @@ import path from 'node:path';
 const CODE_EXTS = ['tsx', 'jsx', 'ts', 'js', 'mdx', 'html', 'astro', 'vue', 'svelte'];
 const STYLE_EXTS = ['css', 'scss', 'sass', 'less'];
 const MEDIA_EXTS = ['avif', 'webp', 'png', 'jpg', 'jpeg', 'gif', 'mp4', 'webm', 'mov'];
+const IMAGE_EXTS = ['avif', 'webp', 'png', 'jpg', 'jpeg', 'gif'];
 const KINDS = ['image', 'video', 'render'];
 const SOURCES = ['client', 'stock', 'generated', 'blender'];
 
@@ -151,7 +152,7 @@ function main() {
             if (!isText(e.credit)) bad.push('credit (non-empty text)');
             if (!isText(e.alt)) bad.push('alt (non-empty text)');
             if (e.kind === 'video' && e.poster === undefined) bad.push('poster (required for video)');
-            if (e.poster !== undefined && !validPath(e.poster)) bad.push('poster (absolute public path to an image)');
+            if (e.poster !== undefined && !(validPath(e.poster) && IMAGE_EXTS.includes(extOf(e.poster)))) bad.push('poster (absolute public path to an image)');
             if (bad.length) manifestBad(`${id}: invalid ${bad.join(', ')}`);
             if (validPath(e.src)) {
               manifestSrcs.add(e.src);

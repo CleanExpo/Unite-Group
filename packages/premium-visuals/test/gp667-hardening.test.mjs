@@ -265,7 +265,35 @@ describe('(4) manifest provenance is validated', () => {
       }),
       'public/media/v.mp4': Buffer.alloc(1024),
     }),
+    'video whose poster is a video file': cleanFiles({
+      'media.manifest.json': JSON.stringify({
+        version: 1,
+        entries: [entry, { ...entry, src: '/media/v.mp4', kind: 'video', poster: '/media/poster.mp4' }],
+      }),
+      'public/media/v.mp4': Buffer.alloc(1024),
+      'public/media/poster.mp4': Buffer.alloc(1024),
+    }),
   };
+
+  it('accepts a video with an image poster (positive control for the poster rule)', () => {
+    const r = runJson(
+      fixture(
+        cleanFiles({
+          'media.manifest.json': JSON.stringify({
+            version: 1,
+            entries: [
+              entry,
+              { ...entry, src: '/media/v.mp4', kind: 'video', poster: '/media/v.poster.webp' },
+            ],
+          }),
+          'public/media/v.mp4': Buffer.alloc(1024),
+          'public/media/v.poster.webp': Buffer.alloc(1024),
+        })
+      )
+    );
+    assert.deepEqual(r.json.violations, []);
+    assert.equal(r.status, 0);
+  });
   for (const [name, files] of Object.entries(bad)) {
     it(`rejects ${name}`, () => {
       const r = runJson(fixture(files));
