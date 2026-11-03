@@ -53,6 +53,7 @@ describe('channel bot request safety', () => {
       ['Token refresh failed: 401', 'not_connected'],
       ['Token refresh failed: 503', 'error'],
       ['fetch failed', 'error'],
+      ['Google credentials read failed: connection refused', 'error'],
     ]
     for (const bot of [youtubeBot, searchConsoleBot]) {
       for (const [message, status] of cases) {
@@ -61,6 +62,19 @@ describe('channel bot request safety', () => {
         expect([bot.id, message, r.status]).toEqual([bot.id, message, status])
         expect(f).not.toHaveBeenCalled()
       }
+    }
+  })
+
+  it('a token fetch that never settles is an error result once the request deadline passes', async () => {
+    vi.useFakeTimers()
+    for (const bot of [youtubeBot, searchConsoleBot]) {
+      const f = vi.fn()
+      const pending = bot.run(ctx(f, () => new Promise<string>(() => {})))
+      await vi.advanceTimersByTimeAsync(15_000)
+      const r = await pending
+      expect([bot.id, r.status]).toEqual([bot.id, 'error'])
+      expect(r.error).toMatch(/timed out/)
+      expect(f).not.toHaveBeenCalled()
     }
   })
 })

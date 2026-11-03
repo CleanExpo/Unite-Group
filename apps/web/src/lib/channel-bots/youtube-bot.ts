@@ -1,5 +1,5 @@
 import { type ChannelBot, YOUTUBE_CHANNEL_ID } from './types'
-import { GOOGLE_REQUEST_TIMEOUT_MS, errorMessage, tokenFailureStatus } from './google-request'
+import { GOOGLE_REQUEST_TIMEOUT_MS, errorMessage, tokenFailureStatus, withDeadline } from './google-request'
 
 /** UNI-3224 — read-only YouTube bot for @UniteGroupNexus. */
 export const youtubeBot: ChannelBot = {
@@ -8,7 +8,7 @@ export const youtubeBot: ChannelBot = {
     const f = ctx.fetchImpl ?? fetch
     let token: string
     try {
-      token = await ctx.getGoogleToken()
+      token = await withDeadline(ctx.getGoogleToken(), 'Google token request')
     } catch (e) {
       const status = tokenFailureStatus(e)
       return status === 'not_connected'

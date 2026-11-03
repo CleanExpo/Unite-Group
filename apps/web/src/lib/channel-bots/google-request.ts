@@ -16,6 +16,22 @@ export function tokenFailureStatus(e: unknown): 'not_connected' | 'error' {
   return 'error'
 }
 
+/**
+ * Bound a promise by the request deadline. Used for token acquisition, whose refresh
+ * call lives in the shared Google helper and carries no deadline of its own.
+ */
+export async function withDeadline<T>(p: Promise<T>, what: string, ms = GOOGLE_REQUEST_TIMEOUT_MS): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${what} timed out after ${ms} ms`)), ms)
+  })
+  try {
+    return await Promise.race([p, deadline])
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 export function errorMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e)
 }
