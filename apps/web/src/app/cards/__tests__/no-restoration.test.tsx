@@ -29,7 +29,7 @@ const TERMS_PAYMENT_LINES = [
 const ALLOWED_PAYMENT_SENTENCES = [APPROVED_PAYMENT_LINE, ...TERMS_PAYMENT_LINES]
 
 /**
- * Where each payment sentence may appear: beside the pay buttons on /cards/order, beside the Buy Ready-made button on /cards (UNI-3049, #1289), and in the order terms. Keyed by
+ * Where each payment sentence may appear: beside the pay buttons on /cards/order, beside the Buy Starter pack button on /cards (UNI-3049, #1289), and in the order terms. Keyed by
  * route file for the render scan and by source file for the source scan; every other route and file allows none.
  */
 const PAYMENT_ROUTES: Record<string, readonly string[]> = {
@@ -156,6 +156,7 @@ const ROUTES: Record<string, RouteCase[]> = {
     { params: { edition: 'restoration' }, shows: 'name="edition"' },
   ],
   'terms/page.tsx': [{ shows: 'CARSI Pty Ltd' }],
+  'manage/page.tsx': [{ shows: 'LIVING BUSINESS CARD' }],
   'thanks/page.tsx': [
     { params: {}, shows: 'Thank you' },
     { params: { session_id: 'cs_test_a1B2c3' }, shows: 'Thank you' },

@@ -42,8 +42,8 @@ const consent = (p: Page) => p.getByRole('checkbox')
 const submit = (p: Page) => p.getByRole('button', { name: /Send my request|Sending/ })
 const privacy = (p: Page) => p.getByRole('contentinfo').getByRole('link', { name: 'Privacy' })
 const orderTerms = (p: Page) => p.getByRole('main').getByRole('link', { name: 'Order terms' })
-// Extra-business add-on (UNI-3038): its minus button is disabled at rest, which the full-page captures show.
-const extraMore = (p: Page) => p.getByRole('button', { name: 'One more extra business' })
+// Staff card add-on (UNI-3038, renamed UNI-3146): its minus button is disabled at rest, which the full-page captures show.
+const extraMore = (p: Page) => p.getByRole('button', { name: 'One more staff card' })
 const extraPay = (p: Page) => p.locator('[data-extra-business]').getByRole('link')
 
 /** The pay link renders only once at least one extra business is chosen. */

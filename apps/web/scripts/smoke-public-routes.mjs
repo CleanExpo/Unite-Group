@@ -50,6 +50,7 @@ export const SMOKE_PATHS = Object.freeze([
   { path: '/cards', pattern: '/cards', status: 200 },
   { path: '/cards/order', pattern: '/cards/order', status: 200 },
   { path: '/cards/terms', pattern: '/cards/terms', status: 200 },
+  { path: '/cards/manage', pattern: '/cards/manage', status: 200, note: 'page shell only; nothing shows until a private link token is posted' },
   { path: '/pricing', pattern: '/pricing', status: 200 },
   { path: '/signatures', pattern: '/signatures', status: 200 },
   // The 25/10/2026 incident: all three must render. The page is a Server Component.

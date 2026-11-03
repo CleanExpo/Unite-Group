@@ -6,11 +6,11 @@ import CardsShowroomPage from '../page'
 import { PAYMENT_ENTITY_LINE } from '../payment-entity'
 
 /**
- * UNI-3049 part 1. /cards takes a visitor to the Ready-made Stripe Payment Link in one click, from the same env var
+ * UNI-3049 part 1. /cards takes a visitor to the Starter pack Stripe Payment Link in one click, from the same env var
  * and validator the order page uses. No valid link, no button: the /cards/order path stays either way.
  */
 const LINK = 'https://buy.stripe.com/test_ready'
-const LABEL = 'Buy Ready-made, A$249'
+const LABEL = 'Buy Starter pack, A$249'
 
 const showroom = () => renderToStaticMarkup(createElement(CardsShowroomPage))
 const count = (html: string, needle: string) => html.split(needle).length - 1
@@ -24,7 +24,7 @@ afterEach(() => {
 })
 
 describe('/cards one-click buy', () => {
-  it('links the button straight to the configured Ready-made Payment Link, with the payment line under it', () => {
+  it('links the button straight to the configured Starter pack Payment Link, with the payment line under it', () => {
     vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', LINK)
     const html = showroom()
     expect(count(html, `href="${LINK}"`)).toBe(1)
@@ -37,7 +37,7 @@ describe('/cards one-click buy', () => {
     expect(html).toContain('href="/cards/order"')
   })
 
-  it('uses the Ready-made link only, never another tier link', () => {
+  it('uses the Starter pack link only, never another tier link', () => {
     vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', 'https://buy.stripe.com/test_custom')
     const html = showroom()
     expect(buyBlock(html)).toBeNull()

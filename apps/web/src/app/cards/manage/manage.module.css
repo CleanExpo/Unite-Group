@@ -1,0 +1,19 @@
+/* /cards/manage: owner and staff edit page (UNI-3146). Uses the tokens set on order.module.css's .page. */
+.main.main { padding-top: 2rem; } /* doubled so it outranks the padding shorthand on the shared .wrap */
+.panel { display: grid; gap: 1.25rem; max-width: 720px; padding-block: 1rem 4rem; }
+.title { margin: 0; font-size: 28px; line-height: 1.2; font-weight: 600; color: var(--pub-ink); }
+.heading { margin: 1.5rem 0 0; font-size: 20px; font-weight: 600; color: var(--pub-ink); }
+.note { margin: 0; font-size: 14px; line-height: 1.5; color: #a6a29b; }
+.note a { color: inherit; text-decoration: underline; }
+.message { margin: 0; padding: 0.7rem 0.8rem; border: 1px solid var(--pub-line); border-radius: var(--pub-radius); font-size: 14px; color: var(--pub-ink); }
+.form { display: grid; gap: 1rem; }
+.field { display: grid; gap: 0.4rem; font-size: 13px; font-weight: 500; color: #a6a29b; }
+.input { width: 100%; padding: 0.7rem 0.8rem; border: 1px solid var(--pub-line); border-radius: var(--pub-radius); background: rgba(8, 9, 20, 0.65); color: var(--pub-ink); font-size: 15px; font-family: inherit; }
+.primary, .secondary { min-height: 44px; padding: 0.6rem 1rem; border-radius: var(--pub-radius); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.primary { justify-self: start; border: 0; background: #e5202e; color: #fff; }
+.secondary { border: 1px solid var(--pub-line); background: transparent; color: var(--pub-ink); }
+.list { display: grid; gap: 0.75rem; margin: 0; padding: 0; list-style: none; }
+.row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.75rem; padding: 1rem; border: 1px solid var(--pub-line); border-radius: var(--pub-radius); }
+.rowName { margin: 0 0 0.25rem; font-size: 16px; font-weight: 600; color: var(--pub-ink); }
+.rowActions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.issued { margin: 0.5rem 0 0; font-size: 13px; color: var(--pub-ink); overflow-wrap: anywhere; }

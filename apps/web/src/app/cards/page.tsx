@@ -43,7 +43,7 @@ export default function CardsShowroomPage() {
   const [signature, ...editions] = EDITIONS
   const live = liveCardTiers()
   const productLd = cardsShowroomJsonLd()
-  // One-click buy (UNI-3049): the Ready-made Payment Link straight from the hero. Same env var and validator as the
+  // One-click buy (UNI-3049): the Starter pack Payment Link straight from the hero. Same env var and validator as the
   // order page, so an unset or non-Stripe value shows no button and /cards/order stays the way in.
   const ready = CARD_TIERS.find((t) => t.id === 'ready')
   const buyLink = ready ? stripePaymentLink(process.env[ready.paymentLinkEnv]) : null
@@ -150,6 +150,7 @@ export default function CardsShowroomPage() {
                   <span className={s.priceGst}>(GST included)</span>
                 </p>
                 <p className={s.tierLine}>{TIER_LINES[tier.id]}</p>
+                <p className={s.tierLine} data-tier-rounds>{`Includes ${tier.rounds} rounds of changes.`}</p>
               </li>
             ))}
           </ul>

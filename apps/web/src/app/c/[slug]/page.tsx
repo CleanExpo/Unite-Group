@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import { after } from 'next/server'
 
 import { canEmailCardOwner } from '@/lib/card/enquiry-alert'
-import { getPublishedCard } from '@/lib/card/published'
+import { getCard } from '@/lib/card/any-card'
 import { classifyUserAgent } from '@/lib/card/review-link'
 import { getCardReviewLink, logReviewEvent } from '@/lib/card/review-store'
 import { isSampleSlug, SAMPLE_CARD } from '@/lib/card/sample'
@@ -19,8 +19,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
   // the sample is an example for buyers: never indexed, never canonical
   if (isSampleSlug(slug)) return { title: 'Sample card', robots: { index: false, follow: false } }
-  const card = await getPublishedCard(slug)
+  const card = await getCard(slug)
   if (!card) return { title: 'Card not found', robots: { index: false, follow: false } }
+  // A staff card's words are changed by a customer's link, with no review, so it never joins the site's search presence.
+  if (card.staff) return { title: [card.displayName, card.businessName].filter(Boolean).join(' | '), robots: { index: false, follow: false } }
   const title = [card.displayName, card.businessName].filter(Boolean).join(' | ')
   return {
     title,
@@ -34,9 +36,13 @@ export default async function OwnerCardPage({ params, searchParams }: Props) {
   const { slug } = await params
   // enquiries stay closed on the sample: there is no owner to receive them
   if (isSampleSlug(slug)) return <CardView card={SAMPLE_CARD} sample />
-  // the review link is a separate read: a failure there hides the button but never takes the card down
-  const [card, review] = await Promise.all([getPublishedCard(slug), getCardReviewLink(slug)])
+  const card = await getCard(slug)
   if (!card) notFound()
+  // Staff cards take no enquiries and no review button: card_enquiries and the review link are keyed on card_owners, which a staff card is not in.
+  // Return before the review read so a staff card never depends on it.
+  if (card.staff) return <CardView card={card} />
+  // the review link is a separate read: a failure there hides the button but never takes the card down
+  const review = await getCardReviewLink(slug)
   const reviewOpen = review.state === 'ready'
   const highlightReview = reviewOpen && (await searchParams).r === '1'
   if (reviewOpen) {

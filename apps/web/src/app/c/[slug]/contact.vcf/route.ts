@@ -1,4 +1,4 @@
-import { getPublishedCard } from '@/lib/card/published'
+import { getCard } from '@/lib/card/any-card'
 import { isSampleSlug, SAMPLE_CARD } from '@/lib/card/sample'
 import { buildVCard } from '@/lib/card/vcard'
 
@@ -8,7 +8,7 @@ export async function GET(_request: Request, context: { params: Promise<{ slug: 
   const { slug } = await context.params
   let card
   try {
-    card = isSampleSlug(slug) ? SAMPLE_CARD : await getPublishedCard(slug)
+    card = isSampleSlug(slug) ? SAMPLE_CARD : await getCard(slug)
   } catch {
     return new Response('Unavailable', { status: 500 })
   }

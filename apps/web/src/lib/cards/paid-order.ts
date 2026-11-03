@@ -1,7 +1,7 @@
 // Paid living-card orders (UNI-2996 B5).
 //
 // A checkout.session.completed whose price is one of CARD_TIERS, or a session from the extra-business
-// Payment Link (STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID) paying 1..5 x its price, becomes one
+// Payment Link (STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID) paying a whole number (1 or more) x its price, becomes one
 // card_orders row, then one alert email with the buyer's name and what they bought. The add-on is its
 // own Payment Link with adjustable quantity (a link URL cannot carry one), so its quantity is recovered
 // from the amount and stored only on add-on rows. No card data ever reaches this code: Stripe's session
@@ -12,6 +12,7 @@
 import type Stripe from 'stripe'
 
 import { CARD_EXTRA_BUSINESS, CARD_TIERS } from '@/app/cards/order/order-view'
+import { provisionCardOrder } from '@/lib/card/staff-provisioning'
 import { leadAlertEmailTo, mailtrapFromEmail, sendEmail } from '@/lib/integrations/mailtrap'
 import type { createServiceClient } from '@/lib/supabase/service'
 
@@ -71,12 +72,12 @@ function warnIfAddOnHalfConfigured(): void {
   }
 }
 
-/** How many add-ons an AUD amount buys: a whole multiple of the unit price, 1..maxQuantity, else null. */
+/** How many staff cards an AUD amount buys: a whole multiple of the unit price, 1 or more (no upper limit), else null. */
 function extraBusinessQuantity(session: Pick<Stripe.Checkout.Session, 'amount_total' | 'currency'>): number | null {
   const amount = session.amount_total
   if (session.currency?.toLowerCase() !== 'aud' || typeof amount !== 'number') return null
   const quantity = amount / (CARD_EXTRA_BUSINESS.priceAud * 100)
-  return Number.isInteger(quantity) && quantity >= 1 && quantity <= CARD_EXTRA_BUSINESS.maxQuantity ? quantity : null
+  return Number.isInteger(quantity) && quantity >= 1 ? quantity : null
 }
 
 /** client_reference_id when the payment link carried one, else the checkout session id. */
@@ -99,7 +100,7 @@ export async function recordPaidCardOrder(admin: Admin, event: Stripe.Event): Pr
   if (isExtraBusinessLink(session)) {
     const quantity = extraBusinessQuantity(session)
     if (!quantity) {
-      console.warn('[cards] paid session on the extra-business link did not match 1 to 5 x A$199: not recorded')
+      console.warn('[cards] paid session on the extra-business link did not match a whole number of A$199 staff cards: not recorded')
       return 'ignored'
     }
     purchase = { kind: 'extra_business', quantity }
@@ -133,7 +134,11 @@ export async function recordPaidCardOrder(admin: Admin, event: Stripe.Event): Pr
     ...(purchase.kind === 'extra_business' ? { quantity: purchase.quantity } : {}),
   })
   if (error) {
-    if ((error as { code?: string }).code === '23505') return 'duplicate'
+    if ((error as { code?: string }).code === '23505') {
+      // A redelivery, possibly because set-up failed last time. Set-up is safe to repeat; the emails below are not sent again.
+      await provisionCardOrder(admin, session.id)
+      return 'duplicate'
+    }
     throw new Error(`card_orders insert failed: ${(error as { message?: string }).message ?? 'unknown'}`)
   }
 
@@ -141,6 +146,8 @@ export async function recordPaidCardOrder(admin: Admin, event: Stripe.Event): Pr
   if (purchase.kind === 'tier') {
     await sendBuyerWelcome(session.customer_details?.email?.trim() || null, name, purchase.tier, event.livemode)
   }
+  // After the emails, so a failed set-up throws, Stripe retries, and the retry reaches this through the duplicate path above.
+  await provisionCardOrder(admin, session.id)
   return 'created'
 }
 
@@ -158,7 +165,7 @@ async function sendOrderAlert(
   const line =
     purchase.kind === 'tier'
       ? `${who} paid for the ${purchase.tier.name} living card (A$${purchase.tier.priceAud}).`
-      : `${who} paid for ${purchase.quantity} extra business${purchase.quantity > 1 ? 'es' : ''} on the Made for you living card (A$${amountCents / 100}).`
+      : `${who} paid for ${purchase.quantity} staff card${purchase.quantity > 1 ? 's' : ''} for a Business Pack account (A$${amountCents / 100}).`
   try {
     await sendEmail({
       to: { email: to },

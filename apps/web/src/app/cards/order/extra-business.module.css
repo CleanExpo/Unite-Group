@@ -1,6 +1,6 @@
-/* Extra-business add-on inside the Made for you tier. Uses the tokens set on order.module.css's .page. */
+/* Extra-business add-on inside the Business Pack tier. Uses the tokens set on order.module.css's .page. */
 
-/* Two-column tiers: while the add-on is open, the Ready-made card keeps its own height instead of
+/* Two-column tiers: while the add-on is open, the Starter pack card keeps its own height instead of
    stretching to match, so its Order button stays under its text. Matches only when the add-on renders. */
 :global(div):has(> :global(article) > .box) {
   align-items: start;

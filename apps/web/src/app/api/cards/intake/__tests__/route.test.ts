@@ -226,7 +226,7 @@ describe('POST /api/cards/intake', () => {
     const mail = (sendEmail as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]
     expect(mail.to).toEqual({ email: 'contact@unite-group.in' })
     expect(mail.replyTo).toEqual({ email: 'sample@example.invalid' })
-    expect(mail.subject).toContain('Made for you')
+    expect(mail.subject).toContain('Business Pack')
     expect(mail.text).toContain('Show at the end of the film: Sample Client, Director, 0400 000 000')
     expect(mail.text).toContain('Logo link: https://example.invalid/logo.png')
     expect(mail.html).toContain('&lt;b&gt;modern&lt;/b&gt;')
@@ -322,7 +322,7 @@ describe('POST /api/cards/intake', () => {
   })
 })
 
-describe('POST /api/cards/intake: extra businesses in the alert email', () => {
+describe('POST /api/cards/intake: staff cards in the alert email', () => {
   beforeEach(() => vi.clearAllMocks())
   afterEach(() => vi.restoreAllMocks())
 
@@ -337,8 +337,8 @@ describe('POST /api/cards/intake: extra businesses in the alert email', () => {
       ],
     })
     expect((await POST(req(BODY))).status).toBe(201)
-    expect(alert().text).toContain('Extra businesses paid with this email: 3 (2 payments)')
-    expect(alert().html).toContain('Extra businesses paid with this email: 3 (2 payments)')
+    expect(alert().text).toContain('Staff cards paid with this email: 3 (2 payments)')
+    expect(alert().html).toContain('Staff cards paid with this email: 3 (2 payments)')
     expect(db.extrasEq).toHaveBeenCalledWith('founder_id', 'founder-1')
     expect(db.extrasEq).toHaveBeenCalledWith('tier', 'extra_business')
     expect(db.extrasEq).toHaveBeenCalledWith('livemode', false)
@@ -348,11 +348,11 @@ describe('POST /api/cards/intake: extra businesses in the alert email', () => {
   it('says one payment in the singular, and a plain 0 when there are none', async () => {
     mockDb({ data: [ORDER] }, undefined, [], { data: [{ customer_email: EMAIL, quantity: 4 }] })
     await POST(req(BODY))
-    expect(alert().text).toContain('Extra businesses paid with this email: 4 (1 payment)')
+    expect(alert().text).toContain('Staff cards paid with this email: 4 (1 payment)')
     vi.clearAllMocks()
     mockDb({ data: [ORDER] })
     await POST(req(BODY))
-    expect(alert().text).toContain('Extra businesses paid with this email: 0')
+    expect(alert().text).toContain('Staff cards paid with this email: 0')
   })
 
   it('counts live payments only for a live order', async () => {
@@ -372,7 +372,7 @@ describe('POST /api/cards/intake: extra businesses in the alert email', () => {
     })
     await POST(req({ ...BODY, email: paid }))
     expect(db.extrasIlike).toHaveBeenCalledWith('customer_email', 'a\\_b\\%c@example.invalid')
-    expect(alert().text).toContain('Extra businesses paid with this email: 1 (1 payment)')
+    expect(alert().text).toContain('Staff cards paid with this email: 1 (1 payment)')
   })
 
   it('uses the submitted email when Stripe recorded none', async () => {
@@ -385,7 +385,7 @@ describe('POST /api/cards/intake: extra businesses in the alert email', () => {
     const quiet = vi.spyOn(console, 'error').mockImplementation(() => {})
     mockDb({ data: [ORDER] }, undefined, [], { data: null, error: { message: 'boom' } })
     expect((await POST(req(BODY))).status).toBe(201)
-    expect(alert().text).toContain('Extra businesses paid with this email: could not be checked')
+    expect(alert().text).toContain('Staff cards paid with this email: could not be checked')
     expect(alert().text).not.toContain('with this email: 0')
     quiet.mockRestore()
   })
@@ -398,7 +398,7 @@ describe('POST /api/cards/intake: extra businesses in the alert email', () => {
       const pending = POST(req(BODY))
       await vi.advanceTimersByTimeAsync(3_000)
       expect((await pending).status).toBe(201)
-      expect(alert().text).toContain('Extra businesses paid with this email: could not be checked')
+      expect(alert().text).toContain('Staff cards paid with this email: could not be checked')
       expect(db.update).toHaveBeenCalledWith(expect.objectContaining({ delivery_state: 'sent' }))
     } finally {
       vi.useRealTimers()
