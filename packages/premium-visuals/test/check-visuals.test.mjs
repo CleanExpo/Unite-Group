@@ -76,6 +76,26 @@ test('a PremiumHero with media={void(0)} fails', () => {
     assert.equal(code, 1, v); assert.ok(out.byRule['hero-missing-media'], v);
   }
 });
+test('media={void(anything)} is empty: void always gives undefined', () => {
+  for (const v of ['{void(1)}', '{void hero}', '{void m("/media/hero/a.avif")}']) {
+    const { code, out } = run({ 'app/page.tsx': `<PremiumHero media=${v} title="t"/><MotionSection>x</MotionSection>` });
+    assert.equal(code, 1, v); assert.ok(out.byRule['hero-missing-media'], v);
+  }
+});
+test('a member component named like PremiumHero or MotionSection is not one', () => {
+  const files = {
+    'media.manifest.json': JSON.stringify({ version: 1, entries: [entry('/media/hero/a.avif')] }),
+    'public/media/hero/a.avif': 'x',
+  };
+  const fakeHero = run({ ...files, 'app/page.tsx': `<PremiumHero.Fake media={m('/media/hero/a.avif')}/><MotionSection>x</MotionSection>` });
+  assert.equal(fakeHero.code, 1); assert.ok(fakeHero.out.byRule['hero-missing-media']);
+  const fakeMotion = run({ ...files, 'app/page.tsx': `<PremiumHero media={m('/media/hero/a.avif')}/><MotionSection.Fake/>` });
+  assert.equal(fakeMotion.code, 1); assert.ok(fakeMotion.out.byRule['no-motion']);
+  const fakeImg = run({ ...files, 'app/page.tsx': `<header data-pv-hero><Image.Fake src="/media/hero/a.avif"/></header><MotionSection>x</MotionSection>` });
+  assert.equal(fakeImg.code, 1); assert.ok(fakeImg.out.byRule['hero-missing-media']);
+  const real = run({ ...files, 'app/page.tsx': `<PremiumHero media={m('/media/hero/a.avif')}/><MotionSection>x</MotionSection>` });
+  assert.equal(real.code, 0, JSON.stringify(real.out.violations));
+});
 test('the words data-pv-motion in page text are not a motion section', () => {
   const files = {
     'media.manifest.json': JSON.stringify({ version: 1, entries: [entry('/media/hero/a.avif')] }),

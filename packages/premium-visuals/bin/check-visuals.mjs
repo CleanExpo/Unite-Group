@@ -242,7 +242,7 @@ function main() {
     const r = rel(f);
     const { code, bare } = views.get(f);
     if (!hasHeroMedia(code, bare)) add('hero-missing-media', r, 0, 'marketing page needs a rendered <PremiumHero media={...} video={...}> with a real/generated photo or video');
-    if (!/<MotionSection\b/.test(bare) && !hasTagAttr(bare, 'data-pv-motion')) add('no-motion', r, 0, 'marketing page needs at least one rendered <MotionSection> (hero motion alone is not enough)');
+    if (!MOTION_TAG.test(bare) && !hasTagAttr(bare, 'data-pv-motion')) add('no-motion', r, 0, 'marketing page needs at least one rendered <MotionSection> (hero motion alone is not enough)');
   }
   if (marketing.length < cfg.minMarketingPages)
     add('marketing-coverage', '.', 0, `${marketing.length} marketing page(s) found, expected at least ${cfg.minMarketingPages}; check marketingPages/nonMarketing patterns (set minMarketingPages: 0 only for a repo with no public pages)`);
@@ -353,7 +353,11 @@ function tagEnd(bare, start) {
   return bare.length;
 }
 
-const EMPTY_VALUE = /^(undefined|null|false|true|0|void\s*\(?\s*0\s*\)?|'\s*'|"\s*"|`\s*`|\[\s*\]|\{\s*\})?$/;
+// `void <anything>` is always undefined, so it renders nothing either.
+const EMPTY_VALUE = /^(undefined|null|false|true|0|void\b[\s\S]*|'\s*'|"\s*"|`\s*`|\[\s*\]|\{\s*\})?$/;
+// A JSX tag name ends here: <PremiumHero.Fake> or <MotionSectionX> is another component, not this one.
+const NAME_END = String.raw`(?![\w.$:-])`;
+const MOTION_TAG = new RegExp(String.raw`<MotionSection${NAME_END}`);
 
 /** True when the opening tag at `start` gives one of `names` a value that renders something. */
 function hasNonEmptyAttr(code, bare, start, names) {
@@ -373,7 +377,7 @@ function hasNonEmptyAttr(code, bare, start, names) {
 }
 
 function hasHeroMedia(code, bare) {
-  const heroRe = /<PremiumHero\b/g;
+  const heroRe = new RegExp(String.raw`<PremiumHero${NAME_END}`, 'g');
   let m;
   while ((m = heroRe.exec(bare))) if (hasNonEmptyAttr(code, bare, m.index, 'media')) return true;
   // A data-pv-hero element must contain its own image or video with a real src, between its open and close tags.
@@ -382,7 +386,7 @@ function hasHeroMedia(code, bare) {
     const openEnd = tagEnd(bare, m.index);
     if (!/\sdata-pv-hero\b/.test(bare.slice(m.index, openEnd)) || bare[openEnd - 2] === '/') continue;
     const close = closingTag(bare, m[1], openEnd);
-    const mediaRe = /<(img|Image|picture|video|PremiumImage|PremiumVideo)\b/g;
+    const mediaRe = new RegExp(String.raw`<(img|Image|picture|video|PremiumImage|PremiumVideo)${NAME_END}`, 'g');
     mediaRe.lastIndex = openEnd;
     let e;
     while ((e = mediaRe.exec(bare)) && e.index < close) if (hasNonEmptyAttr(code, bare, e.index, 'src|media')) return true;
