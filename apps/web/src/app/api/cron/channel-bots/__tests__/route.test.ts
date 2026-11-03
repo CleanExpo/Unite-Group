@@ -39,6 +39,19 @@ describe('GET /api/cron/channel-bots', () => {
     expect(persist).not.toHaveBeenCalled()
   })
 
+  it('arms only on exactly "true": padded, uppercase or other truthy values stay dormant', async () => {
+    for (const value of [' true ', 'true ', 'TRUE', 'True', '1', 'yes']) {
+      process.env.CHANNEL_BOTS_ARMED = value
+      const f = vi.fn()
+      vi.stubGlobal('fetch', f)
+      const { GET } = await import('../route')
+      const res = await GET(new Request('http://x/api/cron/channel-bots'))
+      expect(await res.json()).toEqual({ armed: false, skipped: true })
+      expect(f).not.toHaveBeenCalled()
+      expect(persist).not.toHaveBeenCalled()
+    }
+  })
+
   it('returns 200 when every built bot succeeds', async () => {
     vi.stubGlobal('fetch', vi.fn(async (url: string) =>
       String(url).includes('youtube')

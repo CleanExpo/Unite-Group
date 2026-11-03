@@ -33,12 +33,17 @@ export const searchConsoleBot: ChannelBot = {
       return { bot: 'search-console', status: 'ok', metrics: { dataAvailable: 'no' }, actions: [{ bot: 'search-console', kind: 'report', summary: 'Search: no data returned for the last 28 days' }] }
     }
     const row = rows[0]
-    // typeof alone accepts Infinity (e.g. a 1e400 literal) and negatives; require finite, non-negative metrics.
-    const measured = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 0
-    if (!row || !measured(row.clicks) || !measured(row.impressions) || !measured(row.position)) {
+    // typeof alone accepts Infinity (e.g. a 1e400 literal), negatives and absurd values.
+    // Clicks and impressions are counts: safe non-negative integers. Position is a finite
+    // non-negative average, and its rounded report value must itself stay finite.
+    const count = (v: unknown): v is number => typeof v === 'number' && Number.isSafeInteger(v) && v >= 0
+    const position = typeof row?.position === 'number' && Number.isFinite(row.position) && row.position >= 0
+      ? Math.round(row.position * 10) / 10
+      : NaN
+    if (!row || !count(row.clicks) || !count(row.impressions) || !Number.isFinite(position)) {
       return { bot: 'search-console', status: 'error', actions: [], error: 'Search Console returned malformed metrics' }
     }
-    const metrics = { clicks28d: row.clicks, impressions28d: row.impressions, avgPosition: Math.round(row.position * 10) / 10 }
+    const metrics = { clicks28d: row.clicks, impressions28d: row.impressions, avgPosition: position }
     return {
       bot: 'search-console',
       status: 'ok',

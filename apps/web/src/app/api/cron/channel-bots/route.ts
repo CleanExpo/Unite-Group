@@ -14,8 +14,9 @@ export const maxDuration = 60
 export async function GET(request: Request) {
   const denied = assertCronAuth(request)
   if (denied) return denied
-  // Dormant by default: nothing runs until the founder arms it.
-  if (process.env.CHANNEL_BOTS_ARMED?.trim() !== 'true') {
+  // Dormant by default: nothing runs until the founder arms it with exactly "true".
+  // No trim or case-folding, so a padded or mistyped value can never arm it.
+  if (process.env.CHANNEL_BOTS_ARMED !== 'true') {
     return NextResponse.json({ armed: false, skipped: true })
   }
   const founderId = getFounderUserId()

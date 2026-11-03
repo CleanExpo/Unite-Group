@@ -45,6 +45,24 @@ describe('channel bot metric bounds', () => {
     }
   })
 
+  it('search console bot rejects finite inputs whose reported value would overflow or is not a safe count', async () => {
+    // 1e308 is finite, but avgPosition = Math.round(1e308 * 10) / 10 is Infinity.
+    expect(Number.isFinite(1e308)).toBe(true)
+    expect(Math.round(1e308 * 10) / 10).toBe(Infinity)
+    for (const row of [
+      '{"clicks":1,"impressions":2,"position":1e308}',
+      '{"clicks":9007199254740993,"impressions":2,"position":3}',
+      '{"clicks":1e300,"impressions":2,"position":3}',
+      '{"clicks":1,"impressions":1e300,"position":3}',
+      '{"clicks":1.5,"impressions":2,"position":3}',
+    ]) {
+      const r = await searchConsoleBot.run(ctx(`{"rows":[${row}]}`))
+      expect(r.status).toBe('error')
+      expect(r.metrics).toBeUndefined()
+      expect(r.actions).toEqual([])
+    }
+  })
+
   it('search console bot still accepts ordinary metrics', async () => {
     const r = await searchConsoleBot.run(ctx('{"rows":[{"clicks":0,"impressions":90,"position":12.34}]}'))
     expect(r.status).toBe('ok')
