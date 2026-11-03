@@ -96,6 +96,14 @@ test('a member component named like PremiumHero or MotionSection is not one', ()
   const real = run({ ...files, 'app/page.tsx': `<PremiumHero media={m('/media/hero/a.avif')}/><MotionSection>x</MotionSection>` });
   assert.equal(real.code, 0, JSON.stringify(real.out.violations));
 });
+test('apostrophes in page text do not hide a real hero and motion section', () => {
+  const { code, out } = run({
+    'media.manifest.json': JSON.stringify({ version: 1, entries: [entry('/media/hero/a.avif')] }),
+    'public/media/hero/a.avif': 'x',
+    'app/page.tsx': `export default function Page() { return <main>We're here. <PremiumHero media={m('/media/hero/a.avif')}/><MotionSection>x</MotionSection> Let's go. "Quoted" <p>"Hi"</p></main>; }`,
+  });
+  assert.equal(code, 0, JSON.stringify(out.violations));
+});
 test('the words data-pv-motion in page text are not a motion section', () => {
   const files = {
     'media.manifest.json': JSON.stringify({ version: 1, entries: [entry('/media/hero/a.avif')] }),

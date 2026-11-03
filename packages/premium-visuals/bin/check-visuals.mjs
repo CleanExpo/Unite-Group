@@ -303,6 +303,28 @@ function globToRe(g) {
  * `//` after ':' or '(' is a URL, not a comment. In the code view a `//` only counts as a comment at
  * line start or after `; { } ) ]`, so JSX text such as `See // <svg />` cannot hide a finding.
  */
+/**
+ * True when the quote at `i` sits where code can start a string literal: at the start, after an
+ * operator or opening bracket, after `=>`, or after a keyword such as `return`. A quote straight
+ * after a word or a closing `>` is JSX text ("We're here", <p>"Hi"</p>), so pairing it with a later
+ * apostrophe would blank the real tags in between.
+ */
+const STRING_KEYWORDS = new Set(['return', 'case', 'typeof', 'in', 'of', 'yield', 'await', 'else', 'do', 'void', 'delete', 'new', 'export', 'default', 'from', 'import']);
+function opensString(text, i) {
+  let k = i - 1;
+  while (k >= 0 && /\s/.test(text[k])) k--;
+  if (k < 0) return true;
+  const p = text[k];
+  if ('=([{,:;!&|?+-*/%<~^'.includes(p)) return true;
+  if (p === '>') return text[k - 1] === '=';
+  if (/[\w$]/.test(p)) {
+    let s = k;
+    while (s > 0 && /[\w$]/.test(text[s - 1])) s--;
+    return STRING_KEYWORDS.has(text.slice(s, k + 1));
+  }
+  return false;
+}
+
 function scrub(text, { slashComments, htmlComments }) {
   const code = text.split('');
   const bare = text.split('');
@@ -331,7 +353,7 @@ function scrub(text, { slashComments, htmlComments }) {
       if (k < 0 || '\n;{})]'.includes(text[k])) blank(code, i, end);
       i = end; continue;
     }
-    if (c === '"' || c === "'" || c === '`') {
+    if (c === '`' || ((c === '"' || c === "'") && opensString(text, i))) {
       let j = i + 1;
       while (j < n && text[j] !== c && (c === '`' || text[j] !== '\n')) j += text[j] === '\\' ? 2 : 1;
       if (j < n && text[j] === c) { blank(bare, i + 1, j); i = j + 1; continue; }
