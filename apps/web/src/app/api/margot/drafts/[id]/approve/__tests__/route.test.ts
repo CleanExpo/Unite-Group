@@ -4,10 +4,14 @@ vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn() }))
 vi.mock('@/lib/margot/draft-store', () => ({ createMargotDraftStore: vi.fn() }))
 vi.mock('@/lib/margot/send-on-approval', () => ({ approveAndSend: vi.fn() }))
 vi.mock('@/lib/margot/providers', () => ({ sendStoredDraft: vi.fn() }))
+vi.mock('@/lib/error-reporting', () => ({
+  sanitiseError: vi.fn((_e: unknown, fallback: string) => fallback),
+}))
 
 import { getUser } from '@/lib/supabase/server'
 import { createMargotDraftStore } from '@/lib/margot/draft-store'
 import { approveAndSend } from '@/lib/margot/send-on-approval'
+import { ApprovalError } from '@/lib/margot/approval-gate'
 import { POST } from '../route'
 
 const getDraft = vi.fn()
@@ -61,11 +65,20 @@ describe('POST /api/margot/drafts/[id]/approve', () => {
     expect(approveAndSend).not.toHaveBeenCalled()
   })
 
-  it('returns 400 when approve/send throws (approval gate refusal)', async () => {
-    vi.mocked(approveAndSend).mockRejectedValue(new Error('draft not sendable'))
+  it('returns 400 when the approval gate refuses', async () => {
+    vi.mocked(approveAndSend).mockRejectedValue(new ApprovalError('draft not sendable'))
     const res = await POST(req({ via: 'ui' }), ctx)
     expect(res.status).toBe(400)
     expect(((await res.json()) as { error: string }).error).toBe('draft not sendable')
+  })
+
+  it('returns 502 with a generic message when the send fails (UNI-3079)', async () => {
+    vi.mocked(approveAndSend).mockRejectedValue(new Error('gmail 503: upstream token xyz'))
+    const res = await POST(req({ via: 'ui' }), ctx)
+    expect(res.status).toBe(502)
+    const json = (await res.json()) as { error: string }
+    expect(json.error).toBe('Failed to send draft')
+    expect(JSON.stringify(json)).not.toContain('gmail')
   })
 
   it('approves and sends for the founder', async () => {

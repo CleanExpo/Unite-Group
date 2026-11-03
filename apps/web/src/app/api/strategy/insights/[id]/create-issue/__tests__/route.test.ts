@@ -167,6 +167,31 @@ describe('POST /api/strategy/insights/[id]/create-issue', () => {
     expect(calls.updates[0].values).toEqual(expect.objectContaining({ status: 'acting' }))
     expect(calls.updates[0].eq).toContainEqual(['founder_id', 'user-123'])
   })
+
+  it('returns 500 (not 201) when advancing the insight status fails (UNI-3079)', async () => {
+    const { chain, calls } = makeDb([
+      { data: null, error: null },
+      { data: insight, error: null },
+      { data: { id: 'link-1' }, error: null },
+      { data: null, error: { message: 'update failed' } },
+    ])
+    vi.mocked(createClient).mockResolvedValue(chain as never)
+    vi.mocked(createIssue).mockResolvedValue({ id: 'L-1' })
+    const res = await POST(post({ acceptanceCriteria: 'ok' }), ctx)
+    expect(calls.updates).toHaveLength(1)
+    expect(res.status).toBe(500)
+    const json = (await res.json()) as { error: string; link: unknown }
+    expect(json.error).toBe('Issue created but the insight status was not updated.')
+    expect(json.link).toEqual({ id: 'link-1' })
+  })
+
+  it('returns 500 and creates no issue when the existing-link lookup fails (UNI-3079)', async () => {
+    const { chain } = makeDb([{ data: null, error: { message: 'db down' } }])
+    vi.mocked(createClient).mockResolvedValue(chain as never)
+    const res = await POST(post({ acceptanceCriteria: 'ok' }), ctx)
+    expect(res.status).toBe(500)
+    expect(createIssue).not.toHaveBeenCalled()
+  })
 })
 
 describe('GET /api/strategy/insights/[id]/create-issue', () => {

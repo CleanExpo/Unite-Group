@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn() }))
 vi.mock('@/lib/kanban/store', () => ({ listTasks: vi.fn(), createTask: vi.fn() }))
+vi.mock('@/lib/error-reporting', () => ({
+  sanitiseError: vi.fn((_e: unknown, fallback: string) => fallback),
+}))
 
 import { getUser } from '@/lib/supabase/server'
 import { listTasks, createTask } from '@/lib/kanban/store'
@@ -49,6 +52,15 @@ describe('POST /api/kanban/cards', () => {
     )
     expect(await res.json()).toEqual({ id: 'new-id', status: 'blocked' })
   })
+
+  it('returns 500 with a generic message when the store fails (UNI-3079)', async () => {
+    vi.mocked(createTask).mockRejectedValue(new Error('kanban_task insert: permission denied'))
+    const res = await POST(req({ title: 'x' }))
+    expect(res.status).toBe(500)
+    const json = (await res.json()) as { error: string }
+    expect(json.error).toBe('Failed to create card')
+    expect(JSON.stringify(json)).not.toContain('permission')
+  })
 })
 
 describe('GET /api/kanban/cards', () => {
@@ -72,5 +84,14 @@ describe('GET /api/kanban/cards', () => {
     const json = (await res.json()) as { columns: { id: string; tasks: unknown[] }[] }
     expect(json.columns.find(c => c.id === 'done')?.tasks).toHaveLength(1)
     expect(json.columns.find(c => c.id === 'todo')?.tasks).toHaveLength(0)
+  })
+
+  it('returns 500 with a generic message when the store fails (UNI-3079)', async () => {
+    vi.mocked(listTasks).mockRejectedValue(new Error('kanban_task list: permission denied'))
+    const res = await GET()
+    expect(res.status).toBe(500)
+    const json = (await res.json()) as { error: string }
+    expect(json.error).toBe('Failed to load cards')
+    expect(JSON.stringify(json)).not.toContain('permission')
   })
 })
