@@ -1,5 +1,5 @@
 // Unite Group SMB growth packages shown on the public /grow page.
-// Prices are AUD and exclude GST. Change them here only; the page and its tests read this list.
+// Prices are AUD and include GST (Phill, 03/11/2026). Change them here only; the page and its tests read this list.
 
 export type GrowPackage = {
   id: 'local-growth' | 'website-found' | 'lead-machine'
@@ -17,8 +17,8 @@ export const GROW_PACKAGES: readonly GrowPackage[] = [
     id: 'local-growth',
     name: 'Local Growth',
     pitch: 'Answer every enquiry and earn more 5-star reviews.',
-    setupAud: 495,
-    monthlyAud: 397,
+    setupAud: 549,
+    monthlyAud: 439,
     includes: [
       '24/7 AI chat on your website that answers questions and captures every enquiry',
       'Google Business Profile set up and kept active',
@@ -31,8 +31,8 @@ export const GROW_PACKAGES: readonly GrowPackage[] = [
     id: 'website-found',
     name: 'Website + Found',
     pitch: 'A fast new website that search engines and AI assistants can read.',
-    setupAud: 2495,
-    monthlyAud: 497,
+    setupAud: 2749,
+    monthlyAud: 549,
     includes: [
       'Everything in Local Growth',
       '5-page website with chat and lead capture, hosting and care',
@@ -45,8 +45,8 @@ export const GROW_PACKAGES: readonly GrowPackage[] = [
     id: 'lead-machine',
     name: 'Lead Machine',
     pitch: 'We run your online marketing every month.',
-    setupAud: 3995,
-    monthlyAud: 995,
+    setupAud: 4399,
+    monthlyAud: 1099,
     includes: [
       'Everything in Website + Found',
       'Monthly AI-answer checks (ChatGPT, Perplexity, Google) and fixes',
