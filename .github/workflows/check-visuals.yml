@@ -1,7 +1,7 @@
 name: check-visuals
 on:
   pull_request:
-    paths: ["**/*.tsx", "**/*.jsx", "**/*.ts", "**/*.js", "**/*.mdx", "**/*.html", "**/*.astro", "**/*.vue", "**/*.svelte", "**/*.css", "**/*.scss", "**/*.sass", "**/*.less", "**/public/**", "media.manifest.json", "visuals.config.json", "packages/premium-visuals/**", ".github/workflows/check-visuals.yml"]
+    paths: ["**/*.tsx", "**/*.jsx", "**/*.ts", "**/*.js", "**/*.html", "**/*.astro", "**/*.vue", "**/*.svelte", "**/*.css", "**/*.scss", "**/*.sass", "**/*.less", "**/*.mdx", "**/public/**", "media.manifest.json", "visuals.config.json", "packages/premium-visuals/**", ".github/workflows/check-visuals.yml"]
 permissions:
   contents: read
 jobs:
