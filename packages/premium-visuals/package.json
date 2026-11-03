@@ -11,7 +11,7 @@
     "generate-media": "bin/generate-media.mjs",
     "blender-render": "bin/blender-render.mjs"
   },
-  "scripts": { "test": "node --test test/*.test.mjs" },
+  "scripts": { "test": "node --test 'test/*.test.mjs'" },
   "peerDependencies": { "next": ">=14", "react": ">=18", "motion": ">=11", "embla-carousel-react": ">=8", "lucide-react": ">=0.300" },
   "peerDependenciesMeta": { "motion": { "optional": false }, "embla-carousel-react": { "optional": false } },
   "engines": { "node": ">=20" }
