@@ -77,6 +77,16 @@
   color: var(--pub-ink);
 }
 
+/* UNI-3240: the public shell's `.page a` (accent) weighs the same as `.links a`, so whichever stylesheet
+   loaded last set the colour. The `ul` qualifier outranks it in any order. Colour only: layout stays above. */
+ul.links a {
+  color: var(--pub-ink-soft);
+}
+
+ul.links a:hover {
+  color: var(--pub-ink);
+}
+
 .links summary {
   list-style: none;
 }

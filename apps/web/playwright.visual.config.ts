@@ -62,6 +62,8 @@ export default defineConfig({
     { name: 'desktop', testMatch: 'order.visual.ts', use: { viewport: { width: 1440, height: 900 } } },
     { name: 'mobile', testMatch: 'order.visual.ts', use: { viewport: { width: 390, height: 844 } } },
     { name: 'coverage', testMatch: 'coverage.visual.ts', dependencies: ['desktop', 'mobile'] },
+    // UNI-3240: public link colours must not change when the stylesheet order does. No screenshots.
+    { name: 'link-colours', testMatch: 'link-colour-order.visual.ts', use: { viewport: { width: 1440, height: 900 } } },
   ],
   webServer: {
     command: `${build}pnpm exec next start -p ${PORT} -H 127.0.0.1`,
