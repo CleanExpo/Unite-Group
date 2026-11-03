@@ -35,6 +35,15 @@ describe('channel bots', () => {
     expect(r.metrics).toEqual({ clicks28d: 4, impressions28d: 90, avgPosition: 12.3 })
   })
 
+  it('search console bot never reports missing data as zeros', async () => {
+    const run = (body: unknown) => searchConsoleBot.run({ founderId: 'f', accountEmail: 'a', getGoogleToken: async () => 't', fetchImpl: (async () => json(body)) as unknown as typeof fetch })
+    const empty = await run({})
+    expect(empty.metrics).toEqual({ dataAvailable: 'no' })
+    expect(empty.actions[0].summary).not.toMatch(/0 clicks/)
+    const bad = await run({ rows: [{ clicks: 'x' }] })
+    expect(bad.status).toBe('error')
+  })
+
   it('reports not_connected when Google is not linked', async () => {
     const out = await runChannelBots({ founderId: 'f', accountEmail: 'a', getGoogleToken: async () => { throw new Error('x') } })
     expect(out.results.find((r) => r.bot === 'youtube')?.status).toBe('not_connected')

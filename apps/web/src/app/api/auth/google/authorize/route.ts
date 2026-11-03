@@ -7,6 +7,7 @@ import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { signOAuthState } from '@/lib/oauth-state'
 import { isGoogleConfigured } from '@/lib/integrations/google-oauth'
+import { withBrandScopes } from '@/lib/channel-bots/brand-scopes'
 
 const SCOPES = [
   'https://www.googleapis.com/auth/gmail.readonly',
@@ -16,10 +17,6 @@ const SCOPES = [
   // Drive (read-only) so a single Google connect also powers the Notes vault
   // (google-drive.ts). Requires the Drive API enabled + GOOGLE_DRIVE_VAULT_FOLDER_ID.
   'https://www.googleapis.com/auth/drive.readonly',
-  // Channel bots (UNI-3223): read-only YouTube + Search Console for the
-  // contact@unite-group.in brand account.
-  'https://www.googleapis.com/auth/youtube.readonly',
-  'https://www.googleapis.com/auth/webmasters.readonly',
   'openid',
   'email',
   'profile',
@@ -51,7 +48,7 @@ export async function GET(request: Request) {
     client_id: process.env.GOOGLE_CLIENT_ID!.trim(),
     redirect_uri: `${appUrl}/api/auth/google/callback`,
     response_type: 'code',
-    scope: SCOPES,
+    scope: withBrandScopes(SCOPES, email),
     access_type: 'offline',
     // `select_account` shows Google's account chooser so a DIFFERENT Google
     // account can be added — without it Google silently rides the currently

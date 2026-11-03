@@ -69,6 +69,17 @@ describe('Google authorize route', () => {
     expect(location).toContain('gmail.readonly')
     expect(location).toContain('calendar.readonly')
     expect(location).toContain('drive.readonly')
+    // brand-only scopes are never requested for other accounts
+    expect(location).not.toContain('youtube.readonly')
+    expect(location).not.toContain('webmasters.readonly')
+  })
+
+  it('adds read-only YouTube + Search Console scopes only for the brand account', async () => {
+    const res = await authorize(new Request('https://app.test/api/auth/google/authorize?email=contact@unite-group.in'))
+    const location = res.headers.get('location') ?? ''
+    expect(location).toContain('youtube.readonly')
+    expect(location).toContain('webmasters.readonly')
+    expect(location).toContain('gmail.readonly')
   })
 
   it('uses the request origin for redirects when NEXT_PUBLIC_APP_URL is absent', async () => {
