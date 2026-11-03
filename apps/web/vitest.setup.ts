@@ -11,6 +11,10 @@ vi.mock('next/font/google', () => ({
     variable: 'font-syne-display-mock',
     className: 'font-syne-display-mock',
   }),
+  // @cleanexpo/premium-visuals fonts.ts (UNI-3215)
+  Fraunces: () => ({ variable: 'font-fraunces-mock', className: 'font-fraunces-mock' }),
+  Manrope: () => ({ variable: 'font-manrope-mock', className: 'font-manrope-mock' }),
+  JetBrains_Mono: () => ({ variable: 'font-jetbrains-mono-mock', className: 'font-jetbrains-mono-mock' }),
 }));
 
 // Voice mission provenance is an HMAC keyed on a server-side secret, and

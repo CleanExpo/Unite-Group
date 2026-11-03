@@ -1,5 +1,17 @@
 /* /bots: layout on top of marketing-page.module.css. Tokens from public-tokens.css. No drawn art: pictures are real files only. */
 
+/* premium-visuals type tokens point at the site's own brand fonts (AGENTS.md rule 4: the approved brand system). */
+.page {
+  --pv-font-display: var(--pub-display);
+  --pv-font-body: var(--pub-font);
+  --pv-font-mono: var(--pub-mono);
+}
+
+/* Keep the cafe owner in frame when the wide hero photo is cropped on a narrow screen. */
+.hero img {
+  object-position: 35% center;
+}
+
 .grid {
   display: grid;
   gap: clamp(16px, 2.5vw, 24px);
@@ -18,7 +30,12 @@
   }
 }
 
+.gridItem {
+  display: flex;
+}
+
 .card {
+  flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -33,6 +50,7 @@
 
 .picture {
   margin: 0;
+  overflow: hidden;
   border-bottom: 1px solid var(--pub-line);
 }
 

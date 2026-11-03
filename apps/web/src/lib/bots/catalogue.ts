@@ -4,12 +4,17 @@
 // - No prices. None are approved for bots, so no card, schema entry or reply may carry one.
 // - Only what is live is called live. Lead follow-up is the one bot a visitor can try in this release;
 //   every other card says "Demo coming soon".
-// - A picture or video slot with a null src renders nothing: the page never shows a drawn stand-in
-//   (premium-visuals standard). Add the approved photoreal file and set src, width and height to switch it on.
+// - Every picture is a real file listed in media.manifest.json, the one home for its alt text, source and
+//   credit (premium-visuals standard). A video slot with a null src renders nothing, never a drawn stand-in.
+
+import type { MediaEntry, MediaManifest } from '@cleanexpo/premium-visuals/manifest'
+
+import manifestJson from '../../../../../media.manifest.json'
 
 export type BotStatus = 'live' | 'coming-soon'
 
-export type BotMediaSlot = { name: string; src: string | null; width: number; height: number; alt: string }
+/** A named picture slot holding a media manifest entry. */
+export type BotMediaSlot = { name: string; media: MediaEntry }
 
 /** An explainer video. A null src renders nothing and emits no VideoObject. */
 export type BotVideoSlot = {
@@ -37,7 +42,19 @@ export const BOTS_PAGE_PATH = '/bots'
 /** The lead follow-up card's live demo sits in this section of /bots. */
 export const LEAD_DEMO_ANCHOR = 'try-lead-follow-up'
 
-const slot = (name: string, alt: string): BotMediaSlot => ({ name, src: null, width: 1600, height: 1000, alt })
+const MANIFEST = manifestJson as unknown as MediaManifest
+
+/** The manifest entry for a public file. A missing entry fails the build, so no unlisted picture can ship. */
+export function manifestMedia(src: string): MediaEntry {
+  const entry = MANIFEST.entries.find((e) => e.src === src)
+  if (!entry) throw new Error(`media.manifest.json has no entry for ${src}`)
+  return entry
+}
+
+const picture = (id: string): BotMediaSlot => ({ name: `bots-${id}`, media: manifestMedia(`/bots/visuals/${id}-1600.webp`) })
+
+/** The /bots hero photo (Higgsfield generated, Australian small-business setting). */
+export const BOTS_HERO: MediaEntry = manifestMedia('/bots/visuals/hero-1600.webp')
 
 const noVideo = (name: string, title: string): BotVideoSlot => ({
   name,
@@ -60,13 +77,7 @@ export const BOTS: readonly Bot[] = [
       'Puts the lead in your inbox with their name, email, phone and need',
     ],
     status: 'live',
-    image: {
-      name: 'bots-lead-follow-up',
-      src: '/landing/visuals/nexus-1280.webp',
-      width: 1280,
-      height: 714,
-      alt: 'The CRM inbox showing new leads and their next steps',
-    },
+    image: picture('lead-follow-up'),
     video: noVideo('bots-lead-follow-up-explainer', 'Lead follow-up bot explainer'),
   },
   {
@@ -79,7 +90,7 @@ export const BOTS: readonly Bot[] = [
       'Sends you a short written summary of every call',
     ],
     status: 'coming-soon',
-    image: slot('bots-front-desk-voice', 'A cafe owner behind the counter while a call is answered for them'),
+    image: picture('front-desk-voice'),
     video: noVideo('bots-front-desk-voice-explainer', 'Front desk voice bot explainer'),
   },
   {
@@ -92,7 +103,7 @@ export const BOTS: readonly Bot[] = [
       'Moves or cancels a booking when the customer asks',
     ],
     status: 'coming-soon',
-    image: slot('bots-bookings', 'A salon owner checking the day ahead on a tablet at the front desk'),
+    image: picture('bookings'),
     video: noVideo('bots-bookings-explainer', 'Bookings bot explainer'),
   },
   {
@@ -105,7 +116,7 @@ export const BOTS: readonly Bot[] = [
       'Hands anything unusual to you with the full conversation',
     ],
     status: 'coming-soon',
-    image: slot('bots-product-order', 'A retail shop owner packing an order at a bright workbench'),
+    image: picture('product-order'),
     video: noVideo('bots-product-order-explainer', 'Product and order bot explainer'),
   },
   {
@@ -118,7 +129,7 @@ export const BOTS: readonly Bot[] = [
       'Flags an unhappy customer to you quickly',
     ],
     status: 'coming-soon',
-    image: slot('bots-reviews', 'A clinic receptionist smiling at a patient on their way out'),
+    image: picture('reviews'),
     video: noVideo('bots-reviews-explainer', 'Reviews bot explainer'),
   },
 ]

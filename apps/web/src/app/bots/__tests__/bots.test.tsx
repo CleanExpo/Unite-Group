@@ -9,7 +9,9 @@ vi.mock('@/components/analytics/site-tracker', () => ({ trackSiteEvent: vi.fn() 
 
 import { trackSiteEvent } from '@/components/analytics/site-tracker'
 import sitemap from '@/app/sitemap'
-import { BOTS, LEAD_DEMO_ANCHOR } from '@/lib/bots/catalogue'
+import { validateManifest, type MediaManifest } from '@cleanexpo/premium-visuals/manifest'
+import { BOTS, BOTS_HERO, LEAD_DEMO_ANCHOR } from '@/lib/bots/catalogue'
+import manifestJson from '../../../../../../media.manifest.json'
 import { botsPageJsonLd } from '@/lib/bots/jsonld'
 import { TRACKED_PATHS } from '@/lib/analytics/site-events'
 import { PUBLIC_ROUTES } from '@/lib/public-site'
@@ -24,7 +26,14 @@ const text = words(html)
 /** The page's own copy. The shared nav and footer link to /pricing, which is a link label, not a price. */
 const mainText = words(html.match(/<main[\s\S]*<\/main>/)?.[0] ?? '')
 
-const BANNED = /\b(leverage|unleash|transformative|holistic|synergy|journey|guaranteed|leading|best)\b/i
+const MANIFEST = manifestJson as unknown as MediaManifest
+/** next/image serves /_next/image?url=<file>&w=...; the file is what must exist. */
+const imageFile = (src: string) => {
+  const decoded = src.replace(/&amp;/g, '&')
+  return decoded.startsWith('/_next/image') ? new URL(decoded, 'https://x').searchParams.get('url') ?? '' : decoded
+}
+
+const BANNED =/\b(leverage|unleash|transformative|holistic|synergy|journey|guaranteed|leading|best)\b/i
 const EMOJI = /\p{Extended_Pictographic}/u
 const PRICE = /\$\s?\d|\bGST\b|\d\s?(?:dollars|aud)\b|per month|\bpric(?:e|es|ing)\b/i
 const METHOD = /\b(?:schema|structured data|json-?ld|seo|aeo|geo|search visibility|ai search|rank(?:ing|ings)?)\b/i
@@ -69,14 +78,35 @@ describe('/bots page', () => {
     expect(JSON.stringify(metadata)).not.toMatch(METHOD)
   })
 
-  it('draws nothing: no SVG, no canvas, and every picture is a real file', () => {
+  it('draws nothing: no SVG, no canvas, and every picture is a real file listed in the media manifest', () => {
     expect(html).not.toMatch(/<svg|<canvas/i)
-    for (const src of [...html.matchAll(/<img [^>]*src="([^"]+)"/g)].map((m) => m[1])) {
+    // The shared nav and footer carry the logo mark; every picture inside <main> is page media.
+    const mainHtml = html.match(/<main[\s\S]*<\/main>/)?.[0] ?? ''
+    const srcs = [...mainHtml.matchAll(/<img [^>]*src="([^"]+)"/g)].map((m) => imageFile(m[1]))
+    expect(srcs.length).toBe(BOTS.length + 1)
+    const listed = new Set(MANIFEST.entries.map((e) => e.src))
+    for (const src of srcs) {
+      expect(listed.has(src), src).toBe(true)
       expect(readFileSync(join(__dirname, '..', '..', '..', '..', 'public', src)).length).toBeGreaterThan(1000)
     }
-    // Empty picture and video slots render nothing.
-    for (const bot of BOTS.filter((b) => !b.image.src)) expect(html).not.toContain(`data-image-slot="${bot.image.name}"`)
     expect(html).not.toContain('<video')
+  })
+
+  it('meets the premium visual standard: a photo hero, a motion section and one generated picture per bot', () => {
+    expect(validateManifest(MANIFEST)).toEqual([])
+    const hero = html.match(/<header data-pv-hero[\s\S]*?<\/header>/)?.[0] ?? ''
+    expect(hero).toContain('<h1')
+    expect(hero).toMatch(/<img [^>]*src="[^"]*bots%2Fvisuals%2Fhero-1600\.webp/)
+    expect(BOTS_HERO.source).toBe('generated')
+    // Hero motion alone does not count: the bot team grid is its own motion section.
+    expect(html.replace(hero, '')).toContain('data-pv-motion')
+    for (const bot of BOTS) {
+      const card = html.match(new RegExp(`<article id="${bot.id}"[\\s\\S]*?</article>`))?.[0] ?? ''
+      expect(card, bot.id).toContain(`data-image-slot="${bot.image.name}"`)
+      expect(bot.image.media.src, bot.id).toBe(`/bots/visuals/${bot.id}-1600.webp`)
+      expect(bot.image.media.source, bot.id).toBe('generated')
+      expect(card, bot.id).toContain(`alt="${bot.image.media.alt}"`)
+    }
   })
 
   it('emits a Service per bot, no offers or prices, and a VideoObject only where a video exists', () => {

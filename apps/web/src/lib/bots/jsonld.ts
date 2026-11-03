@@ -35,7 +35,7 @@ export function botServiceJsonLd(bot: Bot) {
       { '@type': 'Country', name: 'Australia' },
       { '@type': 'Country', name: 'New Zealand' },
     ],
-    ...(bot.image.src ? { image: `${SITE_URL}${bot.image.src}` } : {}),
+    image: `${SITE_URL}${bot.image.media.src}`,
     ...(video ? { subjectOf: video } : {}),
   }
 }

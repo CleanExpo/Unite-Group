@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { MotionItem, MotionSection, PremiumHero, PremiumImage } from '@cleanexpo/premium-visuals'
 
 import { PublicPageShell } from '@/public/layout/public-page-shell'
 import { SiteFooter } from '@/public/site/site-footer'
@@ -6,7 +7,7 @@ import { SiteNav } from '@/public/site/site-nav'
 import { SectionIntro } from '@/public/section-intro'
 import m from '@/public/layout/marketing-page.module.css'
 import { serializeJsonLd } from '@/app/grow/packages'
-import { BOTS, BOTS_PAGE_PATH, LEAD_DEMO_ANCHOR, type Bot, type BotMediaSlot } from '@/lib/bots/catalogue'
+import { BOTS, BOTS_HERO, BOTS_PAGE_PATH, LEAD_DEMO_ANCHOR, type Bot, type BotMediaSlot } from '@/lib/bots/catalogue'
 import { botsPageJsonLd } from '@/lib/bots/jsonld'
 import { SITE_URL } from '@/lib/public-site'
 
@@ -26,13 +27,12 @@ export const metadata: Metadata = {
   openGraph: { title: TITLE, description: DESCRIPTION, url: PAGE_URL },
 }
 
-/** One named picture. An empty slot renders nothing, never a drawn stand-in. */
+/** One named picture from the media manifest (premium-visuals PremiumImage: next/image, lazy, sized). */
 function BotImage({ slot }: { slot: BotMediaSlot }) {
-  if (!slot.src) return null
   return (
-    <figure className={s.picture} data-image-slot={slot.name}>
-      <img src={slot.src} alt={slot.alt} width={slot.width} height={slot.height} loading="lazy" decoding="async" />
-    </figure>
+    <div className={s.picture} data-image-slot={slot.name}>
+      <PremiumImage media={slot.media} sizes="(min-width: 1180px) 33vw, (min-width: 760px) 50vw, 100vw" />
+    </div>
   )
 }
 
@@ -90,8 +90,22 @@ export default function BotsPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(botsPageJsonLd()) }} />
       <SiteNav />
 
-      <main id="main" className={m.main}>
-        <section className={m.heroBand}>
+      <main id="main" className={`${m.main} ${s.page}`}>
+        <div className={s.hero}>
+          <PremiumHero
+            media={BOTS_HERO}
+            eyebrow="For small business owners"
+            title="Bots that answer your customers while you get on with the work."
+            lede="A cafe owner mid-rush, a clinic between patients, a salon with every chair full: the enquiry still gets a reply. Each Unite Group bot does one job well. The lead follow-up bot is live below, so you can try it yourself."
+            actions={
+              <a href={`#${LEAD_DEMO_ANCHOR}`} className={m.btnPrimary} data-track="cta" data-track-label="bots-hero-try-lead-follow-up">
+                Try the lead follow-up bot
+              </a>
+            }
+          />
+        </div>
+
+        <section className={m.section} aria-labelledby="bots-team">
           <div className={m.wrap}>
             <nav aria-label="Breadcrumb">
               <ol className={m.crumbs}>
@@ -99,28 +113,14 @@ export default function BotsPage() {
                 <li aria-current="page">Bots</li>
               </ol>
             </nav>
-            <SectionIntro
-              as="h1"
-              eyebrow="For small business owners"
-              title="Bots that answer your customers while you get on with the work."
-              lead="A cafe owner mid-rush, a clinic between patients, a salon with every chair full: the enquiry still gets a reply. Each Unite Group bot does one job well. The lead follow-up bot is live below, so you can try it yourself."
-            />
-            <div className={m.actions}>
-              <a href={`#${LEAD_DEMO_ANCHOR}`} className={m.btnPrimary} data-track="cta" data-track-label="bots-hero-try-lead-follow-up">
-                Try the lead follow-up bot
-              </a>
-            </div>
-          </div>
-        </section>
-
-        <section className={m.section} aria-labelledby="bots-team">
-          <div className={m.wrap}>
             <SectionIntro id="bots-team" title="The bot team" lead="One card per bot. Only the lead follow-up bot has a live demo today; the others are on the way." />
-            <div className={s.grid}>
+            <MotionSection as="div" effect="stagger" className={s.grid}>
               {BOTS.map((bot) => (
-                <BotCard key={bot.id} bot={bot} />
+                <MotionItem key={bot.id} className={s.gridItem}>
+                  <BotCard bot={bot} />
+                </MotionItem>
               ))}
-            </div>
+            </MotionSection>
           </div>
         </section>
 
