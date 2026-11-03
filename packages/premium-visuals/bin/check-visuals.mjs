@@ -121,9 +121,9 @@ function main() {
   // logo/icon/brand-mark name. A folder such as icons/ or logos/ never excuses an illustration.
   const BRAND_NAME = /(^|[-_.\s])(logo|logos|icon|icons|favicon|apple-touch-icon|og|opengraph|opengraph-image|twitter-image|mark|wordmark|badge-official|flag)([-_.\s@]|$)/i;
   const brandAsset = (p) => BRAND_NAME.test(path.basename(p));
-  // Manifest exemption is narrower: only a file whose own name says it is a logo, icon or share
-  // image. A folder name (/logos/banner.webp) or a word such as "flag" never excuses ordinary media.
-  const BRAND_MEDIA = /(^|[-_.\s])(logo|logos|icon|icons|favicon|apple-touch-icon|apple-icon|og|opengraph|opengraph-image|twitter-image)([-_.\s@]|$)/i;
+  // Manifest exemption: the same whole-word brand names (plus apple-icon), by the file's own name
+  // only. A folder name (/logos/banner.webp) never excuses ordinary media.
+  const BRAND_MEDIA = /(^|[-_.\s])(logo|logos|icon|icons|favicon|apple-touch-icon|apple-icon|og|opengraph|opengraph-image|twitter-image|mark|wordmark|badge-official|flag)([-_.\s@]|$)/i;
   const brandMedia = (p) => BRAND_MEDIA.test(path.basename(p));
   // Only a path that stays inside a public dir counts as found there.
   const findPublic = (src) => cfg.publicDirs.map((d) => {
@@ -456,8 +456,40 @@ function tagEnd(bare, start) {
   return bare.length;
 }
 
-// `void <anything>` is always undefined, so it renders nothing either.
-const EMPTY_VALUE = /^(undefined|null|false|true|0|void\b[\s\S]*|'\s*'|"\s*"|`\s*`|\[\s*\]|\{\s*\})?$/;
+const EMPTY_VALUE = /^(undefined|null|false|true|0|'\s*'|"\s*"|`\s*`|\[\s*\]|\{\s*\})?$/;
+
+/**
+ * True when an attribute value renders nothing. `void <operand>` is always undefined, but only a
+ * whole void expression counts: in `void 0 ? "" : "/media/a.avif"` or `void 0 ?? x` the operator
+ * after it gives the real value.
+ */
+function isEmptyValue(value) {
+  if (EMPTY_VALUE.test(value)) return true;
+  const m = /^void\b\s*([\s\S]+)$/.exec(value);
+  return Boolean(m) && isSingleOperand(m[1]);
+}
+
+/** True when `s` is one operand: no binary, ternary or comma operator outside brackets and strings. */
+function isSingleOperand(s) {
+  let depth = 0;
+  let afterOperand = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c === '"' || c === "'" || c === '`') {
+      let j = i + 1;
+      while (j < s.length && s[j] !== c) j += s[j] === '\\' ? 2 : 1;
+      if (j >= s.length) return false;
+      i = j; afterOperand = depth === 0 || afterOperand; continue;
+    }
+    if ('([{'.includes(c)) { depth++; continue; }
+    if (')]}'.includes(c)) { depth--; if (depth === 0) afterOperand = true; continue; }
+    if (depth > 0 || /\s/.test(c)) continue;
+    if (/[\w$.]/.test(c)) { afterOperand = true; continue; }
+    if ('?|&,*/%<>=^'.includes(c)) return false;
+    if ((c === '+' || c === '-') && afterOperand) return false;
+  }
+  return depth === 0;
+}
 // A JSX tag name ends here: <PremiumHero.Fake> or <MotionSectionX> is another component, not this one.
 const NAME_END = String.raw`(?![\w.$:-])`;
 const MOTION_TAG = new RegExp(String.raw`<MotionSection${NAME_END}`);
@@ -474,7 +506,7 @@ function hasNonEmptyAttr(code, bare, start, names) {
     if (opener === '{') value = code.slice(vStart + 1, matchBrace(bare, vStart)).trim();
     else if (opener === '"' || opener === "'") value = code.slice(vStart + 1, code.indexOf(opener, vStart + 1)).trim();
     else continue;
-    if (!EMPTY_VALUE.test(value)) return true;
+    if (!isEmptyValue(value)) return true;
   }
   return false;
 }

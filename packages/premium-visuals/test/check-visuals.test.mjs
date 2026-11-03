@@ -82,6 +82,16 @@ test('media={void(anything)} is empty: void always gives undefined', () => {
     assert.equal(code, 1, v); assert.ok(out.byRule['hero-missing-media'], v);
   }
 });
+test('a void expression with an operator after it gives that value, so it is real media', () => {
+  const files = {
+    'media.manifest.json': JSON.stringify({ version: 1, entries: [entry('/media/hero/a.avif')] }),
+    'public/media/hero/a.avif': 'x',
+  };
+  for (const v of ['{void 0 ? "" : "/media/hero/a.avif"}', '{void 0 ?? "/media/hero/a.avif"}', "{void 0 || m('/media/hero/a.avif')}", '{(void 0, "/media/hero/a.avif")}']) {
+    const { code, out } = run({ ...files, 'app/page.tsx': `<PremiumHero media=${v} title="t"/><MotionSection>x</MotionSection>` });
+    assert.equal(code, 0, v + ' ' + JSON.stringify(out.violations));
+  }
+});
 test('a member component named like PremiumHero or MotionSection is not one', () => {
   const files = {
     'media.manifest.json': JSON.stringify({ version: 1, entries: [entry('/media/hero/a.avif')] }),
@@ -178,8 +188,8 @@ test('an icons/ or logos/ folder does not excuse an SVG illustration', () => {
     assert.ok(!out.byRule['svg-asset'], p + ' ' + JSON.stringify(out.violations));
   }
 });
-test('a logos/ or icons/ folder, or a word like flag, does not excuse ordinary media from the manifest', () => {
-  for (const p of ['/logos/ordinary.webp', '/icons/ordinary.webp', '/media/banner-flag.webp']) {
+test('a logos/ or icons/ folder, or a brand word inside another word, does not excuse ordinary media from the manifest', () => {
+  for (const p of ['/logos/ordinary.webp', '/icons/ordinary.webp', '/media/flagship.webp', '/media/benchmark.webp']) {
     const { code, out } = run({
       'media.manifest.json': JSON.stringify({ version: 1, entries: [] }),
       [`public${p}`]: 'x',
@@ -194,6 +204,11 @@ test('a logos/ or icons/ folder, or a word like flag, does not excuse ordinary m
   });
   assert.ok(!logo.out.byRule['unmanifested-media'], JSON.stringify(logo.out.violations));
   assert.ok(!logo.out.byRule['unmanifested-public-media'], JSON.stringify(logo.out.violations));
+  // Positive controls: main's whole-word brand names still excuse a file by its own name.
+  for (const name of ['company-wordmark.webp', 'brand-mark.png', 'badge-official.webp', 'au-flag.webp']) {
+    const r = run({ 'media.manifest.json': JSON.stringify({ version: 1, entries: [] }), [`public/media/${name}`]: 'x' });
+    assert.ok(!r.out.byRule['unmanifested-public-media'], name + ' ' + JSON.stringify(r.out.violations));
+  }
 });
 test('a backslash path cannot point a manifest entry outside public/', () => {
   const { code, out } = run({
