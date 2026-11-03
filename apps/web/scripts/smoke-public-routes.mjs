@@ -93,6 +93,8 @@ export const SMOKE_PATHS = Object.freeze([
   // Private by the proxy: anything not public redirects to the login page.
   { path: '/docs', pattern: '/docs', status: 307, location: LOGIN_PATH, note: 'private' },
   { path: '/preview/knowledge-console', pattern: '/preview/knowledge-console', status: 307, location: LOGIN_PATH, note: 'public only when KNOWLEDGE_CONSOLE_PREVIEW=1' },
+  { path: '/portal', pattern: '/portal', status: 307, location: LOGIN_PATH, note: 'owner portal home (UNI-3174): signed-out owners sign in first' },
+  { path: '/portal/verify', pattern: '/portal/verify', status: 307, location: LOGIN_PATH, note: 'owner second step (UNI-3174): signed-out owners sign in first' },
   { path: '/portal/changes', pattern: '/portal/changes', status: 307, location: LOGIN_PATH, note: 'owner portal (UNI-3168): signed-out owners sign in first' },
   { path: '/portal/setup', pattern: '/portal/setup', status: 307, location: LOGIN_PATH, note: 'owner portal (UNI-3168): signed-out owners sign in first' },
   // Metadata files from the brand pack beside the root layout.
@@ -255,7 +257,14 @@ export function checkCoverage({ discovered, entries, excluded, publicDir }) {
     .filter((entry) => entry.pattern !== null && !pathMatchesPattern(entry.path.split('?')[0], entry.pattern))
     .map((entry) => `smoke entry ${entry.path} cannot be an instance of its pattern ${entry.pattern}`);
 
-  return { uncovered, stale, mismatched, ok: uncovered.length + stale.length + mismatched.length === 0 };
+  // A route both smoked and excluded is checked two contradictory ways: its own entry (e.g. public, 200) and the
+  // excluded-page check (must redirect to sign in). The run cannot pass both, so the list is wrong (UNI-3174:
+  // '/portal/**' swallowed the public /portal/join).
+  const conflicted = [...discoveredPatterns]
+    .filter((pattern) => smoked.has(pattern) && excluded.some((rule) => excludedMatches(rule.pattern, pattern)))
+    .map((pattern) => `route ${pattern} is both smoked and excluded`);
+
+  return { uncovered, stale, mismatched, conflicted, ok: uncovered.length + stale.length + mismatched.length + conflicted.length === 0 };
 }
 
 /** Excluded page and route-handler patterns, each as a concrete request path that must redirect to the login page. */

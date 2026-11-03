@@ -14,8 +14,8 @@ export function decidePortalAccess(owner: PortalOwner | null): PortalAccess {
   return { kind: 'ok', owner }
 }
 
-/** Where the owner confirms the second factor. S1 owns that screen. SWAP: point at S1's route when it lands. */
-export const PORTAL_VERIFY_PATH = '/portal/verify'
+/** Where the owner confirms the second factor: S1's /portal/verify screen. One home, in lib/portal/paths. */
+export { PORTAL_VERIFY_PATH } from '../paths'
 
 export function signInPath(returnTo: string): string {
   return `/auth/login?redirectTo=${encodeURIComponent(returnTo)}`

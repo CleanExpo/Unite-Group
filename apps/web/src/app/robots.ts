@@ -7,7 +7,7 @@ import { SITE_URL } from '@/lib/public-site'
 // Policy (spec A-CRAWL, founder decision, Phill, 02/11/2026: "Yes, allow AI assistants on unite-group.in
 // via a reviewed PR"): the named AI assistants and their search and training crawlers may read the public
 // paths, /cards included. Crawlers not named there stay blocked.
-export const PRIVATE_PATHS = ['/founder/', '/api/', '/docs', '/auth/'] as const
+export const PRIVATE_PATHS = ['/founder/', '/api/', '/docs', '/auth/', '/portal'] as const
 
 export const AI_ASSISTANT_CRAWLERS = [
   'GPTBot',

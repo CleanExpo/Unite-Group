@@ -32,7 +32,7 @@ function RequestItem({ request }: { request: ChangeRequest }) {
         <span className={waiting ? `${u.chip} ${u.chipActive}` : u.chip}>{STATUS_LABEL[request.status]}</span>
       </div>
       <p className={u.meta}>
-        Sent {DATE.format(new Date(request.createdAt))}{request.photoPath ? ' · photo attached' : ''}
+        Sent {DATE.format(new Date(request.createdAt))}{request.photoPath ? ', photo attached' : ''}
       </p>
       <p className={u.body}>{request.requestText}</p>
       {request.editNote && request.status === 'in_progress' && (

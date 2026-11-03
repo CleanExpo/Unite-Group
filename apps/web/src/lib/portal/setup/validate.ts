@@ -67,7 +67,7 @@ export function validateNotes(raw: unknown): Checked<string | null> {
   const text = typeof raw === 'string' ? raw.trim() : ''
   if (!text) return { ok: true, value: null }
   if (text.length > NOTES_MAX) return { ok: false, error: `Please keep notes under ${NOTES_MAX} characters.` }
-  if (KEY_SHAPED.test(text)) return { ok: false, error: 'Notes cannot hold a password, code or key. Please remove it.' }
+  if (KEY_SHAPED.test(text)) return { ok: false, error: 'Notes cannot hold a secret, code or key. Please remove it.' }
   return { ok: true, value: text }
 }
 

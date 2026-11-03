@@ -9,7 +9,7 @@ export default function Loading() {
       <main id="main" className={m.main}>
         <section className={m.section}>
           <div className={m.wrap}>
-            <p className={u.lede} role="status">Loading your checklist&hellip;</p>
+            <p className={u.lede} role="status">Loading your checklist...</p>
           </div>
         </section>
       </main>

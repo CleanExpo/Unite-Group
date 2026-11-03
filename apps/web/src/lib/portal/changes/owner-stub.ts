@@ -4,7 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 
 import type { Aal, Entitlements, PortalOwner, PortalPlan } from './types'
 
-// SWAP: replace with S1 getPortalOwner (branch feat/portal-foundation) once it is on main.
+// S1 (UNI-3174) adopted this getPortalOwner as THE portal owner check: /portal uses it too, so the pages and the row
+// rules (public.portal_owner_tenant_slug) agree on who an owner is.
 // SWAP: replace getEntitlements with S2 getEntitlements (branch feat/uni-3167-portal-invite-comp-plan) once it is on main.
 //
 // Until then this stub reads the signed-in Supabase session. The tenant comes ONLY from app_metadata.portal_tenant_slug:
