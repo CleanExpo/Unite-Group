@@ -3,6 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CARD_TIERS } from '@/app/cards/order/order-view'
 
 const sendEmail = vi.hoisted(() => vi.fn())
+// Account and seat set-up has its own suite (lib/card/__tests__/staff-provisioning.test.ts).
+const provisionCardOrder = vi.hoisted(() => vi.fn(async () => 'none'))
+vi.mock('@/lib/card/staff-provisioning', () => ({ provisionCardOrder }))
 // Only the send is replaced; the address helpers stay real, so a new or changed helper cannot drift from the mock.
 vi.mock('@/lib/integrations/mailtrap', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/integrations/mailtrap')>()),
@@ -83,6 +86,39 @@ describe('recordPaidCardOrder', () => {
     expect(Object.keys(row)).not.toContain('quantity')
   })
 
+  describe('account and seat set-up (UNI-3146)', () => {
+    beforeEach(() => {
+      provisionCardOrder.mockReset()
+      provisionCardOrder.mockImplementation(async () => 'none')
+    })
+    afterEach(() => provisionCardOrder.mockImplementation(async () => 'none'))
+
+    it('runs once for a new order, after the order is recorded', async () => {
+      expect(await recordPaidCardOrder(admin, event({ amount_total: 44900 }))).toBe('created')
+      expect(provisionCardOrder).toHaveBeenCalledExactlyOnceWith(admin, 'cs_test_a1')
+      expect(insert.mock.invocationCallOrder[0]).toBeLessThan(provisionCardOrder.mock.invocationCallOrder[0])
+    })
+
+    it('runs again on a redelivery, so a failed set-up heals, without a second order email', async () => {
+      insert.mockResolvedValue({ error: { code: '23505', message: 'duplicate' } })
+      expect(await recordPaidCardOrder(admin, event({ amount_total: 44900 }))).toBe('duplicate')
+      expect(provisionCardOrder).toHaveBeenCalledExactlyOnceWith(admin, 'cs_test_a1')
+      expect(sendEmail).not.toHaveBeenCalled()
+    })
+
+    it('lets a set-up failure throw, so the webhook answers 500 and Stripe retries', async () => {
+      provisionCardOrder.mockImplementation(async () => {
+        throw new Error('card account insert failed')
+      })
+      await expect(recordPaidCardOrder(admin, event({ amount_total: 44900 }))).rejects.toThrow('card account insert failed')
+    })
+
+    it('does not run for a session that is not a card order', async () => {
+      expect(await recordPaidCardOrder(admin, event({ amount_total: 100 }))).toBe('ignored')
+      expect(provisionCardOrder).not.toHaveBeenCalled()
+    })
+  })
+
   it('sends the order alert with its category and no tracking flag', async () => {
     expect(await recordPaidCardOrder(admin, event({ amount_total: 24900 }))).toBe('created')
     expect(sendEmail.mock.calls[0][0]).toMatchObject({ categories: ['card-order-alert'] })
@@ -95,7 +131,7 @@ describe('recordPaidCardOrder', () => {
     expect(sendEmail.mock.calls[0][0].to).toEqual({ email: 'contact@unite-group.in' })
   })
 
-  it.each([1, 2, 5])('records %i extra business(es) with tier extra_business and quantity', async (n) => {
+  it.each([1, 2, 5, 6, 25])('records %i staff card(s) with tier extra_business and quantity', async (n) => {
     expect(
       await recordPaidCardOrder(admin, event({ amount_total: 19900 * n, payment_link: 'plink_extra' }, false)),
     ).toBe('created')
@@ -104,19 +140,18 @@ describe('recordPaidCardOrder', () => {
     expect(row.quantity).toBe(n)
     expect(row.amount_total).toBe(19900 * n)
     const mail = sendEmail.mock.calls[0][0] as { subject: string; text: string }
-    expect(mail.subject).toBe(`[TEST] New paid card order: Extra business${n > 1 ? ` x${n}` : ''}`)
-    expect(mail.text).toContain(n === 1 ? '1 extra business ' : `${n} extra businesses`)
+    expect(mail.subject).toBe(`[TEST] New paid card order: Staff card${n > 1 ? ` x${n}` : ''}`)
+    expect(mail.text).toContain(n === 1 ? '1 staff card ' : `${n} staff cards`)
     expect(mail.text).toContain(`A$${199 * n}`)
   })
 
   it.each([
-    ['six (over the cap)', { amount_total: 119400, payment_link: 'plink_extra' }],
     ['a non-multiple', { amount_total: 20000, payment_link: 'plink_extra' }],
     ['a non-allowlisted link at 39800', { amount_total: 39800, payment_link: 'plink_other' }],
     ['zero', { amount_total: 0, payment_link: 'plink_extra' }],
     ['non-AUD', { amount_total: 19900, currency: 'usd', payment_link: 'plink_extra' }],
     ['unpaid', { amount_total: 19900, payment_status: 'unpaid', payment_link: 'plink_extra' }],
-    ['a tier link at 39800 (discounted Made for you)', { amount_total: 39800, payment_link: 'plink_card' }],
+    ['a tier link at 39800 (discounted Business Pack)', { amount_total: 39800, payment_link: 'plink_card' }],
     ['a tier link at 19900 (discounted Ready)', { amount_total: 19900, payment_link: 'plink_card' }],
     ['the add-on link at a tier price (44900)', { amount_total: 44900, payment_link: 'plink_extra' }],
     ['a discounted add-on (17910)', { amount_total: 17910, payment_link: 'plink_extra' }],
@@ -125,15 +160,15 @@ describe('recordPaidCardOrder', () => {
     expect(insert).not.toHaveBeenCalled()
   })
 
-  it('records 2 extra businesses at 39800 on the add-on link', async () => {
+  it('records 2 staff cards at 39800 on the add-on link', async () => {
     expect(await recordPaidCardOrder(admin, event({ amount_total: 39800, payment_link: 'plink_extra' }))).toBe('created')
     expect(insert.mock.calls[0][0]).toMatchObject({ tier: 'extra_business', quantity: 2 })
   })
 
-  it('warns when the add-on link pays an amount that is not 1 to 5 x A$199', async () => {
+  it('warns when the add-on link pays an amount that is not a whole number of A$199', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     await recordPaidCardOrder(admin, event({ amount_total: 17910, payment_link: 'plink_extra' }))
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('extra-business link did not match 1 to 5 x A$199'))
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('extra-business link did not match a whole number of A$199 staff cards'))
     warn.mockRestore()
   })
 

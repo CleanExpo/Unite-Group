@@ -22,7 +22,7 @@ export const INTAKE_REMINDER_AFTER_DAYS = 3
 export const REVIEW_REQUEST_AFTER_DAYS = 21
 export const MAX_ORDER_AGE_DAYS = 60
 
-const TIER_NAMES: Record<string, string> = { ready: 'Ready-made', custom: 'Made for you' }
+const TIER_NAMES: Record<string, string> = { ready: 'Starter pack', custom: 'Business Pack' }
 
 export interface FollowUpOrder {
   id: string

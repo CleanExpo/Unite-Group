@@ -29,7 +29,7 @@ import { CARD_EXTRA_BUSINESS } from '@/app/cards/order/order-view'
 import { leadAlertEmailTo, mailtrapFromEmail, sendEmail } from '@/lib/integrations/mailtrap'
 import { createServiceClient } from '@/lib/supabase/service'
 
-/** The film values the thank-you form may send: any showroom edition, or Made for you (no film picked). */
+/** The film values the thank-you form may send: any showroom edition, or Business Pack (no film picked). */
 export const MADE_FOR_YOU = 'made-for-you'
 export const FILM_CHOICES: readonly string[] = [...EDITIONS.map((e) => e.name), MADE_FOR_YOU]
 
@@ -51,7 +51,7 @@ function text(value: unknown, max: number): string | null {
 }
 
 /**
- * The alert's extra-business line. An add-on is its own payment, not linked to the main order, so it is matched by
+ * The alert's staff-card line (UNI-3146: the A$199 add-on is a staff card). An add-on is its own payment, not linked to the main order, so it is matched by
  * buyer email within the same founder and the same Stripe mode. Every card_orders row is a paid session. Never
  * throws and never waits long: this runs after the claim, so a read that hangs would otherwise strand the alert (a
  * retry gets 409). A failed or slow lookup says so rather than reading as zero, and the alert still goes.
@@ -63,7 +63,7 @@ async function extraBusinessLine(
   order: { founder_id: string; livemode: boolean },
   buyerEmail: string,
 ): Promise<string> {
-  const label = 'Extra businesses paid with this email'
+  const label = 'Staff cards paid with this email'
   let timer: ReturnType<typeof setTimeout> | undefined
   try {
     const email = buyerEmail.trim().toLowerCase()
@@ -83,10 +83,10 @@ async function extraBusinessLine(
     const rows = (data as Array<{ customer_email: string | null; quantity: number }>).filter(
       (row) => row.customer_email?.trim().toLowerCase() === email,
     )
-    const businesses = rows.reduce((sum, row) => sum + row.quantity, 0)
-    if (!Number.isInteger(businesses)) throw new Error('bad quantity')
+    const cards = rows.reduce((sum, row) => sum + row.quantity, 0)
+    if (!Number.isInteger(cards)) throw new Error('bad quantity')
     if (rows.length === 0) return `${label}: 0`
-    return `${label}: ${businesses} (${rows.length} ${rows.length === 1 ? 'payment' : 'payments'})`
+    return `${label}: ${cards} (${rows.length} ${rows.length === 1 ? 'payment' : 'payments'})`
   } catch (err) {
     console.error('[cards/intake] extra-business lookup failed:', err instanceof Error ? err.message : err)
     return `${label}: could not be checked`
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
   }
   if (existing.length > 0) return NextResponse.json({ error: 'We already have your details for this order' }, { status: 409 })
 
-  const filmLabel = film === MADE_FOR_YOU ? 'Made for you (no film chosen)' : (EDITIONS.find((e) => e.name === film)?.label ?? film)
+  const filmLabel = film === MADE_FOR_YOU ? 'Business Pack (no film chosen)' : (EDITIONS.find((e) => e.name === film)?.label ?? film)
   const lines = [
     `Order reference: ${sessionId}`,
     `Tier: ${order.tier ?? 'unknown'}`,

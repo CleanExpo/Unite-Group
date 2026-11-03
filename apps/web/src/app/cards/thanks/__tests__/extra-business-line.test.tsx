@@ -12,15 +12,15 @@ afterEach(() => {
   vi.unstubAllEnvs()
 })
 
-describe('/cards/thanks extra-business line', () => {
-  it('says one business per card and states the real price', () => {
+describe('/cards/thanks staff-card line (UNI-3146)', () => {
+  it('says one card per person and states the real staff-card price', () => {
     const { container } = render(createElement(IntakeForm, { reference: 'cs_test_a1' }))
-    expect(container.textContent).toContain(`One business per card; extra businesses are A$${CARD_EXTRA_BUSINESS.priceAud} each`)
+    expect(container.textContent).toContain(`One card per person; staff cards are A$${CARD_EXTRA_BUSINESS.priceAud} each`)
   })
 
   it('links to the option on the order page, in a new tab so the half-filled form survives', () => {
     render(createElement(IntakeForm, { reference: 'cs_test_a1' }))
-    const link = screen.getByRole('link', { name: /extra businesses are/ })
+    const link = screen.getByRole('link', { name: /staff cards are/ })
     expect(link.getAttribute('href')).toBe('/cards/order#extra-business')
     expect(link.getAttribute('target')).toBe('_blank')
   })

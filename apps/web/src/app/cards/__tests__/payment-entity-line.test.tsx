@@ -43,10 +43,10 @@ describe('payment entity line beside the pay buttons', () => {
   })
 
   it('shows the line beside the extra-business pay link once it appears', () => {
-    render(createElement(ExtraBusiness, { link: 'https://buy.stripe.com/test_extra', priceAud: 199, maxQuantity: 5 }))
+    render(createElement(ExtraBusiness, { link: 'https://buy.stripe.com/test_extra', priceAud: 199 }))
     expect(screen.queryByText(LINE)).toBeNull()
-    fireEvent.click(screen.getByLabelText('One more extra business'))
-    expect(screen.getByText('Pay for 1 extra business')).toBeTruthy()
+    fireEvent.click(screen.getByLabelText('One more staff card'))
+    expect(screen.getByText('Pay for 1 staff card')).toBeTruthy()
     expect(screen.getByText(LINE)).toBeTruthy()
   })
 })

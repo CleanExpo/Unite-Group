@@ -53,7 +53,7 @@ describe('/cards/thanks', () => {
     expect(html).not.toMatch(/card number|cvc|expiry/)
   })
 
-  it('offers every showroom edition plus Made for you, and tells the buyer to email the logo if they have no link', async () => {
+  it('offers every showroom edition plus Business Pack, and tells the buyer to email the logo if they have no link', async () => {
     const html = await render({ session_id: 'cs_test_a1' })
     const options = [...html.matchAll(/<option value="([^"]*)"/g)].map((m) => m[1])
     expect(options).toEqual(['', ...EDITIONS.map((e) => e.name), 'made-for-you'])
