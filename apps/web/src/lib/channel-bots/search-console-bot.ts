@@ -33,7 +33,9 @@ export const searchConsoleBot: ChannelBot = {
       return { bot: 'search-console', status: 'ok', metrics: { dataAvailable: 'no' }, actions: [{ bot: 'search-console', kind: 'report', summary: 'Search: no data returned for the last 28 days' }] }
     }
     const row = rows[0]
-    if (!row || typeof row.clicks !== 'number' || typeof row.impressions !== 'number' || typeof row.position !== 'number') {
+    // typeof alone accepts Infinity (e.g. a 1e400 literal) and negatives; require finite, non-negative metrics.
+    const measured = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 0
+    if (!row || !measured(row.clicks) || !measured(row.impressions) || !measured(row.position)) {
       return { bot: 'search-console', status: 'error', actions: [], error: 'Search Console returned malformed metrics' }
     }
     const metrics = { clicks28d: row.clicks, impressions28d: row.impressions, avgPosition: Math.round(row.position * 10) / 10 }

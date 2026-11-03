@@ -21,8 +21,12 @@ export const youtubeBot: ChannelBot = {
     }
     const ch = data.items?.[0]
     if (!ch) return { bot: 'youtube', status: 'error', actions: [], error: 'Channel not found' }
-    // Never report missing or malformed statistics as measured zeros.
-    const stat = (v: unknown) => (typeof v === 'string' && /^\d+$/.test(v) ? Number(v) : null)
+    // Never report missing, malformed or overflowing statistics as measured values.
+    const stat = (v: unknown) => {
+      if (typeof v !== 'string' || !/^\d+$/.test(v)) return null
+      const n = Number(v)
+      return Number.isSafeInteger(n) ? n : null
+    }
     const subscribers = stat(ch.statistics?.subscriberCount)
     const videos = stat(ch.statistics?.videoCount)
     const views = stat(ch.statistics?.viewCount)
