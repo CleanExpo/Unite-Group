@@ -73,6 +73,7 @@ export const SMOKE_PATHS = Object.freeze([
   { path: '/grow', pattern: '/grow', status: 200 },
   { path: '/video/ten-clips', pattern: '/video/ten-clips', status: 200 },
   { path: '/get-a-website', pattern: '/get-a-website', status: 200 },
+  { path: '/bots', pattern: '/bots', status: 200 },
   { path: '/get-a-website/thanks', pattern: '/get-a-website/thanks', status: 200 },
   { path: '/solutions/visibility', pattern: '/solutions/visibility', status: 200 },
   { path: '/solutions/experience', pattern: '/solutions/experience', status: 200 },

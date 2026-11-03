@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render } from '@testing-library/react'
 let pathname = '/cards'
 vi.mock('next/navigation', () => ({ usePathname: () => pathname }))
 
-import { SiteTracker } from '../site-tracker'
+import { SiteTracker, trackSiteEvent } from '../site-tracker'
 
 const beacon = vi.fn((_url: string, _body: Blob) => true)
 const fetchMock = vi.fn(() => Promise.resolve(new Response(null, { status: 204 })))
@@ -176,5 +176,31 @@ describe('SiteTracker', () => {
     const types = (await sentEvents()).map((e) => e.event_type)
     expect(types.filter((t) => t === 'video_play')).toHaveLength(1)
     expect(types.filter((t) => t === 'video_complete')).toHaveLength(1)
+  })
+})
+
+describe('trackSiteEvent (UNI-3217 bots funnel)', () => {
+  it('records a labelled event on a tracked page, with the existing event types only', async () => {
+    window.history.pushState({}, '', '/bots')
+    pathname = '/bots'
+    render(<SiteTracker />)
+    trackSiteEvent('cta_click', 'bot_chat_started')
+    trackSiteEvent('form_submit', 'lead_captured')
+    const events = (await sentEvents()).filter((e) => e.event_type !== 'page_view')
+    expect(events).toEqual([
+      expect.objectContaining({ event_type: 'cta_click', path: '/bots', label: 'bot_chat_started' }),
+      expect.objectContaining({ event_type: 'form_submit', path: '/bots', label: 'lead_captured' }),
+    ])
+  })
+
+  it('records nothing off a tracked page or when the visitor opted out', async () => {
+    window.history.pushState({}, '', '/founder/command-centre')
+    pathname = '/founder/command-centre'
+    render(<SiteTracker />)
+    trackSiteEvent('cta_click', 'bot_chat_started')
+    window.history.pushState({}, '', '/bots')
+    setNavigator({ doNotTrack: '1' })
+    trackSiteEvent('form_submit', 'lead_captured')
+    expect(await sentEvents()).toEqual([])
   })
 })

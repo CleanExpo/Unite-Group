@@ -32,6 +32,7 @@ describe('shared site header', () => {
   it.each(pages)('%s renders the home page header with links to /, /cards and /grow', (_p, render) => {
     const nav = mainNav(render())
     expect(nav).toContain('href="/cards"')
+    expect(nav).toMatch(/href="\/bots"[^>]*>Bots</)
     expect(nav).toMatch(/href="\/grow"[^>]*>Grow your business</)
     expect(render()).toMatch(/<a href="\/" [^>]*>[\s\S]*?Unite Group<\/a>/)
   })

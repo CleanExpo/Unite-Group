@@ -1,4 +1,64 @@
 {
   "version": 1,
-  "entries": []
+  "entries": [
+    {
+      "src": "/landing/visuals/nexus-1280.webp",
+      "kind": "image",
+      "source": "client",
+      "credit": "Unite Group: real screenshot of the product's CRM Inbox with invented demo data (no real person); see src/components/public/visuals.ts",
+      "alt": "The CRM inbox showing new leads and their next steps"
+    },
+    {
+      "src": "/bots/visuals/hero-1600.webp",
+      "kind": "image",
+      "source": "generated",
+      "credit": "Higgsfield recraft_v4_1, generated 4 Nov 2026 on Unite Group plan credits (job e200c68f-9d32-4638-8cd1-ae43b5b22ea7)",
+      "alt": "A cafe owner at the counter tapping in an order while customers sit in the sunlit cafe behind her"
+    },
+    {
+      "src": "/bots/visuals/lead-follow-up-1600.webp",
+      "kind": "image",
+      "source": "generated",
+      "credit": "Higgsfield recraft_v4_1, generated 4 Nov 2026 on Unite Group plan credits (job 26caa467-8ea2-4091-a3cf-64affb87774c)",
+      "alt": "A tradesman beside his car on a suburban street, smiling at a new enquiry on his phone",
+      "width": 1600,
+      "height": 1000
+    },
+    {
+      "src": "/bots/visuals/front-desk-voice-1600.webp",
+      "kind": "image",
+      "source": "generated",
+      "credit": "Higgsfield recraft_v4_1, generated 4 Nov 2026 on Unite Group plan credits (job bd90b3ca-9628-478a-b935-cde841972781)",
+      "alt": "A receptionist in a headset smiling as she takes a call at a bright front desk",
+      "width": 1600,
+      "height": 1000
+    },
+    {
+      "src": "/bots/visuals/bookings-1600.webp",
+      "kind": "image",
+      "source": "generated",
+      "credit": "Higgsfield recraft_v4_1, generated 4 Nov 2026 on Unite Group plan credits (job 67058572-f994-4f2d-a747-e4d2e61695d1)",
+      "alt": "A salon receptionist holding the appointment book as she greets a client at the front desk",
+      "width": 1600,
+      "height": 1000
+    },
+    {
+      "src": "/bots/visuals/product-order-1600.webp",
+      "kind": "image",
+      "source": "generated",
+      "credit": "Higgsfield recraft_v4_1, generated 4 Nov 2026 on Unite Group plan credits (job 78dba6bd-7484-49c8-be54-5a2c08b9233c)",
+      "alt": "A homewares shop owner packing a ceramic order into a box beside the shop window",
+      "width": 1600,
+      "height": 1000
+    },
+    {
+      "src": "/bots/visuals/reviews-1600.webp",
+      "kind": "image",
+      "source": "generated",
+      "credit": "Higgsfield recraft_v4_1, generated 4 Nov 2026 on Unite Group plan credits (job aa26b1f9-0361-455e-a6b6-6711c6e5bb17)",
+      "alt": "A baker handing a bag of pastries across the counter to two smiling customers",
+      "width": 1600,
+      "height": 1000
+    }
+  ]
 }

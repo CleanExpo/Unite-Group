@@ -2,6 +2,9 @@
 
 @import 'tailwindcss';
 
+/* UNI-3215: the premium-visuals components live outside apps/web, so Tailwind must be told to read their classes. */
+@source '../../../../packages/premium-visuals/src';
+
 @plugin 'tailwindcss-animate';
 
 @custom-variant dark (&:is(.dark *));

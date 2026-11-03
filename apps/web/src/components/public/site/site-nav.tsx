@@ -34,6 +34,7 @@ export function SiteNav() {
               </details>
             </li>
             <li><a href="/cards">Cards</a></li>
+            <li><a href="/bots">Bots</a></li>
             <li><a href="/pricing">Pricing</a></li>
             <li><a href="/#contact">Contact</a></li>
             <li><a href="/grow">Grow your business</a></li>

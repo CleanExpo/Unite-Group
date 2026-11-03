@@ -29,6 +29,9 @@ const nextConfig = {
   // (UNI-2310). The Node runtime is required; the read helper imports it lazily.
   serverExternalPackages: ['@1password/sdk', '@1password/sdk-core'],
 
+  // UNI-3215: @cleanexpo/premium-visuals ships TypeScript source (main: src/index.ts), so Next compiles it.
+  transpilePackages: ['@cleanexpo/premium-visuals'],
+
   experimental: {
     // Enable optimized compilation
     optimizeCss: true,
