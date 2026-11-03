@@ -50,8 +50,8 @@ let revokeOk = true
 let userinfoOk = true
 let grantedScope: string | undefined = 'https://www.googleapis.com/auth/gmail.modify'
 
-async function runCallback(email: string) {
-  currentEmail = email
+async function runCallback(email: string, authenticatedAs: string = email) {
+  currentEmail = authenticatedAs
   const state = signedState(email)
   const url = `https://app.test/api/auth/google/callback?code=auth-code&state=${encodeURIComponent(state)}`
   return callback(new Request(url))
@@ -133,6 +133,22 @@ describe('Google callback — append-not-overwrite', () => {
   it('revokes when the token response omits scope for a non-brand account', async () => {
     grantedScope = undefined
     const res = await runCallback('someone-else@gmail.com')
+    expect(res.headers.get('location')).toMatch(/error=brand_scope_wrong_account$/)
+    expect(upsertMock).not.toHaveBeenCalled()
+  })
+
+  it('revokes when identity is unconfirmed and the token response omits scope', async () => {
+    grantedScope = undefined
+    userinfoOk = false
+    const res = await runCallback('someone-else@gmail.com')
+    expect(res.headers.get('location')).toMatch(/error=identity_unconfirmed$/)
+    expect(vi.mocked(fetch).mock.calls.map(([u]) => String(u))).toContain('https://oauth2.googleapis.com/revoke')
+    expect(upsertMock).not.toHaveBeenCalled()
+  })
+
+  it('revokes when the brand account was requested but another account consented without listing brand scopes', async () => {
+    grantedScope = 'https://www.googleapis.com/auth/gmail.modify'
+    const res = await runCallback('contact@unite-group.in', 'someone-else@gmail.com')
     expect(res.headers.get('location')).toMatch(/error=brand_scope_wrong_account$/)
     expect(upsertMock).not.toHaveBeenCalled()
   })
