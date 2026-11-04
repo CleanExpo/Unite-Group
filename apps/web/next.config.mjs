@@ -18,6 +18,8 @@ const nextConfig = {
       './data/command-centre/portfolio.yaml',
       './data/command-centre/control-plane.v1.json',
     ],
+    // The IAQ Magazine board page (read with fs.readFile behind the portal guard, never from public/).
+    '/portal/board': ['./data/portal/iaq-magazine/board-concept.html'],
   },
 
   // Note: zustand and @clerk/nextjs removed from serverExternalPackages.
