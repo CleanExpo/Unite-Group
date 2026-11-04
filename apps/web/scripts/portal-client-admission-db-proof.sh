@@ -216,9 +216,9 @@ elif grep -q "run with owner rights: owner_rights_leak" "$WORK/ownerview.err"; t
 else echo "FAIL  view guard failed for the wrong reason:"; cat "$WORK/ownerview.err"; FAILS=$((FAILS+1)); fi
 
 # 4a-2c. refusal leaves nothing behind (guards run before any change, inside the file's own transaction)
-if PSQL -d ownerview -t -A -c "select to_regprocedure('public.is_staff()') is null" | grep -qx t; then
-  echo "PASS  a refused run created nothing (is_staff absent)"
-else echo "FAIL  a refused run left is_staff() behind"; FAILS=$((FAILS+1)); fi
+if PSQL -d ownerview -t -A -c "select to_regprocedure('public.is_allowlisted_staff()') is null" | grep -qx t; then
+  echo "PASS  a refused run created nothing (is_allowlisted_staff absent)"
+else echo "FAIL  a refused run left is_allowlisted_staff() behind"; FAILS=$((FAILS+1)); fi
 
 # 4a-2d. the repo's own migrations leave no public table with row security off once the parity file is applied
 #        (a Supabase branch replayed from migrations would otherwise trip the guard). Static check over the folder.
@@ -315,6 +315,55 @@ late_failure "migration is all-or-nothing: a failure at its last step leaves the
 late_failure "migration control" atomic_m_ctl "$ADMIT" none 1
 late_failure "rollback is all-or-nothing: a failure at its last step leaves the migration fully in place" atomic_r "$ROLLBACK" admit 0
 late_failure "rollback control" atomic_r_ctl "$ROLLBACK" admit 1
+
+# 4d. production already has an older, role-based public.is_staff() (profiles.role; not in supabase/migrations).
+#     The migration's predicate has its own name, so neither the migration nor the rollback may change or drop it.
+#     Control: the same migration with its predicate named is_staff must overwrite the decoy.
+DECOY_SQL="create function public.is_staff() returns boolean language plpgsql stable security definer
+  set search_path = pg_catalog, public as \$f\$ BEGIN RETURN EXISTS ( SELECT 1 FROM profiles p WHERE p.id = auth.uid()
+  AND p.role IN ('FOUNDER', 'STAFF', 'ADMIN') ); END; \$f\$"
+decoy_fp() { PSQL -d "$1" -t -A -c "select coalesce((select md5(prosrc) || '|' || (select l.lanname from pg_language l where l.oid = p.prolang) from pg_proc p where oid = to_regprocedure('public.is_staff()')), 'absent')"; }
+build decoy || exit 1
+PSQL -d decoy -c "$DECOY_SQL" > /dev/null
+d0="$(decoy_fp decoy)"
+apply decoy "$ADMIT"; d1="$(decoy_fp decoy)"
+apply decoy "$ROLLBACK"; d2="$(decoy_fp decoy)"
+if [ "$d0" != absent ] && [ "$d0" = "$d1" ] && [ "$d1" = "$d2" ]; then
+  echo "PASS  a pre-existing public.is_staff() survives the migration and the rollback unchanged"
+else echo "FAIL  pre-existing is_staff() changed: before=$d0 after-migration=$d1 after-rollback=$d2"; FAILS=$((FAILS+1)); fi
+sed -e 's/is_allowlisted_staff/is_staff/g' "$ADMIT" > "$WORK/named-is-staff.sql"
+if cmp -s "$ADMIT" "$WORK/named-is-staff.sql"; then echo "FAIL  is_staff-name control did not change the migration"; FAILS=$((FAILS+1)); else
+  build decoyctl || exit 1
+  PSQL -d decoyctl -c "$DECOY_SQL" > /dev/null
+  c0="$(decoy_fp decoyctl)"
+  if PSQL -d decoyctl < "$WORK/named-is-staff.sql" > /dev/null 2>&1 && [ "$(decoy_fp decoyctl)" != "$c0" ]; then
+    echo "RED-AS-EXPECTED  a predicate named is_staff would overwrite production's role-based one"
+  else echo "FAIL  is_staff-name control did not overwrite the decoy, so the survival check proves nothing"; FAILS=$((FAILS+1)); fi
+fi
+
+# 4e. the auth hooks are replaced only from a body the migration knows (20260620010000, or its own on a re-run).
+#     A hook changed by hand since then must stop the run before anything changes.
+build hookdrift || exit 1
+PSQL -d hookdrift > /dev/null <<'SQL'
+create or replace function public.before_user_created_hook(event jsonb) returns jsonb language plpgsql stable
+security definer set search_path = public as $f$
+begin
+  -- changed by hand after 20260620010000
+  return event;
+end;
+$f$;
+SQL
+if PSQL -d hookdrift < "$ADMIT" > /dev/null 2> "$WORK/hookdrift.err"; then
+  echo "FAIL  migration replaced a hook body it does not know"; FAILS=$((FAILS+1))
+elif grep -q "before_user_created_hook(jsonb) has a body this migration does not expect" "$WORK/hookdrift.err" \
+     && PSQL -d hookdrift -t -A -c "select to_regprocedure('public.is_allowlisted_staff()') is null" | grep -qx t; then
+  echo "PASS  migration refuses to run when an auth hook body is neither the known prior nor its own, and changes nothing"
+else echo "FAIL  hook guard failed for the wrong reason:"; tail -3 "$WORK/hookdrift.err"; FAILS=$((FAILS+1)); fi
+sed -e 's/if v_fp is not null and not (v_fp = any (h.known)) then/if false then/' "$ADMIT" > "$WORK/nohookguard.sql"
+if cmp -s "$ADMIT" "$WORK/nohookguard.sql"; then echo "FAIL  hook guard mutant did not change the migration"; FAILS=$((FAILS+1))
+elif PSQL -d hookdrift < "$WORK/nohookguard.sql" > /dev/null 2>&1; then
+  echo "RED-AS-EXPECTED  without the hook guard the migration replaces a hook body it does not know"
+else echo "FAIL  hook guard mutant failed to apply, so the guard check proves nothing"; FAILS=$((FAILS+1)); fi
 
 if [ $FAILS -eq 0 ]; then echo "PORTAL_CLIENT_ADMISSION_DB_PROOF_ALL_PASS"; exit 0; fi
 echo "PORTAL_CLIENT_ADMISSION_DB_PROOF_FAILURES=$FAILS"; exit 1

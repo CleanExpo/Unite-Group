@@ -111,6 +111,8 @@ begin
 end
 $$;
 
-drop function if exists public.is_staff();
+-- Only the forward migration's own predicate. Production's older role-based is_staff() is not this
+-- migration's and must survive a rollback, so it is never named here.
+drop function if exists public.is_allowlisted_staff();
 
 commit;

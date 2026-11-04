@@ -7,11 +7,14 @@
 -- some tables write) the whole CRM through the database API with their own login.
 --
 -- What this does, in order:
---   1. public.is_staff(): true when the caller's JWT email is on public.auth_allowlist.
+--   1. public.is_allowlisted_staff(): true when the caller's JWT email is on public.auth_allowlist.
+--      Named apart on purpose: production already has an older, role-based is_staff() (profiles.role,
+--      from the 2025 core foundation, in no file under supabase/migrations) that other code may call.
+--      This file never creates, replaces, grants, revokes or drops that function.
 --   2. One RESTRICTIVE policy `staff_only_gate` on every public table except portal_*:
 --      logged-in non-staff see and change nothing outside the portal. Anon and service_role are
 --      untouched (the policy targets the authenticated role only), and staff are unaffected
---      because is_staff() is true for them. Behaviour for every account that can sign in TODAY
+--      because is_allowlisted_staff() is true for them. Behaviour for every account that can sign in TODAY
 --      is unchanged. Views on production all run with the caller's rights (security_invoker=on,
 --      measured 04/11/2026), so the gate covers them too.
 --      Fails closed: refuses to run if any public table has row security off or is not owned by
@@ -22,6 +25,9 @@
 --      is skipped (with a notice) where they are absent, e.g. on a branch built from migrations.
 --   4. Auth hooks also admit an email that holds an open, email-bound portal invite, and keep
 --      admitting it once it is a portal tenant member. Unbound invites cannot create accounts.
+--      Replaced only when each live hook body is the one this file expects to replace (the
+--      20260620010000 text, which production held on 04/11/2026) or this file's own (a re-run);
+--      any other body stops the run before anything changes.
 --   5. Staff get a founder_notifications row whenever a portal change request is created or
 --      changes status, so client requests land in the command centre instead of an unwatched table.
 --      Deliberately coupled: if that insert fails, or no staff account exists to receive it, the
@@ -92,8 +98,32 @@ begin
 end
 $$;
 
+-- Auth hooks: replace only a body this file knows. Fingerprint = md5 of the body with whitespace runs
+-- collapsed to one space and trimmed, so a body pasted through the dashboard editor still matches.
+-- Known: the 20260620010000 bodies (production on 04/11/2026) and this file's own bodies (a re-run).
+-- An absent hook (a database built without 20260620010000) is created as normal.
+do $$
+declare
+  h record;
+  v_fp text;
+begin
+  for h in
+    select * from (values
+      ('public.before_user_created_hook(jsonb)', array['06b28ee23b3250a4c7cb0d15165f52a5', 'f04b44ecd98e5bf4fb7031de44ac8e6b']),
+      ('public.custom_access_token_hook(jsonb)', array['ca7be51b3fa374c99f3b77755e70035e', 'f4d81b2c16458ed016cd32ed1ff7c6cc'])
+    ) as t(fn, known)
+  loop
+    select md5(btrim(regexp_replace(p.prosrc, '\s+', ' ', 'g'), ' ')) into v_fp
+    from pg_proc p where p.oid = to_regprocedure(h.fn);
+    if v_fp is not null and not (v_fp = any (h.known)) then
+      raise exception 'portal_client_admission: % has a body this migration does not expect (fingerprint %). Compare it with 20260620010000 before going on.', h.fn, v_fp;
+    end if;
+  end loop;
+end
+$$;
+
 -- 1. Staff predicate -------------------------------------------------------------------------
-create or replace function public.is_staff()
+create or replace function public.is_allowlisted_staff()
 returns boolean
 language sql
 stable
@@ -107,8 +137,8 @@ as $$
   );
 $$;
 
-revoke all on function public.is_staff() from public, anon;
-grant execute on function public.is_staff() to authenticated, service_role;
+revoke all on function public.is_allowlisted_staff() from public, anon;
+grant execute on function public.is_allowlisted_staff() to authenticated, service_role;
 
 -- 2. Restrictive staff gate on every non-portal public table ----------------------------------
 do $$
@@ -126,8 +156,8 @@ begin
     execute format('drop policy if exists staff_only_gate on public.%I', r.relname);
     execute format(
       'create policy staff_only_gate on public.%I as restrictive for all to authenticated '
-      -- (select …) lets Postgres evaluate is_staff() once per statement, not once per row.
-      'using ((select public.is_staff())) with check ((select public.is_staff()))',
+      -- (select …) lets Postgres evaluate the predicate once per statement, not once per row.
+      'using ((select public.is_allowlisted_staff())) with check ((select public.is_allowlisted_staff()))',
       r.relname
     );
   end loop;
