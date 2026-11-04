@@ -5,6 +5,10 @@
 -- account: revoke the client's invites and delete their portal_tenant_members row FIRST.
 -- Proven by scripts/portal-client-admission-db-proof.sh: after this file, a full catalogue fingerprint
 -- (policies, function bodies, EXECUTE matrix, table/view privilege matrix, triggers) equals the pre-migration one.
+-- Its policy loop needs the applying role to own every public table (the forward migration checked
+-- this at apply time); a table added later under another owner makes this file stop with
+-- "must be owner", which is the safe failure. 20261104035900_document_rls_parity.sql is NOT undone:
+-- production already had row security on for those two tables.
 
 set lock_timeout = '5s';
 

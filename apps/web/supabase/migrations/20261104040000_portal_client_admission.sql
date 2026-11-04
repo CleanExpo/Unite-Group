@@ -35,31 +35,15 @@
 -- a 1,800-table run at production's lock settings).
 -- Apply in a quiet moment: CREATE POLICY takes a brief exclusive lock on each of ~1,800 tables in one
 -- transaction. lock_timeout below makes it fail fast instead of stalling; it is safe to re-run.
--- Known limit: tables created AFTER this migration do not get the gate automatically. Any new
--- non-portal table must add `staff_only_gate` in its own migration (the proof script's
--- "every table gated" check shows the pattern).
+-- Known limit: tables, views and SECURITY DEFINER functions created AFTER this migration are not
+-- checked automatically. Any new non-portal table must add `staff_only_gate` in its own migration
+-- (the proof script's "every table gated" check shows the pattern); any new view must be
+-- security_invoker; any new definer function callable by authenticated must check its caller.
+-- Needs 20261104035900_document_rls_parity.sql first on a branch replayed from migrations.
 
 set lock_timeout = '5s';
 
--- 1. Staff predicate -------------------------------------------------------------------------
-create or replace function public.is_staff()
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select exists (
-    select 1
-    from public.auth_allowlist a
-    where a.email = lower(trim(coalesce(auth.jwt() ->> 'email', '')))
-  );
-$$;
-
-revoke all on function public.is_staff() from public, anon;
-grant execute on function public.is_staff() to authenticated, service_role;
-
--- 2. Restrictive staff gate on every non-portal public table ----------------------------------
+-- 0. Fail-closed guards (run first, so a refusal changes nothing in any apply mode) -----------
 -- Fail closed: a policy does nothing on a table whose row security is off, and cannot be created on
 -- a table the applying role does not own, so refuse to run if any public table (partitions
 -- included) is either. Production had none of either on 04/11/2026.
@@ -67,6 +51,7 @@ do $$
 declare
   v_open text;
   v_foreign text;
+  v_owner_views text;
 begin
   select string_agg(c.relname, ', ' order by c.relname) into v_open
   from pg_class c
@@ -87,9 +72,40 @@ begin
   if v_foreign is not null then
     raise exception 'portal_client_admission: public table(s) not owned by %: %. Gate them by hand first.', current_user, v_foreign;
   end if;
+  -- A view that runs with its owner's rights would read past the gate. Production's 10 views are
+  -- all security_invoker=on and its 2 materialised views are not readable by anon/authenticated.
+  select string_agg(c.relname, ', ' order by c.relname) into v_owner_views
+  from pg_class c
+  join pg_namespace n on n.oid = c.relnamespace
+  where n.nspname = 'public'
+    and c.relkind in ('v', 'm')
+    and (has_table_privilege('authenticated', c.oid, 'select') or has_table_privilege('anon', c.oid, 'select'))
+    and not (c.relkind = 'v' and coalesce(c.reloptions::text[] && array['security_invoker=on', 'security_invoker=true', 'security_invoker=1'], false));
+  if v_owner_views is not null then
+    raise exception 'portal_client_admission: view(s) readable by API roles run with owner rights: %. Set security_invoker or revoke first.', v_owner_views;
+  end if;
 end
 $$;
 
+-- 1. Staff predicate -------------------------------------------------------------------------
+create or replace function public.is_staff()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.auth_allowlist a
+    where a.email = lower(trim(coalesce(auth.jwt() ->> 'email', '')))
+  );
+$$;
+
+revoke all on function public.is_staff() from public, anon;
+grant execute on function public.is_staff() to authenticated, service_role;
+
+-- 2. Restrictive staff gate on every non-portal public table ----------------------------------
 do $$
 declare
   r record;

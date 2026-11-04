@@ -6,6 +6,9 @@
 # Steps: baseline (the hole is real) -> migration twice -> full proof -> rollback restores the exact prior catalogue
 # -> re-apply -> planted-defect controls (each mutant must turn the proof red).
 # Prints PORTAL_CLIENT_ADMISSION_DB_PROOF_ALL_PASS and exits 0 only when every step held.
+# Limit: the throwaway cluster's postgres is a superuser (Supabase's has bypassrls but is not superuser). Row-security
+# behaviour is comparable; privilege gaps inside SECURITY DEFINER bodies are NOT covered here. The definer bodies read
+# only what the production hooks already read (auth.users, auth_allowlist) plus founder_notifications.
 set -u
 APP="$(cd "$(dirname "$0")/.." && pwd)"
 M="$APP/supabase/migrations"
@@ -167,7 +170,7 @@ mutant() { # label, sed expression applied to the migration
   fi
 }
 mutant "gate is permissive (does nothing)" "s/as restrictive for all to authenticated/as permissive for all to authenticated/"
-mutant "gate skips every portal-like name" "s/relname !~ '^portal_'\$/relname !~ '^portal'/"
+mutant "gate skips every portal-like name" "s/^      and c.relname !~ '^portal_'\$/      and c.relname !~ '^portal'/"
 mutant "gate skips partitioned tables" "s/c.relkind in ('r', 'p')/c.relkind in ('r')/"
 mutant "is_staff true for anyone" "s/where a.email = lower(trim(coalesce(auth.jwt() ->> 'email', '')))/where true/"
 mutant "prune left callable" "s/array\['public.prune_integration_history()', /array[/"
@@ -203,6 +206,40 @@ if PSQL -d owned < "$ADMIT" >/dev/null 2>"$WORK/owned.err"; then
   echo "FAIL  migration applied although a public table has another owner"; FAILS=$((FAILS+1))
 elif grep -q "not owned by postgres: leads" "$WORK/owned.err"; then echo "PASS  migration refuses to run while a public table has another owner"
 else echo "FAIL  ownership guard failed for the wrong reason:"; cat "$WORK/owned.err"; FAILS=$((FAILS+1)); fi
+
+# 4a-2b. the view guard: a view readable by authenticated that runs with owner rights must stop the migration
+build ownerview || exit 1
+PSQL -d ownerview -c "create view public.owner_rights_leak as select * from public.xero_tokens" >/dev/null
+if PSQL -d ownerview < "$ADMIT" >/dev/null 2>"$WORK/ownerview.err"; then
+  echo "FAIL  migration applied although an owner-rights view is readable by API roles"; FAILS=$((FAILS+1))
+elif grep -q "run with owner rights: owner_rights_leak" "$WORK/ownerview.err"; then echo "PASS  migration refuses to run while an owner-rights view is readable by API roles"
+else echo "FAIL  view guard failed for the wrong reason:"; cat "$WORK/ownerview.err"; FAILS=$((FAILS+1)); fi
+
+# 4a-2c. refusal leaves nothing behind even without a wrapping transaction (guards run before any change)
+if PSQL -d ownerview -t -A -c "select to_regprocedure('public.is_staff()') is null" | grep -qx t; then
+  echo "PASS  a refused run created nothing (is_staff absent)"
+else echo "FAIL  a refused run left is_staff() behind"; FAILS=$((FAILS+1)); fi
+
+# 4a-2d. the repo's own migrations leave no public table with row security off once the parity file is applied
+#        (a Supabase branch replayed from migrations would otherwise trip the guard). Static check over the folder.
+rls_gaps() { # $@ = migration files; prints tables created with no row-security enable anywhere in them
+  local t gaps=""
+  # comment lines dropped and whitespace collapsed first, so aligned columns and prose do not fool the match
+  sed -e 's/--.*$//' -e 's/[[:space:]]\+/ /g' "$@" | tr 'A-Z' 'a-z' > "$WORK/all-migrations.sql"
+  for t in $(grep -oE "create table (if not exists )?(public\.)?[a-z_0-9]+ ?\(" "$WORK/all-migrations.sql" | sed -E 's/ ?\($//' | awk '{print $NF}' | sed 's/^public\.//' | sort -u); do
+    grep -qE "alter table (if exists )?(only )?(public\.)?$t (enable|force) row level security" "$WORK/all-migrations.sql" || gaps="$gaps $t"
+  done
+  echo "$gaps"
+}
+missing="$(rls_gaps "$M"/*.sql)"
+if [ -z "${missing// /}" ]; then echo "PASS  every table created in supabase/migrations has row security enabled by some migration"
+else echo "FAIL  tables created in supabase/migrations with no row-security enable:$missing"; FAILS=$((FAILS+1)); fi
+without_parity=()
+for f in "$M"/*.sql; do [ "$(basename "$f")" = 20261104035900_document_rls_parity.sql ] || without_parity+=("$f"); done
+control="$(rls_gaps "${without_parity[@]}")"
+if echo "$control" | grep -qw document_chunks && echo "$control" | grep -qw document_embeddings; then
+  echo "RED-AS-EXPECTED  without the parity migration the static check names:$control"
+else echo "FAIL  static check stayed green without the parity migration ($control)"; FAILS=$((FAILS+1)); fi
 
 # 4a-3. branch-shaped database: the two production-only functions are absent (no repo migration creates them).
 # The migration and rollback must still apply, so the mandated Supabase-branch path is not blocked.
