@@ -13,7 +13,7 @@ import PortalPage from '../../page'
 
 const OWNER: PortalOwner = { userId: 'b1', ownerId: 'b1', tenantSlug: 'iaq-magazine', plan: 'comp', aal: 'aal2' }
 function given(owner: PortalOwner) {
-  vi.mocked(getUser).mockResolvedValue({ id: owner.userId, email: 'board@iaq.test' } as Awaited<ReturnType<typeof getUser>>)
+  vi.mocked(getUser).mockResolvedValue({ id: owner.userId } as Awaited<ReturnType<typeof getUser>>)
   vi.mocked(getPortalOwner).mockResolvedValue(owner)
 }
 const render = async () => renderToStaticMarkup(<>{await PortalPage()}</>)

@@ -19,7 +19,7 @@ const IAQ: PortalOwner = { userId: 'b1', ownerId: 'b1', tenantSlug: 'iaq-magazin
 const OTHER: PortalOwner = { userId: 'o1', ownerId: 'o1', tenantSlug: 'brii', plan: 'comp', aal: 'aal2' }
 
 type User = Awaited<ReturnType<typeof getUser>>
-function given(user: { id: string; email?: string } | null, owner: PortalOwner | null | Error) {
+function given(user: { id: string } | null, owner: PortalOwner | null | Error) {
   vi.mocked(getUser).mockResolvedValue(user as User)
   if (owner instanceof Error) vi.mocked(getPortalOwner).mockRejectedValue(owner)
   else vi.mocked(getPortalOwner).mockResolvedValue(owner)
@@ -41,7 +41,7 @@ describe('/portal/board serves the IAQ board concept only to IAQ Magazine member
   })
 
   it('(b) another client (aal2 owner of brii): 404, no page content', async () => {
-    given({ id: 'o1', email: 'owner@brii.test' }, OTHER)
+    given({ id: 'o1' }, OTHER)
     const res = await GET(request())
     expect(res.status).toBe(404)
     expect(res.headers.get('x-robots-tag')).toBe('noindex, nofollow')
@@ -49,14 +49,14 @@ describe('/portal/board serves the IAQ board concept only to IAQ Magazine member
   })
 
   it('(b) signed in with no portal at all: 404, no page content', async () => {
-    given({ id: 'v1', email: 'visitor@example.test' }, null)
+    given({ id: 'v1' }, null)
     const res = await GET(request())
     expect(res.status).toBe(404)
     expect(await res.text()).not.toContain(PAGE_MARKER)
   })
 
   it('an IAQ member on the emailed link only (aal1) is sent to confirm the second step, with no page content', async () => {
-    given({ id: 'b1', email: 'board@iaq.test' }, { ...IAQ, aal: 'aal1', plan: 'none' })
+    given({ id: 'b1' }, { ...IAQ, aal: 'aal1', plan: 'none' })
     const res = await GET(request())
     expect(res.status).toBe(307)
     const loc = new URL(res.headers.get('location')!)
@@ -65,14 +65,14 @@ describe('/portal/board serves the IAQ board concept only to IAQ Magazine member
   })
 
   it('a failed membership read never serves the page and never looks like "no portal"', async () => {
-    given({ id: 'b1', email: 'board@iaq.test' }, new Error('portal membership read failed: timeout'))
+    given({ id: 'b1' }, new Error('portal membership read failed: timeout'))
     const res = await GET(request())
     expect(res.status).toBe(503)
     expect(await res.text()).not.toContain(PAGE_MARKER)
   })
 
   it('(c) an IAQ member on aal2 sees the page, kept out of search engines and private caches', async () => {
-    given({ id: 'b1', email: 'board@iaq.test' }, IAQ)
+    given({ id: 'b1' }, IAQ)
     const res = await GET(request())
     expect(res.status).toBe(200)
     expect(res.headers.get('content-type')).toBe('text/html; charset=utf-8')
