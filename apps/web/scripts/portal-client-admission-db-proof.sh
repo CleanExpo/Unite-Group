@@ -215,7 +215,7 @@ if PSQL -d ownerview < "$ADMIT" >/dev/null 2>"$WORK/ownerview.err"; then
 elif grep -q "run with owner rights: owner_rights_leak" "$WORK/ownerview.err"; then echo "PASS  migration refuses to run while an owner-rights view is readable by API roles"
 else echo "FAIL  view guard failed for the wrong reason:"; cat "$WORK/ownerview.err"; FAILS=$((FAILS+1)); fi
 
-# 4a-2c. refusal leaves nothing behind even without a wrapping transaction (guards run before any change)
+# 4a-2c. refusal leaves nothing behind (guards run before any change, inside the file's own transaction)
 if PSQL -d ownerview -t -A -c "select to_regprocedure('public.is_staff()') is null" | grep -qx t; then
   echo "PASS  a refused run created nothing (is_staff absent)"
 else echo "FAIL  a refused run left is_staff() behind"; FAILS=$((FAILS+1)); fi
@@ -264,7 +264,7 @@ begin
 end $$;
 SQL
 t0=$(date +%s.%N)
-if PSQL -d scale -c "begin" -f "$ADMIT" -c "commit" > /dev/null 2> "$WORK/scale.err"; then
+if PSQL -d scale < "$ADMIT" > /dev/null 2> "$WORK/scale.err"; then # the file is its own transaction
   gated=$(PSQL -d scale -t -A -c "select count(*) from pg_policies where schemaname = 'public' and policyname = 'staff_only_gate'")
   secs=$(awk -v a="$(date +%s.%N)" -v b="$t0" 'BEGIN { printf "%.1f", a - b }')
   if [ "$gated" -ge 1800 ]; then echo "PASS  one transaction gates $gated tables at prod lock settings in ${secs}s"
@@ -282,6 +282,39 @@ if cmp -s "$ROLLBACK" "$WORK/rb-mutant.sql"; then echo "FAIL  rollback mutant di
   if cmp -s "$WORK/rbm-before.txt" "$WORK/rbm-after.txt"; then echo "FAIL  catalogue comparison stayed green on a rollback that drops hook grants"; FAILS=$((FAILS+1))
   else echo "RED-AS-EXPECTED  rollback that forgets hook grants is caught by the catalogue comparison"; fi
 fi
+
+# 4c. all-or-nothing: each file runs in one transaction it opens and commits itself, so a failure at its LAST step
+#     (for example lock_timeout on the final trigger) must leave the catalogue exactly as it was. psql applies a
+#     file statement by statement, so without begin/commit the earlier steps would stay applied. The control runs
+#     the same planted failure on a copy with begin/commit removed and must find a partial change.
+late_failure() { # label, db, file, setup (none|admit), strip (0|1)
+  local db="$2" src="$3" planted="$WORK/late-$2.sql" same
+  build "$db" || return
+  if [ "$4" = admit ]; then apply "$db" "$ADMIT" || return; fi
+  if [ "$5" = 1 ]; then sed -e '/^begin;$/d' -e '/^commit;$/d' "$3" > "$WORK/nobegin-$2.sql"; src="$WORK/nobegin-$2.sql"
+    if cmp -s "$3" "$src"; then echo "FAIL  control did not remove begin/commit: $1"; FAILS=$((FAILS+1)); return; fi
+  fi
+  # the planted failure goes just before the final commit, or at the very end when there is no commit
+  awk '$0 == "commit;" && !d { print "select 1/0; -- planted late failure"; d = 1 } { print } END { if (!d) print "select 1/0; -- planted late failure" }' \
+    "$src" > "$planted"
+  fingerprint "$db" > "$WORK/late-$2-before.txt"
+  if PSQL -d "$db" < "$planted" > /dev/null 2> "$WORK/late-$2.err"; then
+    echo "FAIL  the planted failure did not stop the run: $1"; FAILS=$((FAILS+1)); return
+  fi
+  if ! grep -q "division by zero" "$WORK/late-$2.err"; then
+    echo "FAIL  run stopped for the wrong reason: $1"; tail -3 "$WORK/late-$2.err"; FAILS=$((FAILS+1)); return
+  fi
+  fingerprint "$db" > "$WORK/late-$2-after.txt"
+  if cmp -s "$WORK/late-$2-before.txt" "$WORK/late-$2-after.txt"; then same=1; else same=0; fi
+  if [ "$5" = 0 ] && [ $same = 1 ]; then echo "PASS  $1"
+  elif [ "$5" = 0 ]; then echo "FAIL  $1 (the failed run left a partial change)"; FAILS=$((FAILS+1))
+  elif [ $same = 0 ]; then echo "RED-AS-EXPECTED  without begin/commit, the same late failure leaves a partial change: $(basename "$3")"
+  else echo "FAIL  control stayed unchanged without begin/commit, so the all-or-nothing check proves nothing: $1"; FAILS=$((FAILS+1)); fi
+}
+late_failure "migration is all-or-nothing: a failure at its last step leaves the catalogue unchanged" atomic_m "$ADMIT" none 0
+late_failure "migration control" atomic_m_ctl "$ADMIT" none 1
+late_failure "rollback is all-or-nothing: a failure at its last step leaves the migration fully in place" atomic_r "$ROLLBACK" admit 0
+late_failure "rollback control" atomic_r_ctl "$ROLLBACK" admit 1
 
 if [ $FAILS -eq 0 ]; then echo "PORTAL_CLIENT_ADMISSION_DB_PROOF_ALL_PASS"; exit 0; fi
 echo "PORTAL_CLIENT_ADMISSION_DB_PROOF_FAILURES=$FAILS"; exit 1

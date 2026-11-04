@@ -12,8 +12,12 @@
 -- this at apply time); a table added later under another owner makes this file stop with
 -- "must be owner", which is the safe failure. 20261104035900_document_rls_parity.sql is NOT undone:
 -- production already had row security on for those two tables.
+-- The file opens and commits one transaction itself (begin; ... commit;), so a failure at any step leaves
+-- the forward migration fully in place rather than half withdrawn.
 
-set lock_timeout = '5s';
+begin;
+
+set local lock_timeout = '5s';
 
 drop trigger if exists portal_change_request_notify_staff on public.portal_change_requests;
 drop function if exists public.portal_notify_staff_change_request();
@@ -109,4 +113,4 @@ $$;
 
 drop function if exists public.is_staff();
 
-reset lock_timeout;
+commit;

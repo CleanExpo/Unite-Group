@@ -34,14 +34,19 @@
 -- Proof: scripts/portal-client-admission-db-proof.sh (throwaway Postgres; planted-defect controls;
 -- a 1,800-table run at production's lock settings).
 -- Apply in a quiet moment: CREATE POLICY takes a brief exclusive lock on each of ~1,800 tables in one
--- transaction. lock_timeout below makes it fail fast instead of stalling; it is safe to re-run.
+-- transaction. The file opens and commits that transaction itself (begin; ... commit;), so a failure at
+-- any step, such as lock_timeout on the last trigger, applies nothing, whatever tool runs it (psql
+-- autocommits each statement otherwise). lock_timeout below makes it fail fast instead of stalling; it
+-- is safe to re-run.
 -- Known limit: tables, views and SECURITY DEFINER functions created AFTER this migration are not
 -- checked automatically. Any new non-portal table must add `staff_only_gate` in its own migration
 -- (the proof script's "every table gated" check shows the pattern); any new view must be
 -- security_invoker; any new definer function callable by authenticated must check its caller.
 -- Needs 20261104035900_document_rls_parity.sql first on a branch replayed from migrations.
 
-set lock_timeout = '5s';
+begin;
+
+set local lock_timeout = '5s';
 
 -- 0. Fail-closed guards (run first, so a refusal changes nothing in any apply mode) -----------
 -- Fail closed: a policy does nothing on a table whose row security is off, and cannot be created on
@@ -269,4 +274,4 @@ create trigger portal_change_request_notify_staff
   for each row
   execute function public.portal_notify_staff_change_request();
 
-reset lock_timeout;
+commit;
