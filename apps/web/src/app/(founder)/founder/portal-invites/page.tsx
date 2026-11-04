@@ -1,10 +1,12 @@
 import { notFound } from 'next/navigation'
 
 import { hasPrivateAccess } from '@/lib/auth/private-access'
+import { IAQ_BOARD_INVITEES } from '@/lib/portal/board/invitees'
 import { listInvites, type InviteRow } from '@/lib/portal/invites/founder'
 import { getUser } from '@/lib/supabase/server'
 import { createServiceClient, hasSupabaseServiceConfig } from '@/lib/supabase/service'
 
+import { BoardInvitees } from './board-invitees'
 import { InvitePanel } from './invite-panel'
 import styles from './portal-invites.module.css'
 
@@ -35,6 +37,7 @@ export default async function PortalInvitesPage() {
         code only when you make it, so copy it then.
       </p>
       <InvitePanel invites={invites} readError={readError} />
+      <BoardInvitees invitees={IAQ_BOARD_INVITEES} />
     </main>
   )
 }
