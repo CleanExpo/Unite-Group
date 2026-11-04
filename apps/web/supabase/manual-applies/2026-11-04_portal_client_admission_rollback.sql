@@ -2,7 +2,10 @@
 -- NOT a migration (kept out of supabase/migrations so it is never auto-applied). Apply only through a
 -- reviewed, approved branch, like any production change.
 -- Withdrawing the forward migration while any portal client account exists re-opens the CRM to that
--- account: revoke the client's invites and delete their portal_tenant_members row FIRST.
+-- account: revoke the client's invites and delete their portal_tenant_members row FIRST, then WAIT at
+-- least one access-token lifetime (Auth > JWT expiry, 3600s by default) before applying this file.
+-- Deleting the membership stops NEW tokens; an access token already issued stays valid until it
+-- expires, and with the gate gone it would read the CRM.
 -- Proven by scripts/portal-client-admission-db-proof.sh: after this file, a full catalogue fingerprint
 -- (policies, function bodies, EXECUTE matrix, table/view privilege matrix, triggers) equals the pre-migration one.
 -- Its policy loop needs the applying role to own every public table (the forward migration checked
