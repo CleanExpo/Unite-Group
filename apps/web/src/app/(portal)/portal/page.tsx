@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 
 import { ConfirmItIsYou, NoPortalYet } from '@/components/portal/portal-notice'
 import { PortalWelcome } from '@/components/portal/portal-welcome'
+import { BOARD_PATH, boardDocumentFor } from '@/lib/portal/board/documents'
 import { decidePortalAccess } from '@/lib/portal/changes/access'
 import { getPortalOwner } from '@/lib/portal/owner'
 import { PORTAL_LOGIN_URL } from '@/lib/portal/paths'
@@ -30,5 +31,6 @@ export default async function PortalPage() {
   const email = user.email ?? null
   if (access.kind === 'sign_in') return <NoPortalYet email={email} />
   if (access.kind === 'verify_second_factor') return <ConfirmItIsYou email={email} />
-  return <PortalWelcome email={email} plan={access.owner.plan} />
+  const board = boardDocumentFor(access.owner.tenantSlug)
+  return <PortalWelcome email={email} plan={access.owner.plan} board={board ? { title: board.title, href: BOARD_PATH } : null} />
 }

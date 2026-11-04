@@ -14,7 +14,16 @@ const STEP_ICON: Record<PortalStep['id'], LucideIcon> = {
 }
 
 /** The owner's welcome page: their plan, the promise line and the pipeline checklist. Same for every business. */
-export function PortalWelcome({ email, plan }: { email: string | null; plan: keyof typeof PLAN_LABEL }) {
+export function PortalWelcome({
+  email,
+  plan,
+  board = null,
+}: {
+  email: string | null
+  plan: keyof typeof PLAN_LABEL
+  /** A private board page for this tenant (IAQ Magazine), shown first when there is one. */
+  board?: { title: string; href: string } | null
+}) {
   return (
     <PortalShell
       kicker="Your portal"
@@ -22,6 +31,20 @@ export function PortalWelcome({ email, plan }: { email: string | null; plan: key
       lead="Six steps from first hello to your new website going live. We do the heavy lifting and show you where things are up to."
       signedInAs={email}
     >
+      {board ? (
+        <section className={s.section} aria-labelledby="portal-board">
+          <div className={s.wrap}>
+            <div className={s.panel}>
+              <p className={s.eyebrow} id="portal-board">For the board</p>
+              <a href={board.href} className={s.stepLink} data-testid="portal-board-link">
+                {board.title}
+                <ArrowRight size={16} aria-hidden="true" />
+              </a>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       <section className={s.section} aria-labelledby="portal-plan">
         <div className={s.wrap}>
           <div className={s.split}>
