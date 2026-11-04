@@ -38,7 +38,6 @@ for f in "$ADMIT" "$ROLLBACK" "${BASE_MIGS[@]}" "$FIXTURE" "$BASELINE" "$PROOF";
 done
 
 WORK="$(mktemp -d /tmp/portal-admission-proof.XXXXXX)"
-chmod 755 "$WORK"
 AS=()
 if [ "$(id -u)" = 0 ]; then chown postgres "$WORK" && AS=(runuser -u postgres --); fi # initdb refuses to run as root
 DATA="$WORK/data"
@@ -52,7 +51,7 @@ trap cleanup EXIT
 "${AS[@]}" "$PG_BIN/initdb" -D "$DATA" -U postgres --auth=trust >/dev/null 2>"$WORK/initdb.err" \
   || { echo "FAIL  initdb"; cat "$WORK/initdb.err"; exit 2; }
 "${AS[@]}" "$PG_BIN/pg_ctl" -D "$DATA" -l "$WORK/server.log" -w \
-  -o "-c listen_addresses='' -k $WORK -c fsync=off -c max_connections=120 -c max_locks_per_transaction=64" start >/dev/null \
+  -o "-c listen_addresses='' -k $WORK -c fsync=off -c max_connections=120 -c max_locks_per_transaction=64 -c unix_socket_permissions=0700" start >/dev/null \
   || { echo "FAIL  postgres did not start"; cat "$WORK/server.log"; exit 2; }
 echo "throwaway postgres $("$PG_BIN/postgres" --version | awk '{print $3}') on unix socket $WORK (no TCP)"
 
@@ -183,6 +182,7 @@ mutant "hooks accept a redeemed invite" "s/and not exists (select 1 from public.
 mutant "token hook admits every account" "s/or exists (select 1 from public.portal_tenant_members m where m.user_id = _user_id)/or true/"
 mutant "no notification on submit" "s/after insert or update of status on/after update of status on/"
 mutant "notification on unchanged status" "s/if tg_op = 'UPDATE' and new.status is not distinct from old.status then/if false then/"
+mutant "silent when no staff account exists" "s/  if v_sent = 0 then/  if false then/"
 mutant "client notified too" "s/join public.auth_allowlist a on a.email = lower(u.email);/where true;/"
 
 # 4a. the fail-closed guard: with row security off on any public table the migration must refuse to apply
@@ -227,7 +227,7 @@ rls_gaps() { # $@ = migration files; prints tables created with no row-security 
   # comment lines dropped and whitespace collapsed first, so aligned columns and prose do not fool the match
   sed -e 's/--.*$//' -e 's/[[:space:]]\+/ /g' "$@" | tr 'A-Z' 'a-z' > "$WORK/all-migrations.sql"
   for t in $(grep -oE "create table (if not exists )?(public\.)?[a-z_0-9]+ ?\(" "$WORK/all-migrations.sql" | sed -E 's/ ?\($//' | awk '{print $NF}' | sed 's/^public\.//' | sort -u); do
-    grep -qE "alter table (if exists )?(only )?(public\.)?$t (enable|force) row level security" "$WORK/all-migrations.sql" || gaps="$gaps $t"
+    grep -qE "alter table (if exists )?(only )?(public\.)?$t enable row level security" "$WORK/all-migrations.sql" || gaps="$gaps $t"
   done
   echo "$gaps"
 }

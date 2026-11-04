@@ -134,6 +134,23 @@ update public.portal_change_requests set status = status;
 update public.portal_change_requests set request_text = request_text || ' (edited)';
 select pg_temp.expect_value($$select count(*)::text from public.founder_notifications where type = 'portal_change_request'$$, '4', 'no notification when status did not change');
 
+-- with no staff account to notify, a change request fails loudly and nothing is stored
+do $$
+begin
+  delete from public.auth_allowlist;
+  begin
+    insert into public.portal_change_requests (tenant_slug, page, request_text) values ('brii', 'home', 'orphan request nobody would see');
+    raise exception 'ALLOWED but should fail: a change request with no staff recipient';
+  exception when sqlstate 'P0001' then
+    if sqlerrm <> 'portal_no_staff_recipient' then raise; end if;
+  end;
+  raise exception 'proof_rollback_marker';
+exception when others then
+  if sqlerrm <> 'proof_rollback_marker' then raise; end if;
+end $$;
+select pg_temp.expect_value($$select count(*)::text from public.auth_allowlist$$, '3', 'allowlist restored after the no-staff case');
+select pg_temp.expect_value($$select count(*)::text from public.portal_change_requests where request_text like 'orphan%'$$, '0', 'no orphan request stored when no staff exists');
+
 -- staff read the notification in the command centre (their own row only)
 select pg_temp.act_as('phill.mcgurk@gmail.com', 'aal1');
 set role authenticated;

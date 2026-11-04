@@ -24,8 +24,8 @@
 --      admitting it once it is a portal tenant member. Unbound invites cannot create accounts.
 --   5. Staff get a founder_notifications row whenever a portal change request is created or
 --      changes status, so client requests land in the command centre instead of an unwatched table.
---      Deliberately coupled: if that insert ever fails, the client's submission fails loudly
---      rather than landing unseen.
+--      Deliberately coupled: if that insert fails, or no staff account exists to receive it, the
+--      client's submission fails loudly (portal_no_staff_recipient) rather than landing unseen.
 --
 -- Offboarding a client: delete their portal_tenant_members row (and revoke any open invite). The
 -- token hook then refuses them at the next token refresh. Revoking a REDEEMED invite does nothing.
@@ -228,6 +228,8 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  v_sent integer;
 begin
   if tg_op = 'UPDATE' and new.status is not distinct from old.status then
     return new;
@@ -247,6 +249,13 @@ begin
     )
   from auth.users u
   join public.auth_allowlist a on a.email = lower(u.email);
+
+  -- No staff account to tell means nobody would ever see the request: fail it loudly instead.
+  get diagnostics v_sent = row_count;
+  if v_sent = 0 then
+    raise exception 'portal_no_staff_recipient'
+      using hint = 'No auth.users row matches auth_allowlist, so no staff member would be notified.';
+  end if;
 
   return new;
 end;
