@@ -1,4 +1,4 @@
--- Portal client admission (BRII first client).
+-- Portal client admission (BRII first client). UNI-3247.
 --
 -- Why: the CRM was built single-operator. About 760 row-level policies across ~690 public tables
 -- grant access to ANY logged-in account (`true`, `auth.role() = 'authenticated'`,
@@ -12,22 +12,34 @@
 --      logged-in non-staff see and change nothing outside the portal. Anon and service_role are
 --      untouched (the policy targets the authenticated role only), and staff are unaffected
 --      because is_staff() is true for them. Behaviour for every account that can sign in TODAY
---      is unchanged.
---   3. The 10 security-definer views (all privileges, so no read or write-through) and 2
---      maintenance functions that bypass row security are withdrawn from anon/authenticated.
---      None is referenced by apps/web. The migration refuses to run if any public table has
---      row security switched off, because the gate would silently do nothing there.
+--      is unchanged. Views on production all run with the caller's rights (security_invoker=on,
+--      measured 04/11/2026), so the gate covers them too.
+--      Fails closed: refuses to run if any public table has row security off or is not owned by
+--      the applying role (production: 0 and 0 on 04/11/2026), because the gate would be missing there.
+--   3. Two maintenance functions that run with owner rights (prune_integration_history deletes
+--      rows; set_app_tenant sets a tenant setting) are withdrawn from anon/authenticated. Neither
+--      is referenced by apps/web. They exist on production but in no repo migration, so the revoke
+--      is skipped (with a notice) where they are absent, e.g. on a branch built from migrations.
 --   4. Auth hooks also admit an email that holds an open, email-bound portal invite, and keep
 --      admitting it once it is a portal tenant member. Unbound invites cannot create accounts.
 --   5. Staff get a founder_notifications row whenever a portal change request is created or
 --      changes status, so client requests land in the command centre instead of an unwatched table.
+--      Deliberately coupled: if that insert ever fails, the client's submission fails loudly
+--      rather than landing unseen.
 --
+-- Offboarding a client: delete their portal_tenant_members row (and revoke any open invite). The
+-- token hook then refuses them at the next token refresh. Revoking a REDEEMED invite does nothing.
 -- Rollback: supabase/manual-applies/2026-11-04_portal_client_admission_rollback.sql (restores every
--- prior definition). Revoke the client's invites and portal membership BEFORE rolling back.
--- Proof: scripts/portal-client-admission-db-proof.sh (throwaway Postgres; planted-defect controls).
+-- prior definition). Offboard every portal client BEFORE rolling back.
+-- Proof: scripts/portal-client-admission-db-proof.sh (throwaway Postgres; planted-defect controls;
+-- a 1,800-table run at production's lock settings).
+-- Apply in a quiet moment: CREATE POLICY takes a brief exclusive lock on each of ~1,800 tables in one
+-- transaction. lock_timeout below makes it fail fast instead of stalling; it is safe to re-run.
 -- Known limit: tables created AFTER this migration do not get the gate automatically. Any new
 -- non-portal table must add `staff_only_gate` in its own migration (the proof script's
 -- "every table gated" check shows the pattern).
+
+set lock_timeout = '5s';
 
 -- 1. Staff predicate -------------------------------------------------------------------------
 create or replace function public.is_staff()
@@ -48,11 +60,13 @@ revoke all on function public.is_staff() from public, anon;
 grant execute on function public.is_staff() to authenticated, service_role;
 
 -- 2. Restrictive staff gate on every non-portal public table ----------------------------------
--- Fail closed: a policy does nothing on a table whose row security is off, so refuse to run if
--- any public table (partitions included) has it off. Production had none on 04/11/2026.
+-- Fail closed: a policy does nothing on a table whose row security is off, and cannot be created on
+-- a table the applying role does not own, so refuse to run if any public table (partitions
+-- included) is either. Production had none of either on 04/11/2026.
 do $$
 declare
   v_open text;
+  v_foreign text;
 begin
   select string_agg(c.relname, ', ' order by c.relname) into v_open
   from pg_class c
@@ -62,6 +76,16 @@ begin
     and not c.relrowsecurity;
   if v_open is not null then
     raise exception 'portal_client_admission: row security is off on public table(s): %. Enable it first.', v_open;
+  end if;
+  select string_agg(c.relname, ', ' order by c.relname) into v_foreign
+  from pg_class c
+  join pg_namespace n on n.oid = c.relnamespace
+  where n.nspname = 'public'
+    and c.relkind in ('r', 'p')
+    and c.relname !~ '^portal_'
+    and pg_get_userbyid(c.relowner) <> current_user;
+  if v_foreign is not null then
+    raise exception 'portal_client_admission: public table(s) not owned by %: %. Gate them by hand first.', current_user, v_foreign;
   end if;
 end
 $$;
@@ -76,7 +100,7 @@ begin
     join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = 'public'
       and c.relkind in ('r', 'p')
-      and c.relname not like 'portal\_%'
+      and c.relname !~ '^portal_'
   loop
     execute format('drop policy if exists staff_only_gate on public.%I', r.relname);
     execute format(
@@ -89,25 +113,20 @@ begin
 end
 $$;
 
--- 3. Row-security bypasses withdrawn from client-reachable roles ------------------------------
--- ALL, not just SELECT: on production anon and authenticated hold every privilege (arwdDxtm) on
--- these views, and a simple view is auto-updatable, so a write through it would run with the
--- owner's rights and skip row security on the base table.
-revoke all on
-  public.circuit_ab_test_summary,
-  public.container_status_view,
-  public.dashboard_mode_analytics,
-  public.metrics_attribution_health,
-  public.metrics_rollup_latest,
-  public.onboarding_analytics,
-  public.rate_limit_analytics,
-  public.recent_deployments_view,
-  public.suburb_authority_substrate,
-  public.xero_accounts_summary
-from anon, authenticated;
-
-revoke execute on function public.prune_integration_history() from public, anon, authenticated;
-revoke execute on function public.set_app_tenant(text) from public, anon, authenticated;
+-- 3. Owner-rights maintenance functions withdrawn from client-reachable roles ----------------
+do $$
+declare
+  f text;
+begin
+  foreach f in array array['public.prune_integration_history()', 'public.set_app_tenant(text)'] loop
+    if to_regprocedure(f) is null then
+      raise notice 'portal_client_admission: % absent here, revoke skipped', f;
+    else
+      execute format('revoke execute on function %s from public, anon, authenticated', f);
+    end if;
+  end loop;
+end
+$$;
 
 -- 4. Auth hooks admit invited portal clients -------------------------------------------------
 create or replace function public.before_user_created_hook(event jsonb)
@@ -224,3 +243,5 @@ create trigger portal_change_request_notify_staff
   after insert or update of status on public.portal_change_requests
   for each row
   execute function public.portal_notify_staff_change_request();
+
+reset lock_timeout;

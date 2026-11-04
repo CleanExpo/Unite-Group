@@ -6,6 +6,8 @@
 -- Proven by scripts/portal-client-admission-db-proof.sh: after this file, a full catalogue fingerprint
 -- (policies, function bodies, EXECUTE matrix, table/view privilege matrix, triggers) equals the pre-migration one.
 
+set lock_timeout = '5s';
+
 drop trigger if exists portal_change_request_notify_staff on public.portal_change_requests;
 drop function if exists public.portal_notify_staff_change_request();
 
@@ -62,29 +64,25 @@ BEGIN
 END;
 $$;
 
--- Prior ACLs, read from production pg_proc.proacl / pg_class.relacl on 04/11/2026:
+-- Prior ACLs, read from production pg_proc.proacl on 04/11/2026:
 --   hooks: anon, authenticated, service_role, supabase_auth_admin (no PUBLIC)
 --   prune_integration_history: PUBLIC, anon, authenticated, service_role
 --   set_app_tenant: authenticated, service_role (no PUBLIC)
---   the ten views: ALL privileges (arwdDxtm) to anon, authenticated, service_role
+-- The two maintenance functions exist only on production (no repo migration), so their grants are
+-- restored only where they exist, mirroring the forward migration.
 grant execute on function public.before_user_created_hook(jsonb) to anon, authenticated;
 grant execute on function public.custom_access_token_hook(jsonb) to anon, authenticated;
 
-grant execute on function public.prune_integration_history() to public, anon, authenticated;
-grant execute on function public.set_app_tenant(text) to authenticated;
-
-grant all on
-  public.circuit_ab_test_summary,
-  public.container_status_view,
-  public.dashboard_mode_analytics,
-  public.metrics_attribution_health,
-  public.metrics_rollup_latest,
-  public.onboarding_analytics,
-  public.rate_limit_analytics,
-  public.recent_deployments_view,
-  public.suburb_authority_substrate,
-  public.xero_accounts_summary
-to anon, authenticated;
+do $$
+begin
+  if to_regprocedure('public.prune_integration_history()') is not null then
+    grant execute on function public.prune_integration_history() to public, anon, authenticated;
+  end if;
+  if to_regprocedure('public.set_app_tenant(text)') is not null then
+    grant execute on function public.set_app_tenant(text) to authenticated;
+  end if;
+end
+$$;
 
 do $$
 declare
@@ -103,3 +101,5 @@ end
 $$;
 
 drop function if exists public.is_staff();
+
+reset lock_timeout;

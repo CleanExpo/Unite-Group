@@ -55,6 +55,7 @@ select pg_temp.expect_value($$select public.is_staff()::text$$, 'true', 'staff i
 select pg_temp.expect_value($$select count(*)::text from public.unified_customers$$, '3', 'staff reads customers');
 select pg_temp.expect_value($$select count(*)::text from public.xero_tokens$$, '1', 'staff reads FORCE-RLS table');
 select pg_temp.expect_value($$select count(*)::text from public.event_log$$, '1', 'staff reads partitioned table');
+select pg_temp.expect_value($$select count(*)::text from public.metrics_rollup_latest$$, '3', 'staff reads through a view');
 select pg_temp.expect_value($$with i as (insert into public.leads (name) values ('staff lead') returning 1) select count(*)::text from i$$, '1', 'staff writes leads');
 select pg_temp.expect_value($$with u as (update public.leads set name = name where name = 'staff lead' returning 1) select count(*)::text from u$$, '1', 'staff updates leads');
 reset role;
@@ -94,18 +95,10 @@ select pg_temp.expect_error($$insert into public.leads (name) values ('planted b
 select pg_temp.expect_error($$insert into public.xero_tokens (secret) values ('x')$$, '42501', 'client cannot insert tokens');
 select pg_temp.expect_value($$with u as (update public.unified_customers set name = 'pwned' returning 1) select count(*)::text from u$$, '0', 'client updates no customers');
 select pg_temp.expect_value($$with d as (delete from public.xero_tokens returning 1) select count(*)::text from d$$, '0', 'client deletes no tokens');
-do $$
-declare v text;
-begin
-  foreach v in array array['circuit_ab_test_summary', 'container_status_view', 'dashboard_mode_analytics',
-    'metrics_attribution_health', 'metrics_rollup_latest', 'onboarding_analytics', 'rate_limit_analytics',
-    'recent_deployments_view', 'suburb_authority_substrate', 'xero_accounts_summary'] loop
-    perform pg_temp.expect_error(format('select * from public.%I', v), '42501', 'client cannot read definer view ' || v);
-  end loop;
-end $$;
-select pg_temp.expect_error($$update public.metrics_rollup_latest set name = 'pwned'$$, '42501', 'client cannot write through a definer view');
-select pg_temp.expect_error($$insert into public.metrics_rollup_latest (name) values ('pwned')$$, '42501', 'client cannot insert through a definer view');
-select pg_temp.expect_error($$delete from public.metrics_rollup_latest$$, '42501', 'client cannot delete through a definer view');
+-- views run with the caller's rights (as on prod), so the gate covers them: nothing through a view either
+select pg_temp.expect_value($$select coalesce(sample, '<none>') from public.xero_accounts_summary$$, '<none>', 'client reads no token through a view');
+select pg_temp.expect_value($$select count(*)::text from public.metrics_rollup_latest$$, '0', 'client reads no customers through a view');
+select pg_temp.expect_value($$with u as (update public.metrics_rollup_latest set name = 'pwned' returning 1) select count(*)::text from u$$, '0', 'client writes nothing through a view');
 select pg_temp.expect_error($$select public.prune_integration_history()$$, '42501', 'client cannot prune');
 select pg_temp.expect_error($$select public.set_app_tenant('brii')$$, '42501', 'client cannot set the app tenant');
 select pg_temp.expect_error($$select public.before_user_created_hook('{}'::jsonb)$$, '42501', 'client cannot call the signup hook');
@@ -158,7 +151,6 @@ select set_config('request.jwt.claims', '', false), set_config('request.jwt.clai
 set role anon;
 select pg_temp.expect_value($$select count(*)::text from public.public_pages$$, '1', 'anon still reads public pages');
 select pg_temp.expect_error($$select public.is_staff()$$, '42501', 'anon cannot call is_staff');
-select pg_temp.expect_error($$select * from public.xero_accounts_summary$$, '42501', 'anon cannot read a definer view');
 select pg_temp.expect_error($$select public.prune_integration_history()$$, '42501', 'anon cannot prune');
 reset role;
 

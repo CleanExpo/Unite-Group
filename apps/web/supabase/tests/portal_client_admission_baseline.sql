@@ -37,7 +37,7 @@ end $$;
 grant execute on function pg_temp.expect_error(text, text, text), pg_temp.expect_value(text, text, text)
   to anon, authenticated, supabase_auth_admin, service_role;
 
--- ===== the hole: any signed-in account reads and writes the CRM =====
+-- ===== the hole: any signed-in account reads and writes the CRM, and runs owner-rights maintenance =====
 select pg_temp.act_as('mallory@evil.test', 'aal1');
 set role authenticated;
 select pg_temp.expect_value($$select count(*)::text from public.unified_customers$$, '3', 'BASELINE stranger reads customers');
@@ -45,9 +45,8 @@ select pg_temp.expect_value($$select count(*)::text from public.xero_tokens$$, '
 select pg_temp.expect_value($$select count(*)::text from public.portals_registry$$, '1', 'BASELINE stranger reads portals_registry');
 select pg_temp.expect_value($$select count(*)::text from public.event_log$$, '1', 'BASELINE stranger reads partitioned table');
 select pg_temp.expect_value($$with i as (insert into public.leads (name) values ('planted') returning 1) select count(*)::text from i$$, '1', 'BASELINE stranger writes leads');
-select pg_temp.expect_value($$select sample from public.xero_accounts_summary$$, 'xero-refresh-token-do-not-leak', 'BASELINE definer view leaks a token');
-select pg_temp.expect_value($$select count(*)::text from public.metrics_rollup_latest$$, '3', 'BASELINE definer view leaks customers');
-select pg_temp.expect_value($$with u as (update public.metrics_rollup_latest set name = 'written through a view' returning 1) select count(*)::text from u$$, '3', 'BASELINE definer view lets a stranger WRITE past row security');
+select pg_temp.expect_value($$select sample from public.xero_accounts_summary$$, 'xero-refresh-token-do-not-leak', 'BASELINE a view leaks a token (base table rule lets any signed-in user read)');
+select pg_temp.expect_value($$select count(*)::text from public.metrics_rollup_latest$$, '3', 'BASELINE a view leaks customers');
 select public.prune_integration_history();
 select public.set_app_tenant('brii');
 select pg_temp.expect_value($$select (public.before_user_created_hook('{"user":{"email":"phill.mcgurk@gmail.com"}}'::jsonb))->'user'->>'email'$$, 'phill.mcgurk@gmail.com', 'BASELINE signed-in user may call the signup hook');

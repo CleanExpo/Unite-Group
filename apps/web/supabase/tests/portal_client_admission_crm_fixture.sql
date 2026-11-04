@@ -37,19 +37,20 @@ alter table public.event_log enable row level security;
 alter table public.event_log_2026 enable row level security; -- prod: 0 public tables/partitions with row security off
 create policy el_any on public.event_log for select using (auth.uid() is not null);
 
--- The 10 views that run with their owner's rights on prod (security definer views), same names.
-create view public.xero_accounts_summary as select count(*) as n, max(secret) as sample from public.xero_tokens;
-create view public.metrics_rollup_latest as select id, name from public.unified_customers;
-create view public.circuit_ab_test_summary as select 1 as x;
-create view public.container_status_view as select 1 as x;
-create view public.dashboard_mode_analytics as select 1 as x;
-create view public.metrics_attribution_health as select 1 as x;
-create view public.onboarding_analytics as select 1 as x;
-create view public.rate_limit_analytics as select 1 as x;
-create view public.recent_deployments_view as select 1 as x;
-create view public.suburb_authority_substrate as select 1 as x;
+-- The 10 public views, same names. On prod every one is security_invoker=on (pg_class.reloptions,
+-- 04/11/2026), so each runs with the caller's rights and the base table's row rules apply.
+create view public.xero_accounts_summary with (security_invoker = on) as select count(*) as n, max(secret) as sample from public.xero_tokens;
+create view public.metrics_rollup_latest with (security_invoker = on) as select id, name from public.unified_customers;
+create view public.circuit_ab_test_summary with (security_invoker = on) as select 1 as x;
+create view public.container_status_view with (security_invoker = on) as select 1 as x;
+create view public.dashboard_mode_analytics with (security_invoker = on) as select 1 as x;
+create view public.metrics_attribution_health with (security_invoker = on) as select 1 as x;
+create view public.onboarding_analytics with (security_invoker = on) as select 1 as x;
+create view public.rate_limit_analytics with (security_invoker = on) as select 1 as x;
+create view public.recent_deployments_view with (security_invoker = on) as select 1 as x;
+create view public.suburb_authority_substrate with (security_invoker = on) as select 1 as x;
 
--- The two maintenance functions, with the grants measured on prod.
+-- The two owner-rights maintenance functions, with the grants measured on prod (pg_proc.proacl).
 create table public.integration_github_actions_runs (id bigint generated always as identity primary key, fetched_at timestamptz not null);
 alter table public.integration_github_actions_runs enable row level security; -- no policy: only the definer function reaches it
 create function public.prune_integration_history() returns void language plpgsql security definer set search_path = public as $$

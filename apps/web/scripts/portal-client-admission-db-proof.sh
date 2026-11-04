@@ -49,7 +49,7 @@ trap cleanup EXIT
 "${AS[@]}" "$PG_BIN/initdb" -D "$DATA" -U postgres --auth=trust >/dev/null 2>"$WORK/initdb.err" \
   || { echo "FAIL  initdb"; cat "$WORK/initdb.err"; exit 2; }
 "${AS[@]}" "$PG_BIN/pg_ctl" -D "$DATA" -l "$WORK/server.log" -w \
-  -o "-c listen_addresses='' -k $WORK -c fsync=off" start >/dev/null \
+  -o "-c listen_addresses='' -k $WORK -c fsync=off -c max_connections=120 -c max_locks_per_transaction=64" start >/dev/null \
   || { echo "FAIL  postgres did not start"; cat "$WORK/server.log"; exit 2; }
 echo "throwaway postgres $("$PG_BIN/postgres" --version | awk '{print $3}') on unix socket $WORK (no TCP)"
 
@@ -129,7 +129,7 @@ SQL
 
 # 1. baseline: the hole is real and staff behaviour is recorded
 build main || exit 1
-expect_pass "baseline: signed-in stranger reads/writes the CRM, definer views leak, old hooks refuse the client" main "$BASELINE" PORTAL_CLIENT_ADMISSION_BASELINE_PASS
+expect_pass "baseline: signed-in stranger reads/writes the CRM (tables and views), runs owner-rights maintenance; old hooks refuse the client" main "$BASELINE" PORTAL_CLIENT_ADMISSION_BASELINE_PASS
 fingerprint main > "$WORK/before.txt"
 
 # 2. the migration applies twice (idempotent), then the full proof
@@ -167,13 +167,11 @@ mutant() { # label, sed expression applied to the migration
   fi
 }
 mutant "gate is permissive (does nothing)" "s/as restrictive for all to authenticated/as permissive for all to authenticated/"
-mutant "gate skips every portal-like name" "s/not like 'portal\\\\_%'/not like 'portal%'/"
+mutant "gate skips every portal-like name" "s/relname !~ '^portal_'\$/relname !~ '^portal'/"
 mutant "gate skips partitioned tables" "s/c.relkind in ('r', 'p')/c.relkind in ('r')/"
 mutant "is_staff true for anyone" "s/where a.email = lower(trim(coalesce(auth.jwt() ->> 'email', '')))/where true/"
-mutant "definer view left readable" "/  public.metrics_rollup_latest,/d"
-mutant "views keep write privileges (select-only revoke)" "s/^revoke all on\$/revoke select on/"
-mutant "prune left callable" "/revoke execute on function public.prune_integration_history()/d"
-mutant "set_app_tenant left callable" "/revoke execute on function public.set_app_tenant(text)/d"
+mutant "prune left callable" "s/array\['public.prune_integration_history()', /array[/"
+mutant "set_app_tenant left callable" "s/, 'public.set_app_tenant(text)'\]/]/"
 mutant "hooks left callable by users" "/revoke execute on function public.before_user_created_hook(jsonb) from/d"
 mutant "signup hook admits unbound invites" "s/where lower(trim(c.bound_email)) = _email/where (c.bound_email is null or lower(trim(c.bound_email)) = _email)/"
 mutant "hooks ignore expiry" "s/and c.expires_at > now()/and true/"
@@ -196,6 +194,45 @@ sed -e "s/if v_open is not null then/if false then/" "$ADMIT" > "$WORK/noguard.s
 if cmp -s "$ADMIT" "$WORK/noguard.sql"; then echo "FAIL  guard mutant did not change the migration"; FAILS=$((FAILS+1))
 elif PSQL -d rlsoff < "$WORK/noguard.sql" >/dev/null 2>&1; then echo "RED-AS-EXPECTED  without the guard the migration applies over a table the gate cannot protect"
 else echo "FAIL  guard mutant failed to apply, so the guard check proves nothing"; FAILS=$((FAILS+1)); fi
+
+# 4a-2. the ownership guard: a public table owned by another role must stop the migration (CREATE POLICY needs ownership)
+build owned || exit 1
+PSQL -d owned -c "create role other_owner nologin; alter table public.leads owner to other_owner" >/dev/null 2>&1 \
+  || PSQL -d owned -c "alter table public.leads owner to other_owner" >/dev/null
+if PSQL -d owned < "$ADMIT" >/dev/null 2>"$WORK/owned.err"; then
+  echo "FAIL  migration applied although a public table has another owner"; FAILS=$((FAILS+1))
+elif grep -q "not owned by postgres: leads" "$WORK/owned.err"; then echo "PASS  migration refuses to run while a public table has another owner"
+else echo "FAIL  ownership guard failed for the wrong reason:"; cat "$WORK/owned.err"; FAILS=$((FAILS+1)); fi
+
+# 4a-3. branch-shaped database: the two production-only functions are absent (no repo migration creates them).
+# The migration and rollback must still apply, so the mandated Supabase-branch path is not blocked.
+build branchy || exit 1
+PSQL -d branchy -c "drop function public.prune_integration_history(); drop function public.set_app_tenant(text)" >/dev/null
+if PSQL -d branchy < "$ADMIT" > /dev/null 2> "$WORK/branchy.err" && grep -q "absent here, revoke skipped" "$WORK/branchy.err" \
+   && PSQL -d branchy < "$ROLLBACK" > /dev/null 2>&1 && PSQL -d branchy < "$ADMIT" > /dev/null 2>&1; then
+  echo "PASS  migration, rollback and re-apply all run where the production-only functions are absent"
+else echo "FAIL  branch-shaped database:"; cat "$WORK/branchy.err" | tail -5; FAILS=$((FAILS+1)); fi
+
+# 4a-4. scale at production's lock settings: ~1,800 tables (prod count 04/11/2026), max_connections 120,
+# max_locks_per_transaction 64 (both measured on prod). One transaction must fit in the shared lock table.
+build scale || exit 1
+PSQL -d scale >/dev/null <<'SQL'
+do $$
+begin
+  for i in 1..1790 loop
+    execute format('create table public.crm_scale_%s (id bigint primary key, note text)', i);
+    execute format('alter table public.crm_scale_%s enable row level security', i);
+    execute format('create policy any_user on public.crm_scale_%s for all using (auth.uid() is not null) with check (auth.uid() is not null)', i);
+  end loop;
+end $$;
+SQL
+t0=$(date +%s.%N)
+if PSQL -d scale -c "begin" -f "$ADMIT" -c "commit" > /dev/null 2> "$WORK/scale.err"; then
+  gated=$(PSQL -d scale -t -A -c "select count(*) from pg_policies where schemaname = 'public' and policyname = 'staff_only_gate'")
+  secs=$(awk -v a="$(date +%s.%N)" -v b="$t0" 'BEGIN { printf "%.1f", a - b }')
+  if [ "$gated" -ge 1800 ]; then echo "PASS  one transaction gates $gated tables at prod lock settings in ${secs}s"
+  else echo "FAIL  scale run gated only $gated tables"; FAILS=$((FAILS+1)); fi
+else echo "FAIL  scale run:"; tail -5 "$WORK/scale.err"; FAILS=$((FAILS+1)); fi
 
 # 4b. rollback mutant: a rollback that forgets the hook grants must fail the catalogue comparison
 sed -e "/grant execute on function public.before_user_created_hook(jsonb) to anon, authenticated/d" \
