@@ -37,10 +37,6 @@ describe('RATE_LIMITS presets — batch 2c keys', () => {
   it('defines videoPublished at 30 req/min (legit webhook bursts OK)', () => {
     expect(RATE_LIMITS.videoPublished).toEqual({ limit: 30, windowMs: 60_000 });
   });
-
-  it('defines onboardingMagicLink at 5 req/min (public burn-defense)', () => {
-    expect(RATE_LIMITS.onboardingMagicLink).toEqual({ limit: 5, windowMs: 60_000 });
-  });
 });
 
 describe('rateLimit() — behaviour smoke test on new presets', () => {
@@ -63,14 +59,14 @@ describe('rateLimit() — behaviour smoke test on new presets', () => {
   it('isolates buckets by IP', async () => {
     const reqA = makeRequest('192.0.2.1');
     const reqB = makeRequest('192.0.2.2');
-    const key = 'onboarding-magic-link-test';
+    const key = 'portal-request-test';
 
     // Burn IP-A through the limit
-    for (let i = 0; i < RATE_LIMITS.onboardingMagicLink.limit; i++) {
-      await rateLimit(reqA, { key, ...RATE_LIMITS.onboardingMagicLink });
+    for (let i = 0; i < RATE_LIMITS.portalRequest.limit; i++) {
+      await rateLimit(reqA, { key, ...RATE_LIMITS.portalRequest });
     }
-    const blockedA = await rateLimit(reqA, { key, ...RATE_LIMITS.onboardingMagicLink });
-    const freshB = await rateLimit(reqB, { key, ...RATE_LIMITS.onboardingMagicLink });
+    const blockedA = await rateLimit(reqA, { key, ...RATE_LIMITS.portalRequest });
+    const freshB = await rateLimit(reqB, { key, ...RATE_LIMITS.portalRequest });
 
     expect(blockedA.ok).toBe(false);
     expect(freshB.ok).toBe(true);
