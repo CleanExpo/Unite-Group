@@ -94,6 +94,12 @@ describe('gates schema migration (structure, not database execution)', () => {
     expect(code).toMatch(/create table gates\.events \([\s\S]*?\n\) partition by range \(ts\);/i)
     expect(code).toMatch(/primary key \(id, ts\)/i)
     expect(code).toMatch(/create table gates\.events_default partition of gates\.events default;/i)
+    // Every promised month by name: a missing month would silently route its rows to the default partition.
+    const months = ['2026m11', '2026m12', ...Array.from({ length: 12 }, (_, i) => `2027m${String(i + 1).padStart(2, '0')}`)]
+    for (const m of months) {
+      expect(code).toMatch(new RegExp(`create table gates\\.events_y${m} partition of gates\\.events for values from`, 'i'))
+      expect(code).toContain(`alter table gates.events_y${m} enable row level security;`)
+    }
   })
 
   it('reads the org from the signed app_metadata claim, never from user-editable metadata', () => {

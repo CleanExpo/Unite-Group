@@ -53,7 +53,9 @@ FAILS=0
 pass() { echo "PASS  $1"; }
 fail() { echo "FAIL  $1"; FAILS=$((FAILS+1)); }
 gates_objects() { PSQL -h localhost -d "$1" -tAc "select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'gates'"; }
-proof_ok() { local out; out="$(PSQL -h localhost -d "$1" < "$2" 2>&1)" && echo "$out" | grep -q GATES_RLS_PROOF_PASS; }
+# Keeps each run's output: the proof commits its fixtures, so a second run on the same database would fail on a
+# duplicate key and hide the original failed assertion.
+proof_ok() { local out rc; out="$(PSQL -h localhost -d "$1" < "$2" 2>&1)"; rc=$?; printf '%s\n' "$out" > "$WORK/proof-$1.out"; [ "$rc" -eq 0 ] && echo "$out" | grep -q GATES_RLS_PROOF_PASS; }
 
 # 1. applies on a fresh database
 fresh_db g1 || { echo "FAIL  could not build g1"; exit 2; }
@@ -79,7 +81,7 @@ else fail "existing gates schema refused, but not by the fingerprint check"; cat
 
 # 4. behaviour: org isolation, write denial, anon denial, integrity, partition routing
 if proof_ok g1 "$PROOF"; then pass "RLS and integrity proof"
-else fail "RLS and integrity proof"; PSQL -h localhost -d g1 < "$PROOF" 2>&1 | tail -5; fi
+else fail "RLS and integrity proof"; tail -5 "$WORK/proof-g1.out"; fi
 
 # 5. rollback refuses while an outside object depends on gates; then removes gates entirely; the forward
 #    migration then applies again cleanly
