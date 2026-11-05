@@ -101,9 +101,17 @@ describe('gates schema migration (structure, not database execution)', () => {
     expect(code).not.toMatch(/user_metadata/)
   })
 
-  it('ships a reviewed rollback', () => {
+  it('ships a rollback that can only remove gates (RESTRICT, never CASCADE)', () => {
     const rb = resolve(process.cwd(), ROLLBACK)
     expect(existsSync(rb), ROLLBACK).toBe(true)
-    expect(readFileSync(rb, 'utf8')).toMatch(/drop schema gates cascade;/)
+    const rbCode = readFileSync(rb, 'utf8')
+      .split('\n')
+      .map((l) => l.replace(/--.*$/, ''))
+      .join('\n')
+    // CASCADE silently drops outside dependants; RESTRICT makes Postgres refuse and name them.
+    expect(rbCode).not.toMatch(/\bcascade\b/i)
+    expect(rbCode).toMatch(/drop schema gates restrict;/)
+    expect(rbCode).toMatch(/drop function gates\.jwt_org_id\(\) restrict;/)
+    for (const t of GATES_TABLES) expect(rbCode).toMatch(new RegExp(`\\bgates\\.${t}\\b`))
   })
 })

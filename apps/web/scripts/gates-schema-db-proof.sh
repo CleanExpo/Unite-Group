@@ -90,8 +90,8 @@ rb_refuses() { # label, db, setup sql, survivor sql (returns 1 when the outside 
     || { fail "rollback dependant $1: could not build $2"; return; }
   PSQL -h localhost -d "$2" -c "$3" >/dev/null || { fail "rollback dependant $1: setup failed"; return; }
   if PSQL -h localhost -d "$2" < "$ROLLBACK" >/dev/null 2>"$WORK/$2.err"; then fail "rollback ran while an outside $1 depends on gates"
-  elif ! grep -q "gates_schema_rollback: the drop would also remove objects outside gates" "$WORK/$2.err"; then
-    fail "rollback dependant $1: refused, but not through its outside-object check"; cat "$WORK/$2.err"
+  elif ! grep -qE "because other objects depend on (it|them)" "$WORK/$2.err"; then
+    fail "rollback dependant $1: refused, but not through the RESTRICT dependency check"; cat "$WORK/$2.err"
   elif [ "$(PSQL -h localhost -d "$2" -tAc "$4")" != "1" ]; then fail "rollback dependant $1: outside object is gone"
   elif [ "$(PSQL -h localhost -d "$2" -tAc "select count(*) from pg_namespace where nspname = 'gates'")" != "1" ]; then
     fail "rollback dependant $1: gates is gone after a refused rollback"
@@ -104,6 +104,9 @@ RB_CASES=(
   "foreign key to a gates table|r4|create table public.dep_k (brand_id uuid references gates.brands (id))|select count(*) from pg_constraint where conname = 'dep_k_brand_id_fkey'"
   "column of a gates row type|r5|create table public.dep_c (id int, b gates.brands)|select count(*) from pg_attribute where attrelid = 'public.dep_c'::regclass and attname = 'b' and not attisdropped"
   "column default calling gates.jwt_org_id()|r6|create table public.dep_d (org_id uuid default gates.jwt_org_id())|select count(*) from pg_attrdef where adrelid = 'public.dep_d'::regclass"
+  "extended statistics on gates.jwt_org_id()|r7|create table public.dep_s (org_id uuid, n int); create statistics public.dep_st on (gates.jwt_org_id()), org_id from public.dep_s|select count(*) from pg_statistic_ext where stxname = 'dep_st'"
+  "function taking a gates row type|r8|create function public.dep_fn(b gates.brands) returns uuid language sql as 'select b.id'|select count(*) from pg_proc where proname = 'dep_fn'"
+  "materialized view on a gates table|r9|create materialized view public.dep_mv as select id from gates.sites|select count(*) from pg_class where relname = 'dep_mv'"
 )
 for c in "${RB_CASES[@]}"; do IFS='|' read -r label db setup survivor <<< "$c"; rb_refuses "$label" "$db" "$setup" "$survivor"; done
 if PSQL -h localhost -d g1 < "$ROLLBACK" >/dev/null 2>"$WORK/rb.err"; then pass "rollback applies"
@@ -139,18 +142,18 @@ else
   else pass "control no fingerprint: the refusal depends on the fingerprint block"; fi
 fi
 
-# the rollback control: with its after-drop check reduced to a notice, an outside view calling gates.jwt_org_id()
-# must be silently dropped, i.e. the check is what keeps it
-RB_MUT="$WORK/rollback-no-check.sql"
-sed -E "s/raise exception 'gates_schema_rollback: the drop would/raise notice 'gates_schema_rollback: the drop would/" "$ROLLBACK" > "$RB_MUT"
-if cmp -s "$RB_MUT" "$ROLLBACK"; then fail "control rollback check: mutation did not change the file"
+# the rollback control: with RESTRICT swapped for CASCADE on the table drop, an outside view calling
+# gates.jwt_org_id() must be lost, i.e. RESTRICT is what keeps it
+RB_MUT="$WORK/rollback-cascade.sql"
+sed -E 's/^  restrict;$/  cascade;/' "$ROLLBACK" | sed -E 's/^drop function gates\.jwt_org_id\(\) restrict;$/drop function gates.jwt_org_id() cascade;/' > "$RB_MUT"
+if cmp -s "$RB_MUT" "$ROLLBACK"; then fail "control rollback restrict: mutation did not change the file"
 else
   fresh_db c6 >/dev/null && PSQL -h localhost -d c6 < "$MIG" >/dev/null 2>&1 \
     && PSQL -h localhost -d c6 -c "create view public.dep_f as select gates.jwt_org_id() as org_id" >/dev/null
   PSQL -h localhost -d c6 < "$RB_MUT" >/dev/null 2>&1
   if [ "$(PSQL -h localhost -d c6 -tAc "select count(*) from pg_class where relname = 'dep_f'")" = "0" ]; then
-    pass "control rollback check: without it the outside view is lost"
-  else fail "control rollback check: the outside view survived without the check, so the check proves nothing"; fi
+    pass "control rollback restrict: with cascade the outside view is lost"
+  else fail "control rollback restrict: the outside view survived cascade, so the proof cannot tell RESTRICT from CASCADE"; fi
 fi
 
 if [ $FAILS -eq 0 ]; then echo "GATES_SCHEMA_DB_PROOF_ALL_PASS"; exit 0; fi
