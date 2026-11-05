@@ -825,6 +825,40 @@ jobs:
       - name: Build
         run: npm run build
 
+  empire:
+    # Added 05/11/2026. PR #1372 changed apps/empire and its tests never ran on GitHub,
+    # because no job covered this app. Node comes from the app's own .nvmrc (22), the
+    # runtime it declares, not the repo's NODE_VERSION. It is not yet an activePackage in
+    # config/nexus-project-readiness.json: that list requires the Node 24 engines and
+    # types, which apps/empire does not declare. preflight.test.mjs still fails if this
+    # job loses its preflight mirror.
+    # The app's own .npmrc sets legacy-peer-deps (the @visx 3.x React 19 peer range);
+    # npm ci reads it, so no flag is needed here.
+    name: apps/empire — type-check, test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/empire
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: apps/empire/.nvmrc
+          cache: 'npm'
+          cache-dependency-path: apps/empire/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npm run type-check
+
+      # test:all, not test. `npm test` runs only tests/pipelines (4 of 173 suites), so
+      # #1372's own test in src/lib/mission-control/__tests__ would still never run.
+      - name: Test
+        run: npm run test:all -- --ci
+
   gitleaks:
     name: gitleaks — secret scan (git commits)
     runs-on: ubuntu-latest

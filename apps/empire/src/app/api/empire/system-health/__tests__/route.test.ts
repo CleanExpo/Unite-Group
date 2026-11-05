@@ -361,17 +361,27 @@ describe('computeSystemHealth', () => {
   });
 
   it('does NOT flag database warn at 201ms latency (real-world fine)', async () => {
-    businessesLimitChain.mockImplementation(
-      () =>
-        new Promise(resolve => {
-          setTimeout(() => resolve({ error: null }), 210);
-        }),
-    );
+    // A controlled clock, not a real 210 ms timer. With only 90 ms of margin under the
+    // 300 ms warn line, a busy machine fired the timer late and this test failed at random
+    // (05/11/2026, UNI-3289, when this suite first ran in CI). probeDatabase times the
+    // query with Date.now(), so the query mock moves that clock forward by exactly 201 ms.
+    const base = Date.now();
+    let elapsed = 0;
+    const clock = jest.spyOn(Date, 'now').mockImplementation(() => base + elapsed);
+    businessesLimitChain.mockImplementation(() => {
+      elapsed += 201;
+      return Promise.resolve({ error: null });
+    });
     happyScanner();
     setupFetch({});
 
-    const result = await computeSystemHealth('http://localhost:3000');
-    expect(result.signals.database.status).toBe('ok');
+    try {
+      const result = await computeSystemHealth('http://localhost:3000');
+      expect(result.signals.database.latency_ms).toBe(201);
+      expect(result.signals.database.status).toBe('ok');
+    } finally {
+      clock.mockRestore();
+    }
   });
 
   it('integrations stays ok when every adapter returns body=unknown (routes alive, nothing configured downstream)', async () => {

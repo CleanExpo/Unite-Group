@@ -22,6 +22,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import {
+  COMMIT_EXAMPLE_LINES,
   LINEAR_TEAM_PREFIXES,
   extractLinearRef,
   hasGateLine,
@@ -570,4 +571,40 @@ test('package.json exposes check:commit-messages as tests-then-checker', () => {
     /node --test scripts\/__tests__\/check-commit-messages\.test\.mjs/,
   );
   assert.match(scripts['check:commit-messages'], /node scripts\/check-commit-messages\.mjs/);
+});
+
+// AGENTS.md is what cloud agents read; #1371 (Cursor) and #1372 shipped red commit
+// messages because nothing there stated this rule. One owner: the example lives in
+// the checker and AGENTS.md must quote it byte for byte.
+const AGENTS_PATH = join(repoRoot, 'AGENTS.md');
+
+test('AGENTS.md quotes the checker example byte for byte and names every allowed prefix', () => {
+  const agents = readFileSync(AGENTS_PATH, 'utf8').replace(/\r\n/g, '\n');
+  const block = '```text\n' + COMMIT_EXAMPLE_LINES.join('\n') + '\n```';
+  assert.ok(agents.includes(block), 'AGENTS.md must contain the checker example block exactly');
+  for (const prefix of LINEAR_TEAM_PREFIXES) {
+    assert.ok(agents.includes(`\`${prefix}-\``), `AGENTS.md must name the ${prefix}- prefix`);
+  }
+  assert.ok(agents.includes('origin/main..HEAD'), 'AGENTS.md must say every commit in the range is checked');
+});
+
+test('the example the checker prints passes the checker (it cannot teach a failing message)', () => {
+  const [subject, ...rest] = COMMIT_EXAMPLE_LINES;
+  assert.deepEqual(inspectCommit({ subject, body: rest.join('\n'), parents: ['p'] }), { ok: true, skipped: false });
+});
+
+test('the failure output prints the same example lines', () => {
+  const errors = [];
+  const original = console.error;
+  console.error = (line = '') => errors.push(String(line));
+  try {
+    const log = 'a'.repeat(40) + '\x1f' + 'p'.repeat(40) + '\x1f' + 'no ticket here\x1fno gate\x1e';
+    const code = main({ argv: ['origin/main', 'HEAD'], env: {}, git: (args) => (args[0] === 'log' ? log : 'x'.repeat(40)) });
+    assert.equal(code, 1);
+  } finally {
+    console.error = original;
+  }
+  const at = errors.indexOf('\nExample:');
+  assert.ok(at >= 0, 'prints an Example heading');
+  assert.deepEqual(errors.slice(at + 1), COMMIT_EXAMPLE_LINES.map((l) => (l ? `  ${l}` : '')));
 });

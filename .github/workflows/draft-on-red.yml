@@ -1,0 +1,74 @@
+name: Draft on red gate
+
+# Added 05/11/2026 (UNI-3289). A non-draft PR must not sit in front of the founder while a
+# gate that main requires is red. Four PRs did in one day (#1366, #1367, #1371, #1372), and
+# a green non-draft PR auto-merges, so "ready" has to mean "every required gate green".
+#
+# This turns such a PR back to draft and posts one comment naming the red gate. The logic
+# and its tests live in scripts/draft-on-red.mjs and scripts/__tests__/draft-on-red.test.mjs.
+#
+# When it runs (no pull_request trigger, on purpose):
+#   - workflow_run: Monorepo CI finished on some head. Every open PR on main with that exact
+#     head is judged: a red required check, a missing nexus/release-receipt, or an
+#     unresolved review thread turns it back to draft.
+#   - schedule (every 15 minutes) and workflow_dispatch: a sweep judges every open non-draft
+#     PR on main the same way. This catches a PR that was opened, marked ready or reviewed
+#     while red, when CI did not run again.
+#
+# Why no pull_request / pull_request_target: pull_request_target hands a write token to runs
+# for fork PRs, and the pr-release-gate CI mirror replays every pull_request workflow
+# locally, where this job cannot run (it needs GitHub's token and acts on live PRs).
+# workflow_run and schedule always run the default branch's copy of this file.
+#
+# Safety:
+#   - The script is always main's copy (checkout of ref main). PR head code never runs
+#     with this token.
+#   - The only write permission is pull-requests: write. The script can send only
+#     convertPullRequestToDraft and one issue comment; anything else throws before it
+#     is sent. It never merges, closes, readies or edits a PR.
+#   - One run at a time (one concurrency group), so a sweep and a CI run never judge the
+#     same PR together and post two comments.
+#   - A failed or partial read fails this run (red), never a silent pass.
+#
+# GitHub runs workflow_run and schedule only from the default branch, so this starts
+# working once it is on main; it cannot judge the PR that adds it.
+
+on:
+  workflow_run:
+    workflows: ["Monorepo CI"]
+    types: [completed]
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  checks: read
+  statuses: read
+  pull-requests: write
+
+concurrency:
+  group: draft-on-red
+  cancel-in-progress: false
+
+jobs:
+  judge:
+    name: Draft on red gate — judge
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+          sparse-checkout: scripts/draft-on-red.mjs
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+
+      - name: Turn the PR back to draft if a required gate is red
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/draft-on-red.mjs

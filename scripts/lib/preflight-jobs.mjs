@@ -180,6 +180,13 @@ export const JOBS = [
     paths: ['apps/mission-control-local/'],
     cmd: ['npm', ['run', 'verify:mission-control-local']],
   },
+  {
+    id: 'empire',
+    ciJob: 'empire',
+    label: 'apps/empire — type-check, test',
+    paths: ['apps/empire/'],
+    cmd: ['npm', ['run', 'verify:empire']],
+  },
 ];
 
 /**
