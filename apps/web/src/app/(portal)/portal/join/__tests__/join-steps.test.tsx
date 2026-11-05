@@ -34,6 +34,37 @@ describe('JoinSteps', () => {
     expect(await screen.findByText('Check your email')).toBeTruthy()
   })
 
+  it('after a link is sent, resend asks again without bringing the form back', async () => {
+    requestJoinLinkAction.mockResolvedValue({ ok: true })
+    const user = userEvent.setup()
+    render(<JoinSteps step="sign-in" code={BRII_EXAMPLE_CODE} email={null} />)
+    await user.type(screen.getByLabelText('Your email'), BRII_OWNER_EMAIL)
+    await user.click(screen.getByRole('button', { name: /email me a sign-in link/i }))
+    expect(await screen.findByText('Check your email')).toBeTruthy()
+    expect(screen.queryByLabelText('Your email')).toBeNull()
+    await user.click(screen.getByRole('button', { name: /resend sign-in link/i }))
+    expect(requestJoinLinkAction).toHaveBeenCalledTimes(2)
+    expect(requestJoinLinkAction).toHaveBeenLastCalledWith(BRII_EXAMPLE_CODE, BRII_OWNER_EMAIL)
+    expect(await screen.findByText(/another sign-in link/i)).toBeTruthy()
+    expect(screen.queryByLabelText('Your email')).toBeNull()
+  })
+
+  it('a resend that is limited keeps the sent message and explains the pause', async () => {
+    requestJoinLinkAction
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ ok: false, outcome: 'rate_limited' })
+    const user = userEvent.setup()
+    render(<JoinSteps step="sign-in" code={BRII_EXAMPLE_CODE} email={null} />)
+    await user.type(screen.getByLabelText('Your email'), BRII_OWNER_EMAIL)
+    await user.click(screen.getByRole('button', { name: /email me a sign-in link/i }))
+    await screen.findByText('Check your email')
+    await user.click(screen.getByRole('button', { name: /resend sign-in link/i }))
+    expect((await screen.findByRole('alert')).textContent).toContain(REDEEM_COPY.rate_limited.title)
+    expect(screen.getByText('Check your email')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /resend sign-in link/i })).toBeTruthy()
+    expect(screen.queryByLabelText('Your email')).toBeNull()
+  })
+
   it('signed out with an expired code: friendly words, no link', async () => {
     requestJoinLinkAction.mockResolvedValue({ ok: false, outcome: 'expired' })
     const user = userEvent.setup()

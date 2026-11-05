@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 
 /**
  * /portal/join?code=...  A business owner claims their portal with the invite code they were sent.
- * Steps: have a code, sign in with an email link, confirm with an authenticator app, then claim.
+ * Steps: have a code, sign in with an email link, confirm with an authenticator or an emailed code, then claim.
  * Signing in alone gives no access: the claim needs a second-factor (aal2) session, and the database checks it.
  */
 export default async function JoinPage({ searchParams }: { searchParams: Promise<{ code?: string | string[] }> }) {

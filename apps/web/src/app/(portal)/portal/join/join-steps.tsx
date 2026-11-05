@@ -58,16 +58,24 @@ function CodeStep() {
 function SignInStep({ code }: { code: string }) {
   const [email, setEmail] = useState('')
   const [busy, setBusy] = useState(false)
-  const [result, setResult] = useState<JoinLinkResult | null>(null)
+  const [sent, setSent] = useState(false)
+  const [resent, setResent] = useState(false)
+  const [problem, setProblem] = useState<Extract<JoinLinkResult, { ok: false }> | null>(null)
 
-  async function onSubmit(e: FormEvent) {
-    e.preventDefault()
+  async function send(e?: FormEvent) {
+    e?.preventDefault()
     setBusy(true)
-    setResult(null)
+    setProblem(null)
     try {
-      setResult(await requestJoinLinkAction(code, email))
+      const result = await requestJoinLinkAction(code, email)
+      if (result.ok) {
+        setResent(sent)
+        setSent(true)
+      } else {
+        setProblem(result)
+      }
     } catch {
-      setResult({ ok: false, outcome: 'error' })
+      setProblem({ ok: false, outcome: 'error' })
     } finally {
       setBusy(false)
     }
@@ -77,10 +85,23 @@ function SignInStep({ code }: { code: string }) {
     <>
       <h2 id="join-step">Sign in with your email</h2>
       <p className={styles.body}>We will email you a sign-in link. Nothing to remember: the link signs you in.</p>
-      {result?.ok ? (
-        <Message tone="ok" copy={{ title: 'Check your email', body: 'Open the sign-in link we just sent, on this device. It brings you back here.' }} />
+      {sent ? (
+        <>
+          <Message tone="ok" copy={{
+            title: 'Check your email',
+            body: resent
+              ? 'We sent another sign-in link. Open the newest one, on this device. It brings you back here.'
+              : 'Open the sign-in link we just sent, on this device. It brings you back here.',
+          }} />
+          <div className={styles.row}>
+            <button type="button" className={styles.textButton} onClick={() => { void send() }} disabled={busy}>
+              {busy ? 'Sending…' : 'Resend sign-in link'}
+            </button>
+          </div>
+          {problem && <Message tone="problem" copy={linkCopy(problem.outcome)} />}
+        </>
       ) : (
-        <form className={styles.form} onSubmit={onSubmit}>
+        <form className={styles.form} onSubmit={send}>
           <label>
             Your email
             <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
@@ -88,7 +109,7 @@ function SignInStep({ code }: { code: string }) {
           <div className={styles.row}>
             <button type="submit" className={styles.button} disabled={busy}>{busy ? 'Sending…' : 'Email me a sign-in link'}</button>
           </div>
-          {result && !result.ok && <Message tone="problem" copy={linkCopy(result.outcome)} />}
+          {problem && <Message tone="problem" copy={linkCopy(problem.outcome)} />}
         </form>
       )}
     </>
