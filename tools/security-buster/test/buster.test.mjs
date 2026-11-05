@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { writeFileSync, mkdtempSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { parseArgs, parseFindings, renderReport, tokensUsedToday, loadApproved } from '../buster.mjs';
+import { parseArgs, parseFindings, renderReport, tokensUsedToday, loadApproved, review } from '../buster.mjs';
 
 test('parseFindings rejects replies without findings (never silently clean)', () => {
   assert.throws(() => parseFindings('looks fine to me'));
@@ -31,6 +31,24 @@ test('daily token ledger only counts today', () => {
 test('bad caps are refused', () => {
   assert.throws(() => parseArgs(['--max-requests', '0']));
   assert.throws(() => parseArgs(['--daily-token-cap', 'x']));
+});
+
+test('--max-requests caps real API calls, including retries', async () => {
+  const d = mkdtempSync(join(tmpdir(), 'sb-'));
+  const realFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls++;
+    return new Response(JSON.stringify({ choices: [{ message: { content: 'not json' } }], usage: { total_tokens: 1 } }), { status: 200 });
+  };
+  try {
+    const budget = { remaining: 1, ledger: join(d, 'l.jsonl') };
+    await assert.rejects(() => review('a.ts', 'x', 'k', budget), /request cap/);
+    assert.equal(calls, 1, 'a malformed reply must not trigger a retry past the cap');
+    assert.equal(budget.remaining, 0);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
 });
 
 test('approved list must be an array', () => {

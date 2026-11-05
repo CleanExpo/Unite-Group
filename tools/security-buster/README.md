@@ -11,7 +11,7 @@ node tools/security-buster/buster.mjs apps/web/src/app/api/foo/route.ts --max-re
 
 Guards:
 - Only files in `approved.json` are sent. Anything else is refused (exit 2). Never add `.env`, secrets or customer data.
-- Caps: `--max-requests` (default 25), `--max-chars` per file (60000), `--daily-token-cap` (500000, tracked in `.ledger.jsonl`).
+- Caps: `--max-requests` (default 25; counts every API call, retries included, so it is a hard cap), `--max-chars` per file (60000), `--daily-token-cap` (500000, tracked in `.ledger.jsonl`).
 - Fail-closed: missing key exits 3 (UNAVAILABLE); any HTTP/parse error marks that file NOT reviewed and exits 1. An unreviewed file is never reported clean.
 - Output: `report/report.md` (ranked by severity) and `report/findings.json`. Both are gitignored.
 

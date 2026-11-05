@@ -57,7 +57,10 @@ export function parseFindings(text) {
   return j.findings;
 }
 
-async function review(file, content, key, attempt = 1) {
+// budget.remaining counts real API calls, retries included, so --max-requests is a hard cap.
+export async function review(file, content, key, budget, attempt = 1) {
+  if (!(budget.remaining > 0)) throw new Error('request cap reached (--max-requests); file not reviewed');
+  budget.remaining--;
   const res = await fetch(ENDPOINT, {
     signal: AbortSignal.timeout(240000),
     method: 'POST',
@@ -72,15 +75,15 @@ async function review(file, content, key, attempt = 1) {
   const ch = j.choices?.[0];
   const text = ch?.message?.content;
   const tokens = j.usage?.total_tokens ?? 0;
-  appendFileSync(LEDGER, JSON.stringify({ date: new Date().toISOString().slice(0, 10), file, tokens, attempt }) + '\n');
+  appendFileSync(budget.ledger ?? LEDGER, JSON.stringify({ date: new Date().toISOString().slice(0, 10), file, tokens, attempt }) + '\n');
   if (typeof text !== 'string' || !text.trim()) {
     const why = `empty content (finish=${ch?.finish_reason ?? 'none'}, refusal=${ch?.message?.refusal ? 'yes' : 'no'}, ` +
       `reasoning=${(ch?.message?.reasoning || '').length} chars, tokens=${tokens})`;
-    if (attempt < 2 && ch?.finish_reason !== 'length') { console.error(`retry ${file}: ${why}`); return review(file, content, key, attempt + 1); }
+    if (attempt < 2 && ch?.finish_reason !== 'length') { console.error(`retry ${file}: ${why}`); return review(file, content, key, budget, attempt + 1); }
     throw new Error(why);
   }
   try { return { findings: parseFindings(text), tokens }; } catch (e) {
-    if (attempt < 2) { console.error(`retry ${file}: ${e.message}`); return review(file, content, key, attempt + 1); }
+    if (attempt < 2) { console.error(`retry ${file}: ${e.message}`); return review(file, content, key, budget, attempt + 1); }
     throw e;
   }
 }
@@ -108,6 +111,7 @@ async function main() {
   if (!key) { console.error('UNAVAILABLE: ABLITERATION_API_KEY not set — no review was run.'); process.exit(3); }
 
   const results = [];
+  const budget = { remaining: args.maxRequests };
   for (const file of files) {
     const used = tokensUsedToday();
     if (used >= args.dailyTokenCap) { results.push({ file, status: 'skipped', error: `daily token cap ${args.dailyTokenCap} reached (${used})` }); continue; }
@@ -115,7 +119,7 @@ async function main() {
     try { content = readFileSync(resolve(ROOT, file), 'utf8'); } catch (e) { results.push({ file, status: 'error', error: e.message }); continue; }
     if (content.length > args.maxCharsPerFile) { results.push({ file, status: 'skipped', error: `${content.length} chars > --max-chars` }); continue; }
     try {
-      const r = await review(file, content, key);
+      const r = await review(file, content, key, budget);
       results.push({ file, status: 'reviewed', findings: r.findings });
       console.log(`reviewed ${file}: ${r.findings.length} findings (${r.tokens} tokens)`);
     } catch (e) { results.push({ file, status: 'error', error: e.message }); console.error(`ERROR ${file}: ${e.message}`); }
