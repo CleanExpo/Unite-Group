@@ -306,6 +306,15 @@ function sectionHasContent(body: string): boolean {
  * line and all five `## ` sections present with non-empty bodies. A section
  * whose lines are only list markers is empty, so a placeholder list cannot be
  * stored as accepted. Frontmatter status is not checked here — accept rewrites it.
+ *
+ * Contract and limit. This rejects template placeholders left by an honest
+ * author: bare list markers, horizontal rules, empty checkboxes and link
+ * references that render no text. It is NOT a markdown or HTML renderer. It
+ * does not decide what raw HTML, character entities, code fences or link
+ * syntax would display, and it makes no claim about them. The caller is the
+ * authenticated founder-only intent route, which reads and writes only that
+ * founder's own tasks, so the markdown is the founder's own text and the
+ * threat model is an honest author, not a hostile one.
  */
 export function parseIntentMarkdown(md: string): ParseIntentResult {
   const text = stripFrontmatter(md)
