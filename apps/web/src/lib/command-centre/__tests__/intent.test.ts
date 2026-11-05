@@ -52,6 +52,89 @@ describe('renderIntentMarkdown / parseIntentMarkdown', () => {
     expect(parseIntentMarkdown(md)).toEqual({ ok: false, reason: 'Section "## Problem" is empty' })
   })
 
+  it.each([
+    '-',
+    '- ',
+    '  -  ',
+    '*',
+    '+',
+    '1.',
+    '1)',
+    '•',
+    '–',
+    '-\n-',
+    '-\n*\n+\n1.\n  ',
+    '- [ ]',
+    '- [x]',
+    '- []',
+    '---',
+    '***',
+    '1. 2.',
+    '- - [ ]',
+    '.',
+    '...',
+    '&nbsp;',
+    '\u00a0',
+    '\u200b',
+    '[//]: # (nothing)',
+  ])('treats a placeholder-only Constraints section as empty (%j)', (body) => {
+    const md = renderIntentMarkdown(DOC, OPTS).replace(
+      '## Constraints\n- No new login system\n- Works on a phone\n',
+      `## Constraints\n${body}\n`,
+    )
+    expect(parseIntentMarkdown(md)).toEqual({ ok: false, reason: 'Section "## Constraints" is empty' })
+  })
+
+  it('treats an Open questions section that is only a bare dash as empty', () => {
+    const md = renderIntentMarkdown(DOC, OPTS).replace(
+      '## Open questions\n- Do insurers expose a status we can read?\n',
+      '## Open questions\n-\n',
+    )
+    expect(parseIntentMarkdown(md)).toEqual({ ok: false, reason: 'Section "## Open questions" is empty' })
+  })
+
+  it('accepts a list section that has a real item beside a bare dash', () => {
+    const md = renderIntentMarkdown(DOC, OPTS).replace(
+      '## Constraints\n- No new login system\n- Works on a phone\n',
+      '## Constraints\n-\n- Works on a phone\n',
+    )
+    expect(parseIntentMarkdown(md)).toEqual({ ok: true, title: DOC.title })
+  })
+
+  it('keeps a leading hyphen that is part of the text', () => {
+    const md = renderIntentMarkdown(DOC, OPTS).replace(
+      '## Problem\nContractors phone the office to ask whether a report was sent.\n',
+      '## Problem\n-20 percent of contractors still phone the office.\n',
+    )
+    expect(parseIntentMarkdown(md)).toEqual({ ok: true, title: DOC.title })
+  })
+
+  it('keeps emphasis and an asterisk list item', () => {
+    const md = renderIntentMarkdown(DOC, OPTS)
+      .replace(
+        '## Problem\nContractors phone the office to ask whether a report was sent.\n',
+        '## Problem\n***Contractors*** still phone the office.\n',
+      )
+      .replace(
+        '## Constraints\n- No new login system\n- Works on a phone\n',
+        '## Constraints\n* Works on a phone\n',
+      )
+    expect(parseIntentMarkdown(md)).toEqual({ ok: true, title: DOC.title })
+  })
+
+  it('keeps a version number and a labelled checkbox', () => {
+    const md = renderIntentMarkdown(DOC, OPTS)
+      .replace(
+        '## Problem\nContractors phone the office to ask whether a report was sent.\n',
+        '## Problem\n1.2 contractors still phone the office.\n',
+      )
+      .replace(
+        '## Open questions\n- Do insurers expose a status we can read?\n',
+        '## Open questions\n- [x] Do insurers expose a status we can read?\n',
+      )
+    expect(parseIntentMarkdown(md)).toEqual({ ok: true, title: DOC.title })
+  })
+
   it('rejects a document with no "# Intent:" title', () => {
     const md = renderIntentMarkdown(DOC, OPTS).replace('# Intent: Contractors see claim report status\n', '')
     const result = parseIntentMarkdown(md)

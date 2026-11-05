@@ -8,8 +8,11 @@
 // The format is the contract the Claude Code `/capture-intent` stager enforces
 // (skills/capture-intent/scripts/stage_intent.py): frontmatter with
 // `status: accepted`, a `# Intent: <title>` line, and five non-empty `## `
-// sections. parseIntentMarkdown mirrors that validator so the web app never
-// accepts a document the stager would refuse.
+// sections. parseIntentMarkdown refuses a document the stager would refuse.
+// A section counts only when a letter or digit remains after list markers,
+// rules, empty checkboxes and non-rendering link references are removed, so a
+// bare dash cannot be stored as accepted. A lone `1.` / `1)` and an empty
+// `- [x]` are empty here as well; the stager still counts those as content.
 //
 // Unlike clarify, generation is NOT best-effort: any model or parse failure
 // returns { ok: false, reason } — a blank doc is never dressed as success.
@@ -261,9 +264,48 @@ export function stripFrontmatter(md: string): string {
 }
 
 /**
- * Validate an intent.md body (with or without frontmatter) using the same rules
- * as the stager: a `# Intent: <title>` line and all five `## ` sections present
- * with non-empty bodies. Frontmatter status is not checked here — accept rewrites it.
+ * A list marker at the start of a trimmed line. The marker must be the whole
+ * token (`-`, `*`, `+`, `1.`, `1)`, or a dash/bullet glyph) so a hyphen that
+ * is part of the text (`-20 percent`) is left alone.
+ */
+const LIST_MARKER = /^(?:[-*+•·∙–—−‐]|\d+[.)])(?:\s+|$)/
+
+/** A line of only dashes, stars, pluses or bullet glyphs (a rule, or `* *`). */
+const MARKER_GLYPHS_ONLY = /^[-*+•·∙–—−‐\s]+$/
+
+/** An empty checkbox is a placeholder, whether or not it is ticked. */
+const EMPTY_CHECKBOX = /^\[[ \t]*[xX]?[ \t]*\]$/
+
+/**
+ * A letter or digit. Mirrors the stager: punctuation, rules and invisible
+ * characters are not content. Underscore is not content either.
+ */
+const HAS_LETTER_OR_DIGIT = /[\p{L}\p{N}]/u
+
+/** A link-reference definition never renders, so it is not section content. */
+const LINK_REFERENCE = /^[ \t]*\[[^\]\n]*\]:[^\n]*$/gm
+
+/**
+ * A section is filled only when some line still has a letter or digit after
+ * list markers are removed. A body of only `-`, `*`, `---`, `1.`, `- [ ]`,
+ * `.` or a non-rendering link reference is empty.
+ */
+function sectionHasContent(body: string): boolean {
+  const shown = body.replace(LINK_REFERENCE, '').replaceAll('&nbsp;', '')
+  return shown.split('\n').some((line) => {
+    let rest = line.trim()
+    if (!rest || MARKER_GLYPHS_ONLY.test(rest)) return false
+    while (LIST_MARKER.test(rest)) rest = rest.replace(LIST_MARKER, '').trim()
+    if (!rest || MARKER_GLYPHS_ONLY.test(rest) || EMPTY_CHECKBOX.test(rest)) return false
+    return HAS_LETTER_OR_DIGIT.test(rest)
+  })
+}
+
+/**
+ * Validate an intent.md body (with or without frontmatter): a `# Intent: <title>`
+ * line and all five `## ` sections present with non-empty bodies. A section
+ * whose lines are only list markers is empty, so a placeholder list cannot be
+ * stored as accepted. Frontmatter status is not checked here — accept rewrites it.
  */
 export function parseIntentMarkdown(md: string): ParseIntentResult {
   const text = stripFrontmatter(md)
@@ -282,7 +324,7 @@ export function parseIntentMarkdown(md: string): ParseIntentResult {
   for (const name of INTENT_SECTIONS) {
     const body = bodies.get(name.toLowerCase())
     if (body === undefined) return { ok: false, reason: `Missing section "## ${name}"` }
-    if (!body) return { ok: false, reason: `Section "## ${name}" is empty` }
+    if (!sectionHasContent(body)) return { ok: false, reason: `Section "## ${name}" is empty` }
   }
   return { ok: true, title: title[1].trim() }
 }
