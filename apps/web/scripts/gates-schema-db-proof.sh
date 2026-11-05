@@ -83,11 +83,29 @@ else fail "RLS and integrity proof"; PSQL -h localhost -d g1 < "$PROOF" 2>&1 | t
 
 # 5. rollback refuses while an outside object depends on gates; then removes gates entirely; the forward
 #    migration then applies again cleanly
-PSQL -h localhost -d g1 -c "create view public.gates_dependant as select id from gates.brands" >/dev/null
-if PSQL -h localhost -d g1 < "$ROLLBACK" >/dev/null 2>"$WORK/rbdep.err"; then fail "rollback ran while public.gates_dependant depends on gates"
-elif grep -q "objects outside gates depend on it: public.gates_dependant" "$WORK/rbdep.err"; then pass "rollback refuses while an outside view depends on gates"
-else fail "rollback refused, but not through its dependency check"; cat "$WORK/rbdep.err"; fi
-PSQL -h localhost -d g1 -c "drop view public.gates_dependant" >/dev/null
+#    Every way an outside object can hang off gates is tried, each on its own fresh database: the rollback must
+#    refuse through its own check, leave the outside object in place, and leave gates in place.
+rb_refuses() { # label, db, setup sql, survivor sql (returns 1 when the outside object still exists)
+  fresh_db "$2" >/dev/null && PSQL -h localhost -d "$2" < "$MIG" >/dev/null 2>&1 \
+    || { fail "rollback dependant $1: could not build $2"; return; }
+  PSQL -h localhost -d "$2" -c "$3" >/dev/null || { fail "rollback dependant $1: setup failed"; return; }
+  if PSQL -h localhost -d "$2" < "$ROLLBACK" >/dev/null 2>"$WORK/$2.err"; then fail "rollback ran while an outside $1 depends on gates"
+  elif ! grep -q "gates_schema_rollback: the drop would also remove objects outside gates" "$WORK/$2.err"; then
+    fail "rollback dependant $1: refused, but not through its outside-object check"; cat "$WORK/$2.err"
+  elif [ "$(PSQL -h localhost -d "$2" -tAc "$4")" != "1" ]; then fail "rollback dependant $1: outside object is gone"
+  elif [ "$(PSQL -h localhost -d "$2" -tAc "select count(*) from pg_namespace where nspname = 'gates'")" != "1" ]; then
+    fail "rollback dependant $1: gates is gone after a refused rollback"
+  else pass "rollback refuses, and keeps everything, while an outside $1 depends on gates"; fi
+}
+RB_CASES=(
+  "view on a gates table|r1|create view public.dep_v as select id from gates.brands|select count(*) from pg_class where relname = 'dep_v'"
+  "view calling gates.jwt_org_id()|r2|create view public.dep_f as select gates.jwt_org_id() as org_id|select count(*) from pg_class where relname = 'dep_f'"
+  "policy calling gates.jwt_org_id()|r3|create table public.dep_t (org_id uuid); alter table public.dep_t enable row level security; create policy dep_p on public.dep_t for select using (org_id = gates.jwt_org_id())|select count(*) from pg_policy where polname = 'dep_p'"
+  "foreign key to a gates table|r4|create table public.dep_k (brand_id uuid references gates.brands (id))|select count(*) from pg_constraint where conname = 'dep_k_brand_id_fkey'"
+  "column of a gates row type|r5|create table public.dep_c (id int, b gates.brands)|select count(*) from pg_attribute where attrelid = 'public.dep_c'::regclass and attname = 'b' and not attisdropped"
+  "column default calling gates.jwt_org_id()|r6|create table public.dep_d (org_id uuid default gates.jwt_org_id())|select count(*) from pg_attrdef where adrelid = 'public.dep_d'::regclass"
+)
+for c in "${RB_CASES[@]}"; do IFS='|' read -r label db setup survivor <<< "$c"; rb_refuses "$label" "$db" "$setup" "$survivor"; done
 if PSQL -h localhost -d g1 < "$ROLLBACK" >/dev/null 2>"$WORK/rb.err"; then pass "rollback applies"
 else fail "rollback applies"; cat "$WORK/rb.err"; fi
 [ "$(PSQL -h localhost -d g1 -tAc "select count(*) from pg_namespace where nspname = 'gates'")" = "0" ] \
@@ -119,6 +137,20 @@ else
   PSQL -h localhost -d c5 < "$FP" >/dev/null 2>"$WORK/c5.err"
   if grep -q "gates_schema: schema gates already exists" "$WORK/c5.err"; then fail "control no fingerprint: refusal message appeared without the check"
   else pass "control no fingerprint: the refusal depends on the fingerprint block"; fi
+fi
+
+# the rollback control: with its after-drop check reduced to a notice, an outside view calling gates.jwt_org_id()
+# must be silently dropped, i.e. the check is what keeps it
+RB_MUT="$WORK/rollback-no-check.sql"
+sed -E "s/raise exception 'gates_schema_rollback: the drop would/raise notice 'gates_schema_rollback: the drop would/" "$ROLLBACK" > "$RB_MUT"
+if cmp -s "$RB_MUT" "$ROLLBACK"; then fail "control rollback check: mutation did not change the file"
+else
+  fresh_db c6 >/dev/null && PSQL -h localhost -d c6 < "$MIG" >/dev/null 2>&1 \
+    && PSQL -h localhost -d c6 -c "create view public.dep_f as select gates.jwt_org_id() as org_id" >/dev/null
+  PSQL -h localhost -d c6 < "$RB_MUT" >/dev/null 2>&1
+  if [ "$(PSQL -h localhost -d c6 -tAc "select count(*) from pg_class where relname = 'dep_f'")" = "0" ]; then
+    pass "control rollback check: without it the outside view is lost"
+  else fail "control rollback check: the outside view survived without the check, so the check proves nothing"; fi
 fi
 
 if [ $FAILS -eq 0 ]; then echo "GATES_SCHEMA_DB_PROOF_ALL_PASS"; exit 0; fi
