@@ -184,6 +184,46 @@ describe('step up after the emailed code', () => {
     expect(calls.codes).toEqual([])
   })
 
+  it('keeps the saved secret when a lost verify response leaves a factor Supabase will not remove', async () => {
+    // Supabase verified the factor but the response never arrived, so every code reads as a failure,
+    // and removing a verified factor below aal2 is refused.
+    const { deps, calls } = harness({
+      challengeAndVerify: async (_id, code) => { calls.codes.push(code); return false },
+      unenroll: async (id) => { calls.unenroll.push(id); throw new Error('AAL2 required to unenroll verified factor') },
+    })
+    expect(await stepUpAfterEmailProof(deps)).toBe('error')
+    expect(calls.save).toEqual([SECRET])
+    expect(calls.unenroll).toEqual(['new-factor'])
+    expect(calls.clear).toBe(0)
+
+    // The next visit finds that verified factor under the stored id and steps up with the kept secret.
+    const next = harness({
+      listFactors: async () => [{ id: 'new-factor', factorType: 'totp', status: 'verified', friendlyName: PORTAL_EMAIL_FACTOR_NAME }],
+      loadEmailFactor: async () => ({ factorId: 'new-factor', secret: SECRET }),
+    })
+    expect(await stepUpAfterEmailProof(next.deps)).toBe('ok')
+    expect(next.calls.enroll).toBe(0)
+  })
+
+  it('keeps the saved secret when the verify call throws and removal is refused', async () => {
+    const { deps, calls } = harness({
+      challengeAndVerify: async () => { throw new Error('network') },
+      unenroll: async (id) => { calls.unenroll.push(id); throw new Error('refused') },
+    })
+    expect(await stepUpAfterEmailProof(deps)).toBe('error')
+    expect(calls.unenroll).toEqual(['new-factor'])
+    expect(calls.clear).toBe(0)
+  })
+
+  it('clears the saved secret once the unverified factor is confirmed removed', async () => {
+    const { deps, calls } = harness({
+      challengeAndVerify: async (_id, code) => { calls.codes.push(code); return false },
+    })
+    expect(await stepUpAfterEmailProof(deps)).toBe('error')
+    expect(calls.unenroll).toEqual(['new-factor'])
+    expect(calls.clear).toBe(1)
+  })
+
   it('uses the stored secret for a later visit and does not enrol again', async () => {
     const { deps, calls } = harness({
       listFactors: async () => [{ id: 'new-factor', factorType: 'totp', status: 'verified', friendlyName: PORTAL_EMAIL_FACTOR_NAME }],

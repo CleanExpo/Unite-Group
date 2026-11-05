@@ -100,18 +100,30 @@ export async function stepUpAfterEmailProof(deps: StepUpDeps): Promise<'ok' | 'n
     }
     const verifiedCode = await verifyFactor(deps, enrolled.factorId, enrolled.secret)
     if (!verifiedCode) {
-      await deps.unenroll(enrolled.factorId).catch(() => undefined)
-      await deps.clearEmailFactor().catch(() => undefined)
+      await discardEnrolled(deps, enrolled.factorId)
       return 'error'
     }
     return 'ok'
   } catch {
-    if (enrolledId) {
-      await deps.unenroll(enrolledId).catch(() => undefined)
-      await deps.clearEmailFactor().catch(() => undefined)
-    }
+    if (enrolledId) await discardEnrolled(deps, enrolledId)
     return 'error'
   }
+}
+
+/**
+ * Undo a factor we just enrolled. The saved secret is cleared only after the
+ * factor is confirmed removed. A verify can succeed at Supabase while its
+ * response is lost; the factor is then verified, and Supabase will not remove a
+ * verified factor below aal2. Clearing the secret then would leave a verified
+ * factor nobody can produce a code for. Keeping it lets the next visit use it.
+ */
+async function discardEnrolled(deps: StepUpDeps, factorId: string): Promise<void> {
+  try {
+    await deps.unenroll(factorId)
+  } catch {
+    return
+  }
+  await deps.clearEmailFactor().catch(() => undefined)
 }
 
 /**
