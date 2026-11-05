@@ -229,10 +229,10 @@ describe('/api/seo/audit GET', () => {
   test('domain field in response matches the requested domain', async () => {
     mockHtmlResponse(WELL_OPTIMISED_HTML);
 
-    const res = await GET(makeReq({ domain: 'restoreassist.com.au' }));
+    const res = await GET(makeReq({ domain: 'restoreassist.app' }));
     const body = await res.json();
 
-    expect(body.domain).toBe('restoreassist.com.au');
+    expect(body.domain).toBe('restoreassist.app');
   });
 
 });
