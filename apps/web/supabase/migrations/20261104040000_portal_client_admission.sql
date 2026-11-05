@@ -27,7 +27,8 @@
 --      admitting it once it is a portal tenant member. Unbound invites cannot create accounts.
 --      Replaced only when each live hook body is the one this file expects to replace (the
 --      20260620010000 text, which production held on 04/11/2026) or this file's own (a re-run);
---      any other body stops the run before anything changes.
+--      any other body stops the run before anything changes. Each hook is held from that check
+--      until commit, so a concurrent hook edit cannot land between the check and the replace.
 --   5. Staff get a founder_notifications row whenever a portal change request is created or
 --      changes status, so client requests land in the command centre instead of an unwatched table.
 --      Deliberately coupled: if that insert fails, or no staff account exists to receive it, the
@@ -102,6 +103,12 @@ $$;
 -- collapsed to one space and trimmed, so a body pasted through the dashboard editor still matches.
 -- Known: the 20260620010000 bodies (production on 04/11/2026) and this file's own bodies (a re-run).
 -- An absent hook (a database built without 20260620010000) is created as normal.
+-- Each existing hook's pg_proc row is held from this check until commit, so the body checked here is
+-- the body replaced in section 4. A no-op ALTER (both hooks are STABLE, and section 4 sets STABLE
+-- again) updates the row inside this transaction; a concurrent CREATE OR REPLACE or ALTER of that hook
+-- then waits for this transaction instead of landing in between, and this ALTER itself waits for (and
+-- after lock_timeout stops on) an edit already in flight. SELECT ... FOR UPDATE on pg_proc would do
+-- the same but needs table privileges the applying role does not have.
 do $$
 declare
   h record;
@@ -113,6 +120,9 @@ begin
       ('public.custom_access_token_hook(jsonb)', array['ca7be51b3fa374c99f3b77755e70035e', 'f4d81b2c16458ed016cd32ed1ff7c6cc'])
     ) as t(fn, known)
   loop
+    if to_regprocedure(h.fn) is not null then
+      execute format('alter function %s stable', to_regprocedure(h.fn));
+    end if;
     select md5(btrim(regexp_replace(p.prosrc, '\s+', ' ', 'g'), ' ')) into v_fp
     from pg_proc p where p.oid = to_regprocedure(h.fn);
     if v_fp is not null and not (v_fp = any (h.known)) then

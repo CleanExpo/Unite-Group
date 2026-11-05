@@ -365,5 +365,46 @@ elif PSQL -d hookdrift < "$WORK/nohookguard.sql" > /dev/null 2>&1; then
   echo "RED-AS-EXPECTED  without the hook guard the migration replaces a hook body it does not know"
 else echo "FAIL  hook guard mutant failed to apply, so the guard check proves nothing"; FAILS=$((FAILS+1)); fi
 
+# 4f. each auth hook is held from its fingerprint check until commit, so a concurrent hook edit cannot land
+#     between the check and the replace. Session A applies the migration with a 6-second pause planted
+#     straight after the hook guard. During the pause, session B replaces before_user_created_hook with
+#     lock_timeout 2s. B must time out waiting and A must still commit its own body. Control: the same run
+#     with the no-op ALTER removed lets B land, and A then overwrites B's edit without checking it.
+CONC_EDIT_SQL="set lock_timeout = '2s';
+create or replace function public.before_user_created_hook(event jsonb) returns jsonb language plpgsql stable
+security definer set search_path = public as \$f\$ begin return event; /* concurrent edit during the migration */ end; \$f\$;"
+concurrent_edit() { # db, migration file. Writes B's outcome (blocked|landed), A's exit code and the final body marker.
+  local db="$1" paused="$WORK/conc-$1.sql" apid
+  awk '/^-- 1\. Staff predicate/ && !d { print "select pg_sleep(6); -- planted pause after the hook guard"; d = 1 } { print }' \
+    "$2" > "$paused"
+  if cmp -s "$2" "$paused"; then echo "FAIL  pause was not planted in $(basename "$2")"; FAILS=$((FAILS+1)); return 1; fi
+  build "$db" || return 1
+  ( PSQL -d "$db" < "$paused" > /dev/null 2> "$WORK/conc-$db-a.err"; echo $? > "$WORK/conc-$db-a.rc" ) &
+  apid=$!
+  sleep 2
+  if PSQL -d "$db" -c "$CONC_EDIT_SQL" > /dev/null 2> "$WORK/conc-$db-b.err"; then echo landed > "$WORK/conc-$db-b.out"
+  else echo blocked > "$WORK/conc-$db-b.out"; fi
+  wait "$apid"
+  PSQL -d "$db" -t -A -c "select case when prosrc like '%concurrent edit during the migration%' then 'edit-kept' else 'edit-gone' end
+    from pg_proc where oid = to_regprocedure('public.before_user_created_hook(jsonb)')" > "$WORK/conc-$db-final.out"
+}
+concurrent_edit conc "$ADMIT"
+if [ "$(cat "$WORK/conc-conc-b.out" 2>/dev/null)" = blocked ] && grep -q "lock timeout" "$WORK/conc-conc-b.err" \
+   && [ "$(cat "$WORK/conc-conc-a.rc" 2>/dev/null)" = 0 ] \
+   && PSQL -d conc -t -A -c "select to_regprocedure('public.is_allowlisted_staff()') is not null" | grep -qx t; then
+  echo "PASS  a concurrent hook edit waits for the migration and cannot land between its check and its replace"
+else echo "FAIL  concurrent hook edit: B=$(cat "$WORK/conc-conc-b.out" 2>/dev/null) A-exit=$(cat "$WORK/conc-conc-a.rc" 2>/dev/null)"
+  tail -2 "$WORK/conc-conc-b.err" "$WORK/conc-conc-a.err"; FAILS=$((FAILS+1)); fi
+sed -e '/alter function %s stable/d' "$ADMIT" > "$WORK/nohooklock.sql"
+if cmp -s "$ADMIT" "$WORK/nohooklock.sql"; then echo "FAIL  hook lock mutant did not change the migration"; FAILS=$((FAILS+1))
+else
+  concurrent_edit concctl "$WORK/nohooklock.sql"
+  if [ "$(cat "$WORK/conc-concctl-b.out" 2>/dev/null)" = landed ] && [ "$(cat "$WORK/conc-concctl-a.rc" 2>/dev/null)" = 0 ] \
+     && [ "$(cat "$WORK/conc-concctl-final.out" 2>/dev/null)" = edit-gone ]; then
+    echo "RED-AS-EXPECTED  without the hook row lock a concurrent hook edit lands mid-migration and is overwritten unchecked"
+  else echo "FAIL  hook lock control: B=$(cat "$WORK/conc-concctl-b.out" 2>/dev/null) A-exit=$(cat "$WORK/conc-concctl-a.rc" 2>/dev/null) final=$(cat "$WORK/conc-concctl-final.out" 2>/dev/null), so the lock check proves nothing"
+    FAILS=$((FAILS+1)); fi
+fi
+
 if [ $FAILS -eq 0 ]; then echo "PORTAL_CLIENT_ADMISSION_DB_PROOF_ALL_PASS"; exit 0; fi
 echo "PORTAL_CLIENT_ADMISSION_DB_PROOF_FAILURES=$FAILS"; exit 1
