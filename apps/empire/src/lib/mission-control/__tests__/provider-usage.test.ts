@@ -1,4 +1,28 @@
+import { execSync } from 'child_process';
 import { buildProviderUsage, summarizeProviderUsage, buildPlanMetrics } from '../provider-usage';
+
+// No test may run a real CLI: `claude <word>` opens a real Claude session.
+jest.mock('child_process', () => ({ execSync: jest.fn() }));
+const mockExecSync = execSync as unknown as jest.Mock;
+
+function fakeCli(outputs: { claude?: string; codex?: string }) {
+  mockExecSync.mockImplementation((cmd: string) => {
+    if (cmd.startsWith('claude ')) {
+      if (outputs.claude === undefined) throw new Error('claude: command not found');
+      return outputs.claude;
+    }
+    if (cmd.startsWith('codex ')) {
+      if (outputs.codex === undefined) throw new Error('codex: command not found');
+      return outputs.codex;
+    }
+    throw new Error(`unexpected command in test: ${cmd}`);
+  });
+}
+
+beforeEach(() => {
+  mockExecSync.mockReset();
+  fakeCli({});
+});
 
 describe('buildProviderUsage', () => {
   it('marks unconfigured providers as blocked without exposing secret values', () => {
@@ -73,10 +97,44 @@ describe('buildPlanMetrics', () => {
     expect(claude!.total).toBe(3);
   });
 
-  it('returns zero active when no CLIs are authenticated', () => {
+  it('returns zero active when no CLIs are installed', () => {
     const metrics = buildPlanMetrics();
-    // Since this test runs in CI without CLIs, active count could be 0 or higher depending on env
-    expect(metrics.active).toBeGreaterThanOrEqual(0);
+    const claude = metrics.providers.find((p) => p.id === 'claude')!;
+
+    expect(claude.active).toBe(0);
+    expect(claude.accounts.every((a) => a.state === 'blocked')).toBe(true);
     expect(metrics.total).toBe(6);
+  });
+
+  it('detects Claude with `claude --version` and never runs `claude help`', () => {
+    fakeCli({ claude: '2.1.318 (Claude Code)\n' });
+    buildPlanMetrics();
+
+    const claudeCalls = mockExecSync.mock.calls
+      .map(([cmd]) => String(cmd))
+      .filter((cmd) => cmd.startsWith('claude'));
+    expect(claudeCalls).toHaveLength(1);
+    expect(claudeCalls[0].startsWith('claude --version')).toBe(true);
+    for (const [cmd] of mockExecSync.mock.calls) {
+      expect(String(cmd)).not.toContain('help');
+    }
+  });
+
+  it('marks all three Claude accounts available when the version output says Claude Code', () => {
+    fakeCli({ claude: '2.1.318 (Claude Code)\n', codex: 'codex-cli 0.166.0\n' });
+    const metrics = buildPlanMetrics();
+    const claude = metrics.providers.find((p) => p.id === 'claude')!;
+
+    expect(claude).toMatchObject({ active: 3, total: 3 });
+    expect(claude.accounts.map((a) => a.state)).toEqual(['available', 'available', 'available']);
+    expect(claude.accounts.map((a) => a.usagePct)).toEqual([100, 100, 100]);
+  });
+
+  it('keeps Claude blocked when the output is not from Claude Code', () => {
+    fakeCli({ claude: 'Usage: claude [options]\nCommands:\n' });
+    const claude = buildPlanMetrics().providers.find((p) => p.id === 'claude')!;
+
+    expect(claude.active).toBe(0);
+    expect(claude.accounts.every((a) => a.state === 'blocked')).toBe(true);
   });
 });

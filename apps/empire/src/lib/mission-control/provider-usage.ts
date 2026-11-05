@@ -198,7 +198,9 @@ export function buildProviderUsage(
   });
 }
 
-function runHelp(cmd: string): string {
+// Only ever pass version flags here. Claude Code reads any bare word (e.g.
+// `claude help`) as a prompt and opens a real session.
+function runCli(cmd: string): string {
   try {
     const { execSync } = require('child_process');
     return execSync(cmd + ' 2>&1', { encoding: 'utf-8', timeout: 5000 });
@@ -213,10 +215,10 @@ function checkClaudeAuth(): { active: number; total: number; plans: PlanAccount[
     { id: 'claude-2', label: 'Claude Max #2', state: 'blocked', usagePct: 0, color: '#c49a6c' },
     { id: 'claude-3', label: 'Claude Max #3', state: 'blocked', usagePct: 0, color: '#a8c66c' },
   ];
-  const out = runHelp('claude help 2>&1 || echo CLAUDE_NA');
-  const active = out.includes('Usage:') || out.includes('Commands');
+  const out = runCli('claude --version');
+  const active = out.includes('Claude Code');
   if (active) {
-    accounts.forEach((p, i) => {
+    accounts.forEach((p) => {
       p.state = 'available';
       p.usagePct = 100;
     });
@@ -226,7 +228,7 @@ function checkClaudeAuth(): { active: number; total: number; plans: PlanAccount[
 }
 
 function checkCodexAuth(): { active: number; total: number; plans: PlanAccount[] } {
-  const out = runHelp('codex --version 2>&1 || echo CODEX_NA');
+  const out = runCli('codex --version');
   const active = out.includes('codex-cli');
   const plans: PlanAccount[] = [
     { id: 'codex-1', label: 'OpenAI Codex Max', state: active ? 'available' : 'blocked', usagePct: active ? 100 : 25, color: '#10a37f' },
