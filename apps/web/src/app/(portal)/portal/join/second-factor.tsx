@@ -3,17 +3,20 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, type FormEvent } from 'react'
 
+import { sendPortalEmailCodeAction, verifyPortalEmailCodeAction } from '@/lib/portal/email-second-factor-action'
 import { REDEEM_COPY } from '@/lib/portal/invites/outcomes'
+import { initialSecondFactorMode, PORTAL_EMAIL_FACTOR_NAME } from '@/lib/portal/second-factor-mode'
 import { createClient } from '@/lib/supabase/client'
 
 import styles from './join.module.css'
 
-type Mode = 'loading' | 'verify' | 'enrol-start' | 'enrol-scan' | 'error'
+type Mode = 'loading' | 'error' | 'choose' | 'verify' | 'enrol-scan' | 'email'
 type Enrolment = { factorId: string; qrCode: string; secret: string }
+type EmailOutcome = 'signed_out' | 'no_email' | 'rate_limited' | 'bad_code' | 'needs_authenticator' | 'error'
 
 /**
- * Step 3: confirm it is you with an authenticator app (Supabase MFA, TOTP). This lifts the session to aal2.
- * An owner with a confirmed app enters a code; an owner without one sets it up first.
+ * Step 3: confirm it is you. An authenticator app, or a 6-digit code we email, lifts the session to aal2.
+ * The page only moves on once the server reads aal2. An app we did not set up for email is not removed.
  */
 export function SecondFactorStep({
   email,
@@ -28,9 +31,12 @@ export function SecondFactorStep({
   const router = useRouter()
   const [mode, setMode] = useState<Mode>('loading')
   const [factorId, setFactorId] = useState<string | null>(null)
+  const [hasApp, setHasApp] = useState(false)
   const [enrolment, setEnrolment] = useState<Enrolment | null>(null)
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
+  const [emailSent, setEmailSent] = useState(false)
+  const [emailNote, setEmailNote] = useState<string | null>(null)
   const [problem, setProblem] = useState<string | null>(null)
 
   useEffect(() => {
@@ -38,8 +44,16 @@ export function SecondFactorStep({
     createClient().auth.mfa.listFactors().then(({ data, error }) => {
       if (cancelled) return
       if (error) { setMode('error'); return }
-      const verified = data?.totp?.find((f) => f.status === 'verified')
-      if (verified) { setFactorId(verified.id); setMode('verify') } else setMode('enrol-start')
+      const totp = (data?.totp ?? []).map((factor) => ({
+        id: factor.id,
+        status: factor.status,
+        friendlyName: factor.friendly_name ?? null,
+      }))
+      const foreign = totp.find((factor) => factor.status === 'verified' && factor.friendlyName !== PORTAL_EMAIL_FACTOR_NAME)
+      setHasApp(Boolean(foreign))
+      if (foreign) setFactorId(foreign.id)
+      const start = initialSecondFactorMode(totp)
+      setMode(start)
     }).catch(() => { if (!cancelled) setMode('error') })
     return () => { cancelled = true }
   }, [])
@@ -49,12 +63,11 @@ export function SecondFactorStep({
     setBusy(true)
     const supabase = createClient()
     try {
-      // Clear only half-finished set-ups (never a confirmed app), so a retry does not fail on a duplicate name.
       const { data: factors } = await supabase.auth.mfa.listFactors()
-      const stale = (factors?.all ?? []).filter((f) => f.factor_type === 'totp' && f.status !== 'verified')
-      await Promise.all(stale.map((f) => supabase.auth.mfa.unenroll({ factorId: f.id })))
+      const stale = (factors?.all ?? []).filter((factor) => factor.factor_type === 'totp' && factor.status !== 'verified')
+      await Promise.all(stale.map((factor) => supabase.auth.mfa.unenroll({ factorId: factor.id })))
       const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Business portal' })
-      if (error || !data) { setProblem('We could not start the set-up. Please try again.'); return }
+      if (error || !data || data.type !== 'totp') { setProblem('We could not start the set-up. Please try again.'); return }
       setEnrolment({ factorId: data.id, qrCode: data.totp.qr_code, secret: data.totp.secret })
       setFactorId(data.id)
       setMode('enrol-scan')
@@ -65,7 +78,7 @@ export function SecondFactorStep({
     }
   }
 
-  async function onVerify(e: FormEvent) {
+  async function onVerifyApp(e: FormEvent) {
     e.preventDefault()
     if (!factorId) return
     setProblem(null)
@@ -84,8 +97,56 @@ export function SecondFactorStep({
     }
   }
 
-  const codeForm = (
-    <form className={styles.form} onSubmit={onVerify}>
+  async function onSendEmail() {
+    setProblem(null)
+    setBusy(true)
+    try {
+      const result = await sendPortalEmailCodeAction()
+      if (result.ok) {
+        setEmailNote(emailSent ? 'We sent another code. Use the newest one.' : null)
+        setEmailSent(true)
+        setCode('')
+        setMode('email')
+        return
+      }
+      setProblem(emailProblem(result.outcome, result.retryAfterSeconds))
+      if (emailSent) setMode('email')
+    } catch {
+      setProblem('We could not send the code. Check your connection and try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function onVerifyEmail(e: FormEvent) {
+    e.preventDefault()
+    setProblem(null)
+    setBusy(true)
+    try {
+      const result = await verifyPortalEmailCodeAction(code)
+      if (result.ok) { router.refresh(); return }
+      setProblem(emailProblem(result.outcome, result.retryAfterSeconds))
+    } catch {
+      setProblem('We could not check the code. Check your connection and try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function showEmail() {
+    setProblem(null)
+    setCode('')
+    setMode('email')
+  }
+
+  function showApp() {
+    setProblem(null)
+    setCode('')
+    setMode(factorId ? 'verify' : 'choose')
+  }
+
+  const appForm = (
+    <form className={styles.form} onSubmit={onVerifyApp}>
       <label>
         6-digit code from your app
         <input inputMode="numeric" pattern="[0-9]{6}" maxLength={6} required value={code}
@@ -106,15 +167,22 @@ export function SecondFactorStep({
       </p>
       {mode === 'loading' && <p role="status" className={styles.body}>Checking your sign-in…</p>}
       {mode === 'error' && <p role="alert" className={styles.problem}>We could not check your sign-in. Please refresh the page.</p>}
-      {mode === 'verify' && codeForm}
-      {mode === 'enrol-start' && (
+      {mode === 'verify' && (
+        <>
+          {appForm}
+          <div className={styles.row}>
+            <button type="button" className={styles.textButton} onClick={showEmail}>Use email instead</button>
+          </div>
+        </>
+      )}
+      {mode === 'choose' && (
         <>
           <p className={styles.body}>
-            You need an authenticator app on your phone, such as Google Authenticator or Microsoft Authenticator. It
-            takes about a minute, and keeps your portal safe even if someone gets into your email.
+            An authenticator app is the stronger check. If you do not have one, we can email you a 6-digit code instead.
           </p>
           <div className={styles.row}>
             <button type="button" className={styles.button} onClick={startEnrolment} disabled={busy}>{busy ? 'Starting…' : 'Set up my app'}</button>
+            <button type="button" className={styles.textButton} onClick={onSendEmail} disabled={busy || !email}>{busy ? 'Sending…' : 'Email me a code'}</button>
           </div>
         </>
       )}
@@ -124,10 +192,67 @@ export function SecondFactorStep({
           {/* The QR code is made by Supabase for this one set-up (a data URI), not page artwork. */}
           <img className={styles.qr} src={enrolment.qrCode} alt="QR code to add your business portal to your authenticator app" width={180} height={180} />
           <p className={styles.note}>Can&apos;t scan? Type this key into the app instead: <span className={styles.mono}>{enrolment.secret}</span></p>
-          {codeForm}
+          {appForm}
+          <div className={styles.row}>
+            <button type="button" className={styles.textButton} onClick={showEmail}>Use email instead</button>
+          </div>
+        </>
+      )}
+      {mode === 'email' && (
+        <>
+          {emailSent ? (
+            <>
+              <p className={styles.body}>
+                We sent a 6-digit code to <strong>{email}</strong>. Enter it below.
+                {emailNote ? <> {emailNote}</> : null}
+              </p>
+              <form className={styles.form} onSubmit={onVerifyEmail}>
+                <label>
+                  6-digit code from your email
+                  <input inputMode="numeric" pattern="[0-9]{6}" maxLength={6} required value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, ''))} autoComplete="one-time-code" />
+                </label>
+                <div className={styles.row}>
+                  <button type="submit" className={styles.button} disabled={busy || code.length !== 6}>{busy ? 'Checking…' : 'Confirm'}</button>
+                  <button type="button" className={styles.textButton} onClick={onSendEmail} disabled={busy}>{busy ? 'Sending…' : 'Resend code'}</button>
+                </div>
+              </form>
+            </>
+          ) : (
+            <>
+              <p className={styles.body}>
+                {email
+                  ? <>We can email a 6-digit code to <strong>{email}</strong>.</>
+                  : 'We do not have an email address for this sign-in.'}
+              </p>
+              <div className={styles.row}>
+                <button type="button" className={styles.button} onClick={onSendEmail} disabled={busy || !email}>{busy ? 'Sending…' : 'Email me a code'}</button>
+              </div>
+            </>
+          )}
+          {hasApp && (
+            <div className={styles.row}>
+              <button type="button" className={styles.textButton} onClick={showApp}>Use your authenticator app instead</button>
+            </div>
+          )}
         </>
       )}
       {problem && <p role="alert" className={styles.problem}>{problem}</p>}
     </>
   )
+}
+
+function emailProblem(outcome: EmailOutcome, retryAfterSeconds?: number): string {
+  if (outcome === 'rate_limited') return waitPhrase(retryAfterSeconds)
+  if (outcome === 'bad_code') return 'That code did not match, or it has expired. You can ask for a new one.'
+  if (outcome === 'needs_authenticator') return 'Your authenticator app is still required. Enter the current 6-digit code from the app.'
+  if (outcome === 'signed_out') return 'Your sign-in ended. Refresh the page and sign in again.'
+  if (outcome === 'no_email') return 'We do not have an email address for this sign-in.'
+  return 'We could not check that. Please try again.'
+}
+
+function waitPhrase(seconds: number | undefined): string {
+  const shown = seconds && seconds > 0 ? seconds : 60
+  if (shown >= 120) return 'Please wait ' + String(Math.ceil(shown / 60)) + ' minutes before trying again.'
+  return 'Please wait ' + String(shown) + ' seconds before asking for another code.'
 }
