@@ -163,7 +163,8 @@ async function addSeats(admin: Admin, order: OrderRow, email: string): Promise<P
 
 /**
  * Set up the account or seats for a recorded order. A Starter pack order sets up nothing. Throws on a real failure, so the
- * webhook answers 500 and Stripe retries; while the migration is unapplied it only warns, so paid orders keep recording.
+ * webhook answers 500 and Stripe retries. While the migration is unapplied the order still records, but the founder is told
+ * that nothing was set up (and the webhook throws if that alert fails), so a paid order is never set up silently by no one.
  */
 export async function provisionCardOrder(admin: Admin, stripeSessionId: string): Promise<ProvisionOutcome | 'none'> {
   const { data, error } = await admin
@@ -183,6 +184,11 @@ export async function provisionCardOrder(admin: Admin, stripeSessionId: string):
   const outcome = order.tier === 'custom' ? await openAccount(admin, order, email) : await addSeats(admin, order, email)
   if (outcome === 'not_applied') {
     console.warn('[cards] business account tables are not applied: order recorded, no account or staff card set up')
+    // A redelivery runs set-up again (the duplicate path in paid-order.ts), so resending the event after the migration works.
+    await alertOrThrow(
+      order,
+      'the business account tables are not applied yet, so no account or staff card was set up for this paid order. Apply the card migrations, then resend this Stripe event to set it up (docs/guides/card-payment-links.md).',
+    )
   }
   return outcome
 }

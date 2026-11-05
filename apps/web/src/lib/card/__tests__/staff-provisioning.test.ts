@@ -252,16 +252,26 @@ describe('failure handling', () => {
     await expect(provisionCardOrder(store.admin, 'cs_test_missing')).rejects.toThrow('not found')
   })
 
-  it.each([['42P01'], ['PGRST205']])('only warns while the migration is unapplied (%s), so paid orders keep recording', async (code) => {
-    const admin = {
-      from: (name: string) =>
-        name === 'card_orders'
-          ? { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: order({}), error: null }) }) }) }
-          : { insert: async () => ({ error: { code, message: 'relation does not exist' } }) },
-    }
-    expect(await provisionCardOrder(admin as never, 'cs_test_1')).toBe('not_applied')
+  const unapplied = (code: string) => ({
+    from: (name: string) =>
+      name === 'card_orders'
+        ? { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: order({}), error: null }) }) }) }
+        : { insert: async () => ({ error: { code, message: 'relation does not exist' } }) },
+  })
+
+  it.each([['42P01'], ['PGRST205']])('while the migration is unapplied (%s) the order still records and the founder is told nothing was set up', async (code) => {
+    expect(await provisionCardOrder(unapplied(code) as never, 'cs_test_1')).toBe('not_applied')
     expect(console.warn).toHaveBeenCalled()
-    expect(mails()).toHaveLength(0)
+    const sent = mails()
+    expect(sent).toHaveLength(1)
+    expect(sent[0].to.email).not.toBe('owner@example.invalid')
+    expect(sent[0].text).toContain('no account or staff card was set up')
+    expect(sent[0].text).toContain('resend this Stripe event')
+  })
+
+  it('throws while the migration is unapplied and the founder cannot be told, so Stripe retries', async () => {
+    sendEmail.mockImplementation(async () => null as unknown as string)
+    await expect(provisionCardOrder(unapplied('42P01') as never, 'cs_test_1')).rejects.toThrow('alert failed')
   })
 
   it('throws on any other insert failure', async () => {
