@@ -10,24 +10,49 @@ export const EMAIL_CODE_RESEND_MS = 60_000
 export const EMAIL_CODE_FAILS_BEFORE_LOCK = 5
 export const EMAIL_CODE_LOCK_MS = 15 * 60 * 1000
 
+/** Where the email factor's id and encrypted secret live on the user's app_metadata. */
+export const EMAIL_FACTOR_META_KEY = 'portal_email_factor'
+
 export type SecondFactorStart = 'choose' | 'verify' | 'email'
 
 export type ListedFactor = {
+  id: string
   status: string
-  friendlyName?: string | null
+}
+
+/**
+ * The id of the factor we issued for emailed codes, read from app_metadata.
+ * app_metadata is written only by the server, so this id, not a factor's display
+ * name, is what marks a factor as ours. Anyone can name their own factor anything.
+ */
+export function emailFactorIdFrom(appMetadata: unknown): string | null {
+  if (!appMetadata || typeof appMetadata !== 'object') return null
+  const record = (appMetadata as Record<string, unknown>)[EMAIL_FACTOR_META_KEY]
+  if (!record || typeof record !== 'object') return null
+  const factorId = (record as { factor_id?: unknown }).factor_id
+  return typeof factorId === 'string' && factorId.length > 0 ? factorId : null
 }
 
 /**
  * What to show first.
  * No verified authenticator: offer the app or an emailed code.
- * A verified app we did not issue for email: ask for that app, with a way to switch.
- * Only the email factor we issued: ask for the emailed code.
+ * Any verified app whose id is not our email factor: ask for that app.
+ * Only the email factor we issued (matched by id): ask for the emailed code.
  */
-export function initialSecondFactorMode(factors: readonly ListedFactor[]): SecondFactorStart {
+export function initialSecondFactorMode(
+  factors: readonly ListedFactor[],
+  emailFactorId: string | null,
+): SecondFactorStart {
   const verified = factors.filter((factor) => factor.status === 'verified')
   if (verified.length === 0) return 'choose'
-  const foreign = verified.some((factor) => factor.friendlyName !== PORTAL_EMAIL_FACTOR_NAME)
+  const foreign = verified.some((factor) => factor.id !== emailFactorId)
   return foreign ? 'verify' : 'email'
+}
+
+/** The emailed code can stand in only when the email factor we issued (by id) is verified. */
+export function emailFactorVerified(factors: readonly ListedFactor[], emailFactorId: string | null): boolean {
+  if (!emailFactorId) return false
+  return factors.some((factor) => factor.status === 'verified' && factor.id === emailFactorId)
 }
 
 export function resendAllowed(

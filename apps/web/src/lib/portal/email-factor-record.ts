@@ -1,11 +1,13 @@
 import { decrypt, encrypt, type VaultPayload } from '@/lib/vault'
 
+import { EMAIL_FACTOR_META_KEY } from './second-factor-mode'
+
 // The emailed-code factor's TOTP secret, encrypted with the vault key, kept in
 // app_metadata so the next visit can step up again. The plaintext secret is never
 // returned to the browser. app_metadata is visible on the user object, so only
 // the ciphertext is stored.
 
-export const EMAIL_FACTOR_META_KEY = 'portal_email_factor'
+export { EMAIL_FACTOR_META_KEY }
 
 export type PackedEmailFactor = {
   factor_id: string

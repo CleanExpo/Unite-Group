@@ -5,7 +5,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 
 import { sendPortalEmailCodeAction, verifyPortalEmailCodeAction } from '@/lib/portal/email-second-factor-action'
 import { REDEEM_COPY } from '@/lib/portal/invites/outcomes'
-import { initialSecondFactorMode, PORTAL_EMAIL_FACTOR_NAME } from '@/lib/portal/second-factor-mode'
+import { emailFactorIdFrom, emailFactorVerified, initialSecondFactorMode } from '@/lib/portal/second-factor-mode'
 import { createClient } from '@/lib/supabase/client'
 
 import styles from './join.module.css'
@@ -32,6 +32,7 @@ export function SecondFactorStep({
   const [mode, setMode] = useState<Mode>('loading')
   const [factorId, setFactorId] = useState<string | null>(null)
   const [hasApp, setHasApp] = useState(false)
+  const [canEmail, setCanEmail] = useState(true)
   const [enrolment, setEnrolment] = useState<Enrolment | null>(null)
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
@@ -41,19 +42,20 @@ export function SecondFactorStep({
 
   useEffect(() => {
     let cancelled = false
-    createClient().auth.mfa.listFactors().then(({ data, error }) => {
+    const supabase = createClient()
+    Promise.all([supabase.auth.mfa.listFactors(), supabase.auth.getUser()]).then(([listed, current]) => {
       if (cancelled) return
-      if (error) { setMode('error'); return }
-      const totp = (data?.totp ?? []).map((factor) => ({
-        id: factor.id,
-        status: factor.status,
-        friendlyName: factor.friendly_name ?? null,
-      }))
-      const foreign = totp.find((factor) => factor.status === 'verified' && factor.friendlyName !== PORTAL_EMAIL_FACTOR_NAME)
+      if (listed.error || current.error) { setMode('error'); return }
+      const totp = (listed.data?.totp ?? []).map((factor) => ({ id: factor.id, status: factor.status }))
+      // Ours is the factor id the server stored in app_metadata, never a display name.
+      const emailFactorId = emailFactorIdFrom(current.data?.user?.app_metadata)
+      const foreign = totp.find((factor) => factor.status === 'verified' && factor.id !== emailFactorId)
       setHasApp(Boolean(foreign))
       if (foreign) setFactorId(foreign.id)
-      const start = initialSecondFactorMode(totp)
-      setMode(start)
+      // Supabase will not add a second factor below aal2 once one is verified, so with
+      // an app of their own, email can stand in only if our email factor is already verified.
+      setCanEmail(!foreign || emailFactorVerified(totp, emailFactorId))
+      setMode(initialSecondFactorMode(totp, emailFactorId))
     }).catch(() => { if (!cancelled) setMode('error') })
     return () => { cancelled = true }
   }, [])
@@ -170,9 +172,13 @@ export function SecondFactorStep({
       {mode === 'verify' && (
         <>
           {appForm}
-          <div className={styles.row}>
-            <button type="button" className={styles.textButton} onClick={showEmail}>Use email instead</button>
-          </div>
+          {canEmail ? (
+            <div className={styles.row}>
+              <button type="button" className={styles.textButton} onClick={showEmail}>Use email instead</button>
+            </div>
+          ) : (
+            <p className={styles.note}>This sign-in is protected by your authenticator app, so an emailed code cannot replace it here.</p>
+          )}
         </>
       )}
       {mode === 'choose' && (

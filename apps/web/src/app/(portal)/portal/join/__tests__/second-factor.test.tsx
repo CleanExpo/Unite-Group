@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const refresh = vi.fn()
 const listFactors = vi.fn()
+const getUser = vi.fn()
 const enroll = vi.fn()
 const unenroll = vi.fn()
 const challenge = vi.fn()
@@ -15,6 +16,7 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: () => refresh()
 vi.mock('@/lib/supabase/client', () => ({
   createClient: () => ({
     auth: {
+      getUser: (...args: unknown[]) => getUser(...args),
       mfa: {
         listFactors: (...args: unknown[]) => listFactors(...args),
         enroll: (...args: unknown[]) => enroll(...args),
@@ -30,7 +32,7 @@ vi.mock('@/lib/portal/email-second-factor-action', () => ({
   verifyPortalEmailCodeAction: (...args: unknown[]) => verifyPortalEmailCodeAction(...args),
 }))
 
-import { PORTAL_EMAIL_FACTOR_NAME } from '@/lib/portal/second-factor-mode'
+import { EMAIL_FACTOR_META_KEY, PORTAL_EMAIL_FACTOR_NAME } from '@/lib/portal/second-factor-mode'
 
 import { SecondFactorStep } from '../second-factor'
 
@@ -38,6 +40,7 @@ afterEach(() => {
   cleanup()
   refresh.mockReset()
   listFactors.mockReset()
+  getUser.mockReset()
   enroll.mockReset()
   unenroll.mockReset()
   challenge.mockReset()
@@ -46,8 +49,10 @@ afterEach(() => {
   verifyPortalEmailCodeAction.mockReset()
 })
 
-function factors(totp: Array<{ id: string; status: string; friendly_name?: string }>) {
+function factors(totp: Array<{ id: string; status: string; friendly_name?: string }>, emailFactorId: string | null = null) {
   listFactors.mockResolvedValue({ data: { totp, all: totp }, error: null })
+  const appMetadata = emailFactorId ? { [EMAIL_FACTOR_META_KEY]: { factor_id: emailFactorId } } : {}
+  getUser.mockResolvedValue({ data: { user: { id: 'u1', app_metadata: appMetadata } }, error: null })
 }
 
 describe('SecondFactorStep', () => {
@@ -83,8 +88,26 @@ describe('SecondFactorStep', () => {
     expect(refresh).not.toHaveBeenCalled()
   })
 
-  it('shows the app first and switches to email without sending until asked', async () => {
+  it('does not offer email as a dead end to an owner whose only verified factor is their own app', async () => {
     factors([{ id: 'app', status: 'verified', friendly_name: 'Business portal' }])
+    render(<SecondFactorStep email="sam@example.test" />)
+    expect(await screen.findByLabelText('6-digit code from your app')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Use email instead' })).toBeNull()
+    expect(screen.getByText(/emailed code cannot replace it/i)).toBeTruthy()
+  })
+
+  it('treats an app named like our email factor as the owner\'s own app', async () => {
+    factors([{ id: 'their-app', status: 'verified', friendly_name: PORTAL_EMAIL_FACTOR_NAME }])
+    render(<SecondFactorStep email="sam@example.test" />)
+    expect(await screen.findByLabelText('6-digit code from your app')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Use email instead' })).toBeNull()
+  })
+
+  it('shows the app first and switches to email without sending until asked, when our email factor is verified too', async () => {
+    factors([
+      { id: 'app', status: 'verified', friendly_name: 'Business portal' },
+      { id: 'mail', status: 'verified', friendly_name: PORTAL_EMAIL_FACTOR_NAME },
+    ], 'mail')
     const user = userEvent.setup()
     render(<SecondFactorStep email="sam@example.test" />)
     expect(await screen.findByLabelText('6-digit code from your app')).toBeTruthy()
@@ -108,7 +131,7 @@ describe('SecondFactorStep', () => {
   })
 
   it('opens on the emailed code when that is the only verified factor', async () => {
-    factors([{ id: 'mail', status: 'verified', friendly_name: PORTAL_EMAIL_FACTOR_NAME }])
+    factors([{ id: 'mail', status: 'verified', friendly_name: PORTAL_EMAIL_FACTOR_NAME }], 'mail')
     render(<SecondFactorStep email="sam@example.test" />)
     expect(await screen.findByRole('button', { name: 'Email me a code' })).toBeTruthy()
     expect(screen.queryByLabelText('6-digit code from your app')).toBeNull()

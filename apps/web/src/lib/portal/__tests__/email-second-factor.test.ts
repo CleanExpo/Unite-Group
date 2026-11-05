@@ -10,6 +10,9 @@ import { finishEmailSecondFactor, stepUpAfterEmailProof, type StepUpDeps } from 
 import {
   classifyOtpError,
   EMAIL_CODE_FAILS_BEFORE_LOCK,
+  EMAIL_FACTOR_META_KEY,
+  emailFactorIdFrom,
+  emailFactorVerified,
   initialSecondFactorMode,
   nextVerifyLock,
   parseFailCookie,
@@ -39,16 +42,33 @@ describe('totp codes match the authenticator check Supabase runs', () => {
 
 describe('second-factor decisions', () => {
   it('offers a choice when nothing is verified', () => {
-    expect(initialSecondFactorMode([])).toBe('choose')
-    expect(initialSecondFactorMode([{ status: 'unverified', friendlyName: 'Business portal' }])).toBe('choose')
+    expect(initialSecondFactorMode([], null)).toBe('choose')
+    expect(initialSecondFactorMode([{ id: 'app', status: 'unverified' }], null)).toBe('choose')
   })
 
   it('asks for the app when a verified authenticator is not the email factor', () => {
-    expect(initialSecondFactorMode([{ status: 'verified', friendlyName: 'Business portal' }])).toBe('verify')
+    expect(initialSecondFactorMode([{ id: 'app', status: 'verified' }], null)).toBe('verify')
+    expect(initialSecondFactorMode([{ id: 'app', status: 'verified' }], 'mail')).toBe('verify')
   })
 
-  it('asks for email when the only verified factor is the one we issue for email', () => {
-    expect(initialSecondFactorMode([{ status: 'verified', friendlyName: PORTAL_EMAIL_FACTOR_NAME }])).toBe('email')
+  it('asks for email when the only verified factor is the one we issued, matched by id', () => {
+    expect(initialSecondFactorMode([{ id: 'mail', status: 'verified' }], 'mail')).toBe('email')
+  })
+
+  it('treats a verified factor as the owner\'s own app when its id is not our stored id', () => {
+    // An owner's own app can carry our display name; the stored id decides.
+    expect(initialSecondFactorMode([{ id: 'their-app', status: 'verified' }], null)).toBe('verify')
+    expect(emailFactorVerified([{ id: 'their-app', status: 'verified' }], null)).toBe(false)
+    expect(emailFactorVerified([{ id: 'mail', status: 'verified' }, { id: 'app', status: 'verified' }], 'mail')).toBe(true)
+    expect(emailFactorVerified([{ id: 'mail', status: 'unverified' }], 'mail')).toBe(false)
+  })
+
+  it('reads the issued factor id from app_metadata only when it is well formed', () => {
+    expect(emailFactorIdFrom({ [EMAIL_FACTOR_META_KEY]: { factor_id: 'mail', secret: {} } })).toBe('mail')
+    expect(emailFactorIdFrom({ [EMAIL_FACTOR_META_KEY]: { factor_id: '' } })).toBeNull()
+    expect(emailFactorIdFrom({ [EMAIL_FACTOR_META_KEY]: { factor_id: 7 } })).toBeNull()
+    expect(emailFactorIdFrom({})).toBeNull()
+    expect(emailFactorIdFrom(null)).toBeNull()
   })
 
   it('refuses a resend inside the window and allows it after', () => {
@@ -132,6 +152,27 @@ describe('step up after the emailed code', () => {
     expect(calls.enroll).toBe(0)
     expect(calls.unenroll).toEqual([])
     expect(calls.codes).toEqual([])
+  })
+
+  it('does not treat an authenticator as ours because of its display name', async () => {
+    const { deps, calls } = harness({
+      listFactors: async () => [{ id: 'their-app', factorType: 'totp', status: 'verified', friendlyName: PORTAL_EMAIL_FACTOR_NAME }],
+      loadEmailFactor: async () => null,
+    })
+    expect(await stepUpAfterEmailProof(deps)).toBe('needs_authenticator')
+    expect(calls.enroll).toBe(0)
+    expect(calls.unenroll).toEqual([])
+    expect(calls.codes).toEqual([])
+  })
+
+  it('asks for the app when the stored email factor id does not match any verified factor', async () => {
+    const { deps, calls } = harness({
+      listFactors: async () => [{ id: 'their-app', factorType: 'totp', status: 'verified', friendlyName: PORTAL_EMAIL_FACTOR_NAME }],
+      loadEmailFactor: async () => ({ factorId: 'old-mail', secret: SECRET }),
+    })
+    expect(await stepUpAfterEmailProof(deps)).toBe('needs_authenticator')
+    expect(calls.codes).toEqual([])
+    expect(calls.unenroll).toEqual([])
   })
 
   it('removes the new factor when the secret cannot be saved', async () => {

@@ -79,11 +79,12 @@ export async function stepUpAfterEmailProof(deps: StepUpDeps): Promise<'ok' | 'n
     }
   }
 
-  if (verified.length > 0) {
-    const ours = verifiedTotp.filter((factor) => factor.friendlyName === PORTAL_EMAIL_FACTOR_NAME)
-    if (ours.length > 0) return 'error'
-    return 'needs_authenticator'
-  }
+  // Ownership is the stored factor id, never the display name: an owner can name an
+  // app they set up themselves anything, including our email factor's name.
+  // Supabase refuses to enrol another factor below aal2 once one is verified
+  // (supabase/auth internal/api/mfa.go, "AAL2 required to enroll a new factor"),
+  // so any verified factor that is not ours leaves the app as the only way up.
+  if (verified.length > 0) return 'needs_authenticator'
 
   const stale = factors.filter((factor) => factor.factorType === 'totp' && factor.status !== 'verified')
   let enrolledId: string | null = null
