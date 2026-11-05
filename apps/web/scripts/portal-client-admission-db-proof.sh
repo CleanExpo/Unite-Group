@@ -215,10 +215,10 @@ if PSQL -d ownerview < "$ADMIT" >/dev/null 2>"$WORK/ownerview.err"; then
 elif grep -q "run with owner rights: owner_rights_leak" "$WORK/ownerview.err"; then echo "PASS  migration refuses to run while an owner-rights view is readable by API roles"
 else echo "FAIL  view guard failed for the wrong reason:"; cat "$WORK/ownerview.err"; FAILS=$((FAILS+1)); fi
 
-# 4a-2c. refusal leaves nothing behind even without a wrapping transaction (guards run before any change)
-if PSQL -d ownerview -t -A -c "select to_regprocedure('public.is_staff()') is null" | grep -qx t; then
-  echo "PASS  a refused run created nothing (is_staff absent)"
-else echo "FAIL  a refused run left is_staff() behind"; FAILS=$((FAILS+1)); fi
+# 4a-2c. refusal leaves nothing behind (guards run before any change, inside the file's own transaction)
+if PSQL -d ownerview -t -A -c "select to_regprocedure('public.is_allowlisted_staff()') is null" | grep -qx t; then
+  echo "PASS  a refused run created nothing (is_allowlisted_staff absent)"
+else echo "FAIL  a refused run left is_allowlisted_staff() behind"; FAILS=$((FAILS+1)); fi
 
 # 4a-2d. the repo's own migrations leave no public table with row security off once the parity file is applied
 #        (a Supabase branch replayed from migrations would otherwise trip the guard). Static check over the folder.
@@ -264,7 +264,7 @@ begin
 end $$;
 SQL
 t0=$(date +%s.%N)
-if PSQL -d scale -c "begin" -f "$ADMIT" -c "commit" > /dev/null 2> "$WORK/scale.err"; then
+if PSQL -d scale < "$ADMIT" > /dev/null 2> "$WORK/scale.err"; then # the file is its own transaction
   gated=$(PSQL -d scale -t -A -c "select count(*) from pg_policies where schemaname = 'public' and policyname = 'staff_only_gate'")
   secs=$(awk -v a="$(date +%s.%N)" -v b="$t0" 'BEGIN { printf "%.1f", a - b }')
   if [ "$gated" -ge 1800 ]; then echo "PASS  one transaction gates $gated tables at prod lock settings in ${secs}s"
@@ -281,6 +281,129 @@ if cmp -s "$ROLLBACK" "$WORK/rb-mutant.sql"; then echo "FAIL  rollback mutant di
   fingerprint rbmut > "$WORK/rbm-after.txt"
   if cmp -s "$WORK/rbm-before.txt" "$WORK/rbm-after.txt"; then echo "FAIL  catalogue comparison stayed green on a rollback that drops hook grants"; FAILS=$((FAILS+1))
   else echo "RED-AS-EXPECTED  rollback that forgets hook grants is caught by the catalogue comparison"; fi
+fi
+
+# 4c. all-or-nothing: each file runs in one transaction it opens and commits itself, so a failure at its LAST step
+#     (for example lock_timeout on the final trigger) must leave the catalogue exactly as it was. psql applies a
+#     file statement by statement, so without begin/commit the earlier steps would stay applied. The control runs
+#     the same planted failure on a copy with begin/commit removed and must find a partial change.
+late_failure() { # label, db, file, setup (none|admit), strip (0|1)
+  local db="$2" src="$3" planted="$WORK/late-$2.sql" same
+  build "$db" || return
+  if [ "$4" = admit ]; then apply "$db" "$ADMIT" || return; fi
+  if [ "$5" = 1 ]; then sed -e '/^begin;$/d' -e '/^commit;$/d' "$3" > "$WORK/nobegin-$2.sql"; src="$WORK/nobegin-$2.sql"
+    if cmp -s "$3" "$src"; then echo "FAIL  control did not remove begin/commit: $1"; FAILS=$((FAILS+1)); return; fi
+  fi
+  # the planted failure goes just before the final commit, or at the very end when there is no commit
+  awk '$0 == "commit;" && !d { print "select 1/0; -- planted late failure"; d = 1 } { print } END { if (!d) print "select 1/0; -- planted late failure" }' \
+    "$src" > "$planted"
+  fingerprint "$db" > "$WORK/late-$2-before.txt"
+  if PSQL -d "$db" < "$planted" > /dev/null 2> "$WORK/late-$2.err"; then
+    echo "FAIL  the planted failure did not stop the run: $1"; FAILS=$((FAILS+1)); return
+  fi
+  if ! grep -q "division by zero" "$WORK/late-$2.err"; then
+    echo "FAIL  run stopped for the wrong reason: $1"; tail -3 "$WORK/late-$2.err"; FAILS=$((FAILS+1)); return
+  fi
+  fingerprint "$db" > "$WORK/late-$2-after.txt"
+  if cmp -s "$WORK/late-$2-before.txt" "$WORK/late-$2-after.txt"; then same=1; else same=0; fi
+  if [ "$5" = 0 ] && [ $same = 1 ]; then echo "PASS  $1"
+  elif [ "$5" = 0 ]; then echo "FAIL  $1 (the failed run left a partial change)"; FAILS=$((FAILS+1))
+  elif [ $same = 0 ]; then echo "RED-AS-EXPECTED  without begin/commit, the same late failure leaves a partial change: $(basename "$3")"
+  else echo "FAIL  control stayed unchanged without begin/commit, so the all-or-nothing check proves nothing: $1"; FAILS=$((FAILS+1)); fi
+}
+late_failure "migration is all-or-nothing: a failure at its last step leaves the catalogue unchanged" atomic_m "$ADMIT" none 0
+late_failure "migration control" atomic_m_ctl "$ADMIT" none 1
+late_failure "rollback is all-or-nothing: a failure at its last step leaves the migration fully in place" atomic_r "$ROLLBACK" admit 0
+late_failure "rollback control" atomic_r_ctl "$ROLLBACK" admit 1
+
+# 4d. production already has an older, role-based public.is_staff() (profiles.role; not in supabase/migrations).
+#     The migration's predicate has its own name, so neither the migration nor the rollback may change or drop it.
+#     Control: the same migration with its predicate named is_staff must overwrite the decoy.
+DECOY_SQL="create function public.is_staff() returns boolean language plpgsql stable security definer
+  set search_path = pg_catalog, public as \$f\$ BEGIN RETURN EXISTS ( SELECT 1 FROM profiles p WHERE p.id = auth.uid()
+  AND p.role IN ('FOUNDER', 'STAFF', 'ADMIN') ); END; \$f\$"
+decoy_fp() { PSQL -d "$1" -t -A -c "select coalesce((select md5(prosrc) || '|' || (select l.lanname from pg_language l where l.oid = p.prolang) from pg_proc p where oid = to_regprocedure('public.is_staff()')), 'absent')"; }
+build decoy || exit 1
+PSQL -d decoy -c "$DECOY_SQL" > /dev/null
+d0="$(decoy_fp decoy)"
+apply decoy "$ADMIT"; d1="$(decoy_fp decoy)"
+apply decoy "$ROLLBACK"; d2="$(decoy_fp decoy)"
+if [ "$d0" != absent ] && [ "$d0" = "$d1" ] && [ "$d1" = "$d2" ]; then
+  echo "PASS  a pre-existing public.is_staff() survives the migration and the rollback unchanged"
+else echo "FAIL  pre-existing is_staff() changed: before=$d0 after-migration=$d1 after-rollback=$d2"; FAILS=$((FAILS+1)); fi
+sed -e 's/is_allowlisted_staff/is_staff/g' "$ADMIT" > "$WORK/named-is-staff.sql"
+if cmp -s "$ADMIT" "$WORK/named-is-staff.sql"; then echo "FAIL  is_staff-name control did not change the migration"; FAILS=$((FAILS+1)); else
+  build decoyctl || exit 1
+  PSQL -d decoyctl -c "$DECOY_SQL" > /dev/null
+  c0="$(decoy_fp decoyctl)"
+  if PSQL -d decoyctl < "$WORK/named-is-staff.sql" > /dev/null 2>&1 && [ "$(decoy_fp decoyctl)" != "$c0" ]; then
+    echo "RED-AS-EXPECTED  a predicate named is_staff would overwrite production's role-based one"
+  else echo "FAIL  is_staff-name control did not overwrite the decoy, so the survival check proves nothing"; FAILS=$((FAILS+1)); fi
+fi
+
+# 4e. the auth hooks are replaced only from a body the migration knows (20260620010000, or its own on a re-run).
+#     A hook changed by hand since then must stop the run before anything changes.
+build hookdrift || exit 1
+PSQL -d hookdrift > /dev/null <<'SQL'
+create or replace function public.before_user_created_hook(event jsonb) returns jsonb language plpgsql stable
+security definer set search_path = public as $f$
+begin
+  -- changed by hand after 20260620010000
+  return event;
+end;
+$f$;
+SQL
+if PSQL -d hookdrift < "$ADMIT" > /dev/null 2> "$WORK/hookdrift.err"; then
+  echo "FAIL  migration replaced a hook body it does not know"; FAILS=$((FAILS+1))
+elif grep -q "before_user_created_hook(jsonb) has a body this migration does not expect" "$WORK/hookdrift.err" \
+     && PSQL -d hookdrift -t -A -c "select to_regprocedure('public.is_allowlisted_staff()') is null" | grep -qx t; then
+  echo "PASS  migration refuses to run when an auth hook body is neither the known prior nor its own, and changes nothing"
+else echo "FAIL  hook guard failed for the wrong reason:"; tail -3 "$WORK/hookdrift.err"; FAILS=$((FAILS+1)); fi
+sed -e 's/if v_fp is not null and not (v_fp = any (h.known)) then/if false then/' "$ADMIT" > "$WORK/nohookguard.sql"
+if cmp -s "$ADMIT" "$WORK/nohookguard.sql"; then echo "FAIL  hook guard mutant did not change the migration"; FAILS=$((FAILS+1))
+elif PSQL -d hookdrift < "$WORK/nohookguard.sql" > /dev/null 2>&1; then
+  echo "RED-AS-EXPECTED  without the hook guard the migration replaces a hook body it does not know"
+else echo "FAIL  hook guard mutant failed to apply, so the guard check proves nothing"; FAILS=$((FAILS+1)); fi
+
+# 4f. each auth hook is held from its fingerprint check until commit, so a concurrent hook edit cannot land
+#     between the check and the replace. Session A applies the migration with a 6-second pause planted
+#     straight after the hook guard. During the pause, session B replaces before_user_created_hook with
+#     lock_timeout 2s. B must time out waiting and A must still commit its own body. Control: the same run
+#     with the no-op ALTER removed lets B land, and A then overwrites B's edit without checking it.
+CONC_EDIT_SQL="set lock_timeout = '2s';
+create or replace function public.before_user_created_hook(event jsonb) returns jsonb language plpgsql stable
+security definer set search_path = public as \$f\$ begin return event; /* concurrent edit during the migration */ end; \$f\$;"
+concurrent_edit() { # db, migration file. Writes B's outcome (blocked|landed), A's exit code and the final body marker.
+  local db="$1" paused="$WORK/conc-$1.sql" apid
+  awk '/^-- 1\. Staff predicate/ && !d { print "select pg_sleep(6); -- planted pause after the hook guard"; d = 1 } { print }' \
+    "$2" > "$paused"
+  if cmp -s "$2" "$paused"; then echo "FAIL  pause was not planted in $(basename "$2")"; FAILS=$((FAILS+1)); return 1; fi
+  build "$db" || return 1
+  ( PSQL -d "$db" < "$paused" > /dev/null 2> "$WORK/conc-$db-a.err"; echo $? > "$WORK/conc-$db-a.rc" ) &
+  apid=$!
+  sleep 2
+  if PSQL -d "$db" -c "$CONC_EDIT_SQL" > /dev/null 2> "$WORK/conc-$db-b.err"; then echo landed > "$WORK/conc-$db-b.out"
+  else echo blocked > "$WORK/conc-$db-b.out"; fi
+  wait "$apid"
+  PSQL -d "$db" -t -A -c "select case when prosrc like '%concurrent edit during the migration%' then 'edit-kept' else 'edit-gone' end
+    from pg_proc where oid = to_regprocedure('public.before_user_created_hook(jsonb)')" > "$WORK/conc-$db-final.out"
+}
+concurrent_edit conc "$ADMIT"
+if [ "$(cat "$WORK/conc-conc-b.out" 2>/dev/null)" = blocked ] && grep -q "lock timeout" "$WORK/conc-conc-b.err" \
+   && [ "$(cat "$WORK/conc-conc-a.rc" 2>/dev/null)" = 0 ] \
+   && PSQL -d conc -t -A -c "select to_regprocedure('public.is_allowlisted_staff()') is not null" | grep -qx t; then
+  echo "PASS  a concurrent hook edit waits for the migration and cannot land between its check and its replace"
+else echo "FAIL  concurrent hook edit: B=$(cat "$WORK/conc-conc-b.out" 2>/dev/null) A-exit=$(cat "$WORK/conc-conc-a.rc" 2>/dev/null)"
+  tail -2 "$WORK/conc-conc-b.err" "$WORK/conc-conc-a.err"; FAILS=$((FAILS+1)); fi
+sed -e '/alter function %s stable/d' "$ADMIT" > "$WORK/nohooklock.sql"
+if cmp -s "$ADMIT" "$WORK/nohooklock.sql"; then echo "FAIL  hook lock mutant did not change the migration"; FAILS=$((FAILS+1))
+else
+  concurrent_edit concctl "$WORK/nohooklock.sql"
+  if [ "$(cat "$WORK/conc-concctl-b.out" 2>/dev/null)" = landed ] && [ "$(cat "$WORK/conc-concctl-a.rc" 2>/dev/null)" = 0 ] \
+     && [ "$(cat "$WORK/conc-concctl-final.out" 2>/dev/null)" = edit-gone ]; then
+    echo "RED-AS-EXPECTED  without the hook row lock a concurrent hook edit lands mid-migration and is overwritten unchecked"
+  else echo "FAIL  hook lock control: B=$(cat "$WORK/conc-concctl-b.out" 2>/dev/null) A-exit=$(cat "$WORK/conc-concctl-a.rc" 2>/dev/null) final=$(cat "$WORK/conc-concctl-final.out" 2>/dev/null), so the lock check proves nothing"
+    FAILS=$((FAILS+1)); fi
 fi
 
 if [ $FAILS -eq 0 ]; then echo "PORTAL_CLIENT_ADMISSION_DB_PROOF_ALL_PASS"; exit 0; fi

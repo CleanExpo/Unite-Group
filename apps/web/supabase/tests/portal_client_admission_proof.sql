@@ -51,7 +51,7 @@ select pg_temp.expect_value($$select (count(*) >= 10)::text from pg_policies whe
 -- ===== staff: unchanged =====
 select pg_temp.act_as('phill.mcgurk@gmail.com', 'aal1');
 set role authenticated;
-select pg_temp.expect_value($$select public.is_staff()::text$$, 'true', 'staff is staff');
+select pg_temp.expect_value($$select public.is_allowlisted_staff()::text$$, 'true', 'staff is staff');
 select pg_temp.expect_value($$select count(*)::text from public.unified_customers$$, '3', 'staff reads customers');
 select pg_temp.expect_value($$select count(*)::text from public.xero_tokens$$, '1', 'staff reads FORCE-RLS table');
 select pg_temp.expect_value($$select count(*)::text from public.event_log$$, '1', 'staff reads partitioned table');
@@ -82,7 +82,7 @@ reset role;
 -- ===== the client at aal1: nothing outside the portal =====
 select pg_temp.act_as('Ivi@Brii.test', 'aal1');
 set role authenticated;
-select pg_temp.expect_value($$select public.is_staff()::text$$, 'false', 'client is not staff');
+select pg_temp.expect_value($$select public.is_allowlisted_staff()::text$$, 'false', 'client is not staff');
 select pg_temp.expect_value($$select count(*)::text from public.unified_customers$$, '0', 'client reads no customers');
 select pg_temp.expect_value($$select count(*)::text from public.leads$$, '0', 'client reads no leads');
 select pg_temp.expect_value($$select count(*)::text from public.xero_tokens$$, '0', 'client reads no tokens (FORCE RLS table)');
@@ -167,7 +167,7 @@ reset role;
 select set_config('request.jwt.claims', '', false), set_config('request.jwt.claim.sub', '', false);
 set role anon;
 select pg_temp.expect_value($$select count(*)::text from public.public_pages$$, '1', 'anon still reads public pages');
-select pg_temp.expect_error($$select public.is_staff()$$, '42501', 'anon cannot call is_staff');
+select pg_temp.expect_error($$select public.is_allowlisted_staff()$$, '42501', 'anon cannot call is_allowlisted_staff');
 select pg_temp.expect_error($$select public.prune_integration_history()$$, '42501', 'anon cannot prune');
 reset role;
 
