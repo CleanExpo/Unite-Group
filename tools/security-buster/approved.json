@@ -1,0 +1,26 @@
+{
+  "_note": "Only files listed here may be sent to abliteration.ai. Add files deliberately; never add secrets, .env files or customer data.",
+  "files": [
+    "tools/security-buster/test/fixtures/vulnerable.js",
+    "apps/web/src/proxy.ts",
+    "apps/web/src/lib/supabase/middleware.ts",
+    "apps/web/src/lib/supabase/server.ts",
+    "apps/web/src/lib/supabase/service.ts",
+    "apps/web/src/lib/cron-auth.ts",
+    "apps/web/src/lib/oauth-state.ts",
+    "apps/web/src/lib/auth/private-access.ts",
+    "apps/web/src/lib/auth/mfa.ts",
+    "apps/web/src/lib/auth/founder-user-id.ts",
+    "apps/web/src/lib/auth/implicit-fragment.ts",
+    "apps/web/src/app/api/auth/callback/route.ts",
+    "apps/web/src/app/api/auth/google/authorize/route.ts",
+    "apps/web/src/app/api/auth/google/callback/route.ts",
+    "apps/web/src/app/api/auth/microsoft/callback/route.ts",
+    "apps/web/src/app/api/auth/imap/connect/route.ts",
+    "apps/web/src/lib/mission-authority/may.ts",
+    "apps/web/src/app/api/command-centre/sessions/[id]/route.ts",
+    "apps/web/src/app/api/events/route.ts",
+    "apps/web/src/lib/portal/changes/access.ts",
+    "apps/web/src/lib/portal/entitlements/get-entitlements.ts"
+  ]
+}
