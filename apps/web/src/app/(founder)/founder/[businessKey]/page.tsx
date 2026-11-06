@@ -1,3 +1,5 @@
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 export const dynamic = 'force-dynamic'
 
 import { redirect } from 'next/navigation'
@@ -9,6 +11,11 @@ import { loadXeroTokens } from '@/lib/integrations/xero'
 
 type IconProps = { size?: number; strokeWidth?: number; className?: string } & React.SVGProps<SVGSVGElement>
 
+export const metadata = noIndexPageMetadata({
+  title: "Businesskey | Unite Group",
+  description: "Private founder workspace: Businesskey.",
+  canonical: null,
+})
 function iconBase(size: number, strokeWidth: number, className: string | undefined, props: React.SVGProps<SVGSVGElement>) {
   return {
     width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
