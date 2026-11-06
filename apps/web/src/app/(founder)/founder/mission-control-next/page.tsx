@@ -2,11 +2,18 @@ import { notFound } from 'next/navigation'
 import { isMissionControlNextEnabled } from '@/lib/mission-control-next/flag'
 import { parseTab } from '@/lib/mission-control-next/tabs'
 import { MissionControlNext } from './MissionControlNext'
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 
 // UNI-2776 preview. Founder-only access is enforced by the private-access middleware;
 // this flag keeps the route 404 until MISSION_CONTROL_VNEXT_PREVIEW is exactly 'true'.
 export const dynamic = 'force-dynamic'
 
+export const metadata = noIndexPageMetadata({
+  path: "/founder/mission-control-next",
+  title: "Mission Control Next | Unite Group",
+  description: "Private founder workspace: Mission Control Next.",
+})
 export default async function MissionControlNextPage({
   searchParams,
 }: {
