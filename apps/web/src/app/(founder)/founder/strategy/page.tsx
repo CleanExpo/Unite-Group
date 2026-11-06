@@ -1,8 +1,15 @@
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 export const dynamic = 'force-dynamic'
 
 import { StrategyRoomClient } from '@/founder/strategy/StrategyRoomClient'
 import { PageHeader } from '@/components/ui/PageHeader'
 
+export const metadata = noIndexPageMetadata({
+  path: "/founder/strategy",
+  title: "Strategy | Unite Group",
+  description: "Private founder workspace: Strategy.",
+})
 export default function StrategyPage() {
   return (
     <div className="p-6 space-y-6">
