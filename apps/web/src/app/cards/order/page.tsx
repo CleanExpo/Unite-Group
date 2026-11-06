@@ -1,16 +1,16 @@
 import type { Metadata } from 'next'
 
 import { loadPreferredEdition } from '@/lib/design-feedback/preferred'
+import { publicPageMetadata } from '@/lib/page-metadata'
 
 import { cleanRef, resolveEdition } from '../editions'
 import { OrderView } from './order-view'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicPageMetadata({
+  path: '/cards/order',
   title: 'Get your own living card | Unite Group',
   description: 'Ask Unite Group to build your living business card. Choose your opener and send your details.',
-  alternates: { canonical: 'https://unite-group.in/cards/order' },
-  robots: { index: true, follow: true },
-}
+})
 
 type SearchParams = Record<string, string | string[] | undefined>
 
