@@ -7,16 +7,16 @@ import { SectionIntro } from '@/public/section-intro'
 import m from '@/public/layout/marketing-page.module.css'
 import { formatAud } from '@/app/grow/packages'
 import { PLUS_GST, SIGNATURE_ADDON } from '@/lib/public-pricing'
-import { CONTACT_EMAIL, SITE_URL } from '@/lib/public-site'
+import { CONTACT_EMAIL } from '@/lib/public-site'
+import { publicPageMetadata } from '@/lib/page-metadata'
 
 import sig from './signatures-page.module.css'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicPageMetadata({
+  path: '/signatures',
   title: 'Email signatures | Unite Group',
   description: `Branded email signatures for your team, ${formatAud(SIGNATURE_ADDON.priceAud)} each (${PLUS_GST}), introduced by Margot.`,
-  alternates: { canonical: `${SITE_URL}/signatures` },
-  robots: { index: true, follow: true },
-}
+})
 
 const STEPS = [
   'Tell us who needs a signature.',
