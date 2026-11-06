@@ -39,7 +39,7 @@ describe('sitemap lastmod and priority (D28)', () => {
   })
 
   it('pins the order page to the date its rendered module last changed (page.tsx only wraps order-view.tsx)', () => {
-    expect(byPath().get('/cards/order')!.lastModified).toBe('2026-10-25')
+    expect(byPath().get('/cards/order')!.lastModified).toBe('2026-11-06')
   })
 
   it('uses the agreed priority per path and makes / the unique maximum', () => {
