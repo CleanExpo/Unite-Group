@@ -1,3 +1,5 @@
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 export const dynamic = 'force-dynamic'
 
 import { redirect } from 'next/navigation'
@@ -5,6 +7,11 @@ import { getUser } from '@/lib/supabase/server'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { PiRouterPanel } from '@/founder/pi/PiRouterPanel'
 
+export const metadata = noIndexPageMetadata({
+  path: "/founder/pi",
+  title: "Pi | Unite Group",
+  description: "Private founder workspace: Pi.",
+})
 export default async function FounderPiPage() {
   const user = await getUser()
 

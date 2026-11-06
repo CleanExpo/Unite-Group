@@ -1,4 +1,6 @@
 import { notFound } from 'next/navigation'
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 
 import { hasPrivateAccess } from '@/lib/auth/private-access'
 import { IAQ_BOARD_INVITEES } from '@/lib/portal/board/invitees'
@@ -13,6 +15,11 @@ import styles from './portal-invites.module.css'
 export const dynamic = 'force-dynamic'
 
 /** Founder tool: make a single-use invite code for a client's business portal, see every code, cancel one. */
+export const metadata = noIndexPageMetadata({
+  path: "/founder/portal-invites",
+  title: "Portal Invites | Unite Group",
+  description: "Private founder workspace: Portal Invites.",
+})
 export default async function PortalInvitesPage() {
   const user = await getUser()
   if (!user || !hasPrivateAccess(user)) notFound()
