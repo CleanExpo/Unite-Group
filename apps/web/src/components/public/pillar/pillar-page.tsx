@@ -95,7 +95,7 @@ export function PillarPage({ slug }: { slug: Pillar['slug'] }) {
                 <h1 id="pillar-title" className={pp.h1}>{pillar.headline}</h1>
                 <p className={pp.lead}>{pillar.intro}</p>
                 <p className={pp.statusRow}>
-                  <span className={pp.chipComing}>Coming</span>
+                  {live ? <span className={pp.chipLive}>Live</span> : <span className={pp.chipComing}>Coming</span>}
                 </p>
                 <div className={pp.heroActions}>
                   <a href="/#contact" className={pp.ctaPrimary}>Ask a question</a>
