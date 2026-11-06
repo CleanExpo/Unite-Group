@@ -8,14 +8,16 @@ import { decidePortalAccess } from '@/lib/portal/changes/access'
 import { getPortalOwner } from '@/lib/portal/owner'
 import { PORTAL_LOGIN_URL } from '@/lib/portal/paths'
 import { getUser } from '@/lib/supabase/server'
+import { noIndexPageMetadata } from '@/lib/page-metadata'
 
 // Every portal page depends on who is signed in: render per request, never at build time.
 export const dynamic = 'force-dynamic'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = noIndexPageMetadata({
+  path: '/portal',
   title: 'Your portal | Unite Group',
-  robots: { index: false, follow: false },
-}
+  description: 'Your Unite Group business portal — tasks, changes and settings.',
+})
 
 /**
  * Welcome and checklist for a business owner. This page guards itself, like /portal/changes and /portal/setup, so
