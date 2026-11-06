@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient, getUser } from '@/lib/supabase/server'
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 
 export const dynamic = 'force-dynamic'
 
@@ -34,6 +36,11 @@ const KIND_LABEL: Record<string, string> = {
   open_question: 'Open questions',
 }
 
+export const metadata = noIndexPageMetadata({
+  title: "Engagementid | Unite Group",
+  description: "Private founder workspace: Engagementid.",
+  canonical: null,
+})
 export default async function EngagementPage({
   params,
 }: {
