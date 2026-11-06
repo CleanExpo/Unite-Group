@@ -5,13 +5,14 @@ import '@/styles/public-tokens.css'
 import s from '../order/order.module.css'
 import m from './manage.module.css'
 import { ManageView } from './manage-view'
+import { noIndexPageMetadata } from '@/lib/page-metadata'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = noIndexPageMetadata({
+  path: '/cards/manage',
   title: 'Manage your card | Unite Group',
   description: 'Change the details on your living card.',
-  robots: { index: false, follow: false },
-  referrer: 'no-referrer',
-}
+  extra: { referrer: 'no-referrer' },
+})
 
 /** The page holds nothing itself: the client reads the token from the link's fragment and posts it to /api/cards/manage. */
 export default function CardManagePage() {
