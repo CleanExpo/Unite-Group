@@ -88,11 +88,10 @@ describe('/ nav rules (AC-2)', () => {
 })
 
 describe('/ positions (AC-3)', () => {
-  it('has the eight positions in the fixed order', async () => {
+  it('has the public sections in the fixed order', async () => {
     const html = await signedOut()
     const ids = [...html.matchAll(/<(?:section|footer)[^>]*data-position[^>]*id="([a-z]+)"/g)].map((m) => m[1])
-    // Phill 27/10/2026 (look approved): the spotlight replaces the four jobs and the showroom banner
-    expect(ids).toEqual(['hero', 'today', 'cards', 'how', 'answers', 'contact', 'footer'])
+    expect(ids).toEqual(['hero', 'trust', 'start', 'today', 'cards', 'how', 'answers', 'contact', 'footer'])
   })
 })
 
@@ -112,15 +111,15 @@ describe('/ hero and metadata', () => {
     expect(`${metadata.title} ${description}`).not.toMatch(/synthex/i)
   })
 
-  // Phill 26/10/2026 (UNI-3034): one primary CTA to the chooser, then Ask a question and Grow your business.
-  it('links the hero to the chooser, the contact form and /grow, in that order, with one primary CTA', async () => {
+  // Primary CTA: order flow; secondary links: every path (#start), then /grow.
+  it('links the hero primary CTA to /cards/order, then #start and /grow, with one primary CTA', async () => {
     const html = await signedOut()
     const start = html.lastIndexOf('<', html.indexOf('id="hero"'))
     const hero = html.slice(start, html.indexOf('</section>', start))
     const anchors = [...hero.matchAll(/<a [^>]*>/g)].map((m) => m[0])
-    expect(anchors.map((a) => a.match(/href="([^"]*)"/)?.[1])).toEqual(['#start', '#contact', '/grow'])
-    expect(anchors[0]).toContain('data-track-label="home-hero-start"')
-    expect(anchors.filter((a) => a.includes('data-track-label="home-hero-start"'))).toHaveLength(1)
+    expect(anchors.map((a) => a.match(/href="([^"]*)"/)?.[1])).toEqual(['/cards/order', '#start', '/grow'])
+    expect(anchors[0]).toContain('data-track-label="home-hero-order"')
+    expect(anchors.filter((a) => a.includes('data-track-label="home-hero-order"'))).toHaveLength(1)
   })
 
   it('paints the words and the poster first, and mounts no video on the server', async () => {
@@ -129,7 +128,7 @@ describe('/ hero and metadata', () => {
     expect(html.indexOf('<h1')).toBeGreaterThan(-1)
     // the hero mounts no video on the server; the one server-rendered video is the spotlight's moving card, which
     // must never be a static picture (Phill), looping the first 1.8 s of the Constellation film below the fold
-    const hero = html.slice(html.indexOf('id="hero"'), html.indexOf('id="start"'))
+    const hero = html.slice(html.indexOf('id="hero"'), html.indexOf('id="trust"'))
     expect(hero).not.toMatch(/<video|\.mp4/)
     expect(html.match(/<video\b[^>]*>/g)).toEqual([expect.stringContaining('src="/cards/media/edition-constellation.mp4#t=0,1.8"')])
     expect(html.indexOf('<video')).toBeGreaterThan(html.indexOf('id="today"'))
@@ -147,12 +146,14 @@ describe('/ hero and metadata', () => {
     ])
   })
 
-  it('keeps the card offer out of the hero and lower down: the group section, then the gallery, then the jobs', async () => {
+  it('keeps the card offer out of the hero and lower down: trust strip and chooser, then the spotlight, gallery, process', async () => {
     const html = await signedOut()
-    const hero = html.slice(html.indexOf('id="hero"'), html.indexOf('id="start"'))
-    expect(html.indexOf('id="start"'), 'the chooser follows the hero').toBeLessThan(html.indexOf('id="today"'))
-    expect(hero).not.toMatch(/living card|\$249|\$449|GST/)
-    expect(hero).toContain('href="#contact"')
+    const hero = html.slice(html.indexOf('id="hero"'), html.indexOf('id="trust"'))
+    expect(html.indexOf('id="trust"'), 'the trust strip follows the hero').toBeLessThan(html.indexOf('id="start"'))
+    expect(html.indexOf('id="start"'), 'the chooser follows the trust strip').toBeLessThan(html.indexOf('id="today"'))
+    expect(hero).not.toMatch(/\$249|\$449/)
+    expect(hero).not.toMatch(/GST/)
+    expect(hero).not.toContain('href="#contact"')
     expect(hero).toContain('href="#start"')
     expect(html).not.toContain('id="group"')
     expect(html.indexOf('id="hero"')).toBeLessThan(html.indexOf('id="today"'))
