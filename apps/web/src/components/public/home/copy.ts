@@ -6,11 +6,31 @@ export const HOME_HERO = {
   kicker: 'Australia & New Zealand',
   title: 'Every business. One system.',
   lead: 'An AI marketing agency, with Margot as its AI face.',
-  primaryCta: 'Where do you want to start?',
-  primaryHref: '#start',
-  secondaryCta: 'Ask a question',
-  secondaryHref: '#contact',
+  /** Primary path for cold traffic: order flow (see also #start for every path). */
+  primaryCta: 'Order a living card',
+  primaryHref: '/cards/order',
+  secondaryCta: 'See every path',
+  secondaryHref: '#start',
   growCta: 'Grow your business',
+} as const
+
+/** Short trust strip below the hero — factual only (entity, process, support). */
+export const HOME_TRUST_STRIP = {
+  eyebrow: 'Why teams choose us',
+  items: [
+    {
+      title: 'Australian operator',
+      line: 'Pricing and delivery are run from a known Australian company with clear GST treatment.',
+    },
+    {
+      title: 'Approve before it goes live',
+      line: 'You get a private proof link for your card or signature before anything is public.',
+    },
+    {
+      title: 'Direct email, not a ticket maze',
+      line: 'Questions go to our team; replies are written for your situation, not a script.',
+    },
+  ],
 } as const
 
 export const HOME_START = {
