@@ -1,3 +1,5 @@
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 // src/app/(founder)/founder/command-centre/wiki-graph/page.tsx
 //
 // Wiki Graph View (UNI-2304) — an Obsidian-style interactive force-directed
@@ -18,6 +20,11 @@ import { chakra, syne, jbMono } from '../fonts'
 // honestly instead of silently rendering a partial graph as complete.
 const WIKI_PAGES_LIMIT = 1000
 
+export const metadata = noIndexPageMetadata({
+  path: "/founder/command-centre/wiki-graph",
+  title: "Wiki Graph | Unite Group",
+  description: "Private founder workspace: Wiki Graph.",
+})
 export default async function WikiGraphPage() {
   const user = await getUser()
   if (!user) redirect('/auth/login')
