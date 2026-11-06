@@ -1,3 +1,5 @@
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 export const dynamic = 'force-dynamic'
 
 import { chakra, syne, jbMono } from '../fonts'
@@ -13,6 +15,11 @@ import { loadBlockedLanesData } from '../BlockedLanesTile'
 import { OperationsView } from './OperationsView'
 import { CrmAutonomyPanel } from '@/components/command-centre/crm-autonomy/CrmAutonomyPanel'
 
+export const metadata = noIndexPageMetadata({
+  path: "/founder/command-centre/operations",
+  title: "Operations | Unite Group",
+  description: "Private founder workspace: Operations.",
+})
 export default async function OperationsDeckPage() {
   const [dashboard, evidence, actionQueue, blockedLanes, user] = await Promise.all([
     // UNI-2229: cloud substrate first (works on Vercel); local .agentic_nexus

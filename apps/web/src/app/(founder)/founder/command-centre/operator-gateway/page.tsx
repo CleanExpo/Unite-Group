@@ -1,3 +1,5 @@
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 export const dynamic = 'force-dynamic'
 
 // No real execute button: the presentation preserves the existing gated controls.
@@ -17,6 +19,11 @@ import {
 } from '@/lib/operator-gateway/presence'
 import { OperatorGatewayView } from './OperatorGatewayView'
 
+export const metadata = noIndexPageMetadata({
+  path: "/founder/command-centre/operator-gateway",
+  title: "Operator Gateway | Unite Group",
+  description: "Private founder workspace: Operator Gateway.",
+})
 export default async function OperatorGatewayPage() {
   const user = await getUser()
   // One founder-scoped (RLS) prod client serves jobs, events, and presence.
