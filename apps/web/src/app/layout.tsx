@@ -7,14 +7,36 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { Analytics } from '@vercel/analytics/react';
 import { SiteTracker } from '@/components/analytics/site-tracker';
+import { SITE_URL } from '@/lib/public-site';
 
+/** Fallback when a route omits `metadata` (should be rare on public pages). */
 export const metadata: Metadata = {
-  title: 'Unite-Group Nexus',
-  description: 'Private founder CRM and operating cockpit',
+  metadataBase: new URL(SITE_URL),
+  // No `template`: each route sets a full title (often already ending with “| Unite Group”).
+  title: {
+    default: 'Unite Group | Living business cards & growth',
+  },
+  description:
+    'Living business cards, Starter plans and email signatures for Australian and New Zealand businesses. One system to be found, impress and convert.',
   // Icons, apple-icon and the Open Graph / Twitter card come from the brand-pack
   // files beside this layout (icon.png, apple-icon.png, opengraph-image.png,
   // twitter-image.png) via Next's metadata file convention.
   manifest: '/site.webmanifest',
+  openGraph: {
+    type: 'website',
+    locale: 'en_AU',
+    siteName: 'Unite Group',
+    title: 'Unite Group | Living business cards & growth',
+    description:
+      'Living business cards, Starter plans and email signatures for Australian and New Zealand businesses.',
+    url: SITE_URL,
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Unite Group | Living business cards & growth',
+    description:
+      'Living business cards, Starter plans and email signatures for Australian and New Zealand businesses.',
+  },
 };
 
 export default async function RootLayout({
