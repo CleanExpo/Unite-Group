@@ -1,4 +1,6 @@
 import { redirect } from 'next/navigation'
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 
 import { GOOGLE_LOCAL_RANKING_HELP_URL } from '@/lib/card/review-link'
 import { loadOwnerCards, type OwnerCardsResult, type OwnerClient } from '@/lib/card/review-owner'
@@ -10,6 +12,11 @@ import styles from './card-reviews.module.css'
 export const dynamic = 'force-dynamic'
 
 /** Owner tool: put a Google review button on your card, and ask a customer for a review from your own phone or email. */
+export const metadata = noIndexPageMetadata({
+  path: "/founder/card-reviews",
+  title: "Card Reviews | Unite Group",
+  description: "Private founder workspace: Card Reviews.",
+})
 export default async function CardReviewsPage() {
   const user = await getUser()
   if (!user) redirect('/auth/login')

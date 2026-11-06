@@ -1,3 +1,5 @@
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 // src/app/(founder)/founder/campaigns/page.tsx
 export const dynamic = 'force-dynamic'
 
@@ -21,6 +23,11 @@ interface CampaignRow {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+export const metadata = noIndexPageMetadata({
+  path: "/founder/campaigns",
+  title: "Campaigns | Unite Group",
+  description: "Private founder workspace: Campaigns.",
+})
 function mapRow(row: CampaignRow): Pick<Campaign, 'id' | 'theme' | 'objective' | 'platforms' | 'postCount' | 'status' | 'createdAt'> {
   return {
     id: row.id,
