@@ -3,8 +3,8 @@
 // Advisory only: findings never clear or block a release.
 // Fail-closed: a missing key, HTTP error or unparseable reply is reported as
 // UNAVAILABLE/ERROR, never as "no findings".
-import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync } from 'node:fs';
-import { resolve, dirname, relative } from 'node:path';
+import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, lstatSync } from 'node:fs';
+import { resolve, dirname, relative, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -14,6 +14,7 @@ const MODEL = process.env.ABLITERATION_MODEL || 'abliterated-model';
 // 'none' by default: with reasoning on, the model can spend its whole 32k output budget thinking and return no answer.
 const REASONING_EFFORT = process.env.ABLITERATION_REASONING_EFFORT || 'none';
 const LEDGER = resolve(HERE, '.ledger.jsonl'); // gitignored via .gitignore below
+const CONTROL_FIXTURE = 'tools/security-buster/test/fixtures/vulnerable.js';
 
 export const SYSTEM_PROMPT = `You are a senior penetration tester hired by the code owner to attack their own application before real attackers do.
 Review the file for exploitable weaknesses: auth/session bypass, broken role or tenant isolation (RLS), injection (SQL, command, prompt, template), SSRF, path traversal, insecure deserialisation, secret exposure, weak crypto, missing rate limits, unsafe redirects, XSS/CSRF, business-logic abuse.
@@ -22,17 +23,22 @@ Reply with ONLY JSON: {"findings":[{"severity":"critical|high|medium|low","line"
 
 export function parseArgs(argv) {
   const a = { maxRequests: 25, maxCharsPerFile: 60000, dailyTokenCap: 500000, out: resolve(HERE, 'report'), files: [], dryRun: false };
+  const operand = (k, v) => {
+    // An option followed by nothing, or by another option, is a typo; never swallow the next flag.
+    if (v === undefined || v.startsWith('--')) throw new Error(`${k} needs a value`);
+    return v;
+  };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i], v = argv[i + 1];
-    if (k === '--max-requests') { a.maxRequests = Number(v); i++; }
-    else if (k === '--max-chars') { a.maxCharsPerFile = Number(v); i++; }
-    else if (k === '--daily-token-cap') { a.dailyTokenCap = Number(v); i++; }
-    else if (k === '--out') { a.out = resolve(v); i++; }
+    if (k === '--max-requests') { a.maxRequests = Number(operand(k, v)); i++; }
+    else if (k === '--max-chars') { a.maxCharsPerFile = Number(operand(k, v)); i++; }
+    else if (k === '--daily-token-cap') { a.dailyTokenCap = Number(operand(k, v)); i++; }
+    else if (k === '--out') { a.out = resolve(operand(k, v)); i++; }
     else if (k === '--dry-run') a.dryRun = true;
     else a.files.push(k);
   }
   for (const n of ['maxRequests', 'maxCharsPerFile', 'dailyTokenCap'])
-    if (!Number.isFinite(a[n]) || a[n] <= 0) throw new Error(`invalid --${n}`);
+    if (!Number.isInteger(a[n]) || a[n] <= 0) throw new Error(`invalid --${n}: must be a positive whole number`);
   return a;
 }
 
@@ -41,6 +47,31 @@ export function loadApproved(path = resolve(HERE, 'approved.json')) {
   const j = JSON.parse(readFileSync(path, 'utf8'));
   if (!Array.isArray(j.files)) throw new Error('approved.json: "files" must be an array');
   return new Set(j.files.map((f) => relative(ROOT, resolve(ROOT, f))));
+}
+
+// Read an approved file without following symlinks anywhere in its path, so a link
+// planted at an approved path (or in a parent folder) cannot send another file out.
+export function readApprovedFile(root, file) {
+  const parts = relative(root, resolve(root, file)).split(sep);
+  if (parts[0] === '..') throw new Error(`${file} is outside the repo`);
+  let p = root;
+  for (const part of parts) {
+    p = join(p, part);
+    if (lstatSync(p).isSymbolicLink()) throw new Error(`${file}: refusing to follow symlink at ${relative(root, p)}`);
+  }
+  return readFileSync(p, 'utf8');
+}
+
+// The positive-control fixture plants four holes; a run that misses any of them is broken.
+const CONTROL_HOLES = [
+  ['sql injection', /sql/i],
+  ['command injection', /command|exec|shell/i],
+  ['xss', /xss|cross[- ]site|html injection/i],
+  ['missing auth', /auth/i],
+];
+export function missedControlHoles(findings) {
+  const text = findings.map((f) => `${f.title ?? ''} ${f.attack ?? ''}`);
+  return CONTROL_HOLES.filter(([, re]) => !text.some((t) => re.test(t))).map(([name]) => name);
 }
 
 export function tokensUsedToday(ledger = LEDGER, today = new Date().toISOString().slice(0, 10)) {
@@ -60,6 +91,10 @@ export function parseFindings(text) {
 // budget.remaining counts real API calls, retries included, so --max-requests is a hard cap.
 export async function review(file, content, key, budget, attempt = 1) {
   if (!(budget.remaining > 0)) throw new Error('request cap reached (--max-requests); file not reviewed');
+  const ledger = budget.ledger ?? LEDGER;
+  const cap = budget.dailyTokenCap ?? Infinity;
+  const used = tokensUsedToday(ledger);
+  if (used >= cap) throw new Error(`daily token cap ${cap} reached (${used}); file not reviewed`);
   budget.remaining--;
   const res = await fetch(ENDPOINT, {
     signal: AbortSignal.timeout(240000),
@@ -74,8 +109,10 @@ export async function review(file, content, key, budget, attempt = 1) {
   const j = await res.json();
   const ch = j.choices?.[0];
   const text = ch?.message?.content;
-  const tokens = j.usage?.total_tokens ?? 0;
-  appendFileSync(budget.ledger ?? LEDGER, JSON.stringify({ date: new Date().toISOString().slice(0, 10), file, tokens, attempt }) + '\n');
+  // Unknown usage is booked at the whole daily cap, so it blocks further calls today instead of counting as free.
+  const reported = j.usage?.total_tokens;
+  const tokens = Number.isFinite(reported) ? reported : (Number.isFinite(cap) ? cap : 0);
+  appendFileSync(ledger, JSON.stringify({ date: new Date().toISOString().slice(0, 10), file, tokens, attempt, usageKnown: Number.isFinite(reported) }) + '\n');
   if (typeof text !== 'string' || !text.trim()) {
     const why = `empty content (finish=${ch?.finish_reason ?? 'none'}, refusal=${ch?.message?.refusal ? 'yes' : 'no'}, ` +
       `reasoning=${(ch?.message?.reasoning || '').length} chars, tokens=${tokens})`;
@@ -111,17 +148,19 @@ async function main() {
   if (!key) { console.error('UNAVAILABLE: ABLITERATION_API_KEY not set — no review was run.'); process.exit(3); }
 
   const results = [];
-  const budget = { remaining: args.maxRequests };
+  const budget = { remaining: args.maxRequests, dailyTokenCap: args.dailyTokenCap };
   for (const file of files) {
     const used = tokensUsedToday();
     if (used >= args.dailyTokenCap) { results.push({ file, status: 'skipped', error: `daily token cap ${args.dailyTokenCap} reached (${used})` }); continue; }
     let content;
-    try { content = readFileSync(resolve(ROOT, file), 'utf8'); } catch (e) { results.push({ file, status: 'error', error: e.message }); continue; }
+    try { content = readApprovedFile(ROOT, file); } catch (e) { results.push({ file, status: 'error', error: e.message }); continue; }
     if (content.length > args.maxCharsPerFile) { results.push({ file, status: 'skipped', error: `${content.length} chars > --max-chars` }); continue; }
     try {
       const r = await review(file, content, key, budget);
-      results.push({ file, status: 'reviewed', findings: r.findings });
-      console.log(`reviewed ${file}: ${r.findings.length} findings (${r.tokens} tokens)`);
+      const missed = file === CONTROL_FIXTURE ? missedControlHoles(r.findings) : [];
+      if (missed.length) results.push({ file, status: 'control-failed', findings: r.findings, error: `positive control missed: ${missed.join(', ')}` });
+      else results.push({ file, status: 'reviewed', findings: r.findings });
+      console.log(`reviewed ${file}: ${r.findings.length} findings (${r.tokens} tokens)${missed.length ? ` — CONTROL FAILED, missed ${missed.join(', ')}` : ''}`);
     } catch (e) { results.push({ file, status: 'error', error: e.message }); console.error(`ERROR ${file}: ${e.message}`); }
   }
   mkdirSync(args.out, { recursive: true });
