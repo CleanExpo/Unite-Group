@@ -8,12 +8,11 @@ import { SiteFooter } from '@/public/site/site-footer'
 import { SiteNav } from '@/public/site/site-nav'
 import { SectionIntro } from '@/public/section-intro'
 import m from '@/public/layout/marketing-page.module.css'
-import { SITE_URL } from '@/lib/public-site'
+import { publicPageMetadata } from '@/lib/page-metadata'
 
 import {
   DELIVERY_PROMISE,
   MONTHLY_LINE,
-  PAGE_PATH,
   PRESENTER_LINE,
   PRICE_AUD,
   PRICE_LINE,
@@ -26,21 +25,16 @@ import {
 import { TenClipsForm } from './ten-clips-form'
 import t from './ten-clips.module.css'
 
-const PAGE_URL = `${SITE_URL}${PAGE_PATH}`
 const TITLE = 'Ten short videos in a week | Unite Group'
 const DESCRIPTION = `Ten short on-brand videos for your social and ads, made from your photos, logo and a one-page brief. ${formatAud(PRICE_AUD)} one-off, GST included. Delivered within 7 days of receiving your materials.`
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicPageMetadata({
+  path: '/video/ten-clips',
   title: TITLE,
   description: DESCRIPTION,
-  alternates: { canonical: PAGE_URL },
-  robots: { index: true, follow: true },
-  openGraph: {
-    title: TITLE,
-    description: 'Ten short on-brand videos for your social and ads, from your photos, logo and a one-page brief.',
-    url: PAGE_URL,
-  },
-}
+  openGraphDescription:
+    'Ten short on-brand videos for your social and ads, from your photos, logo and a one-page brief.',
+})
 
 export default function TenClipsPage() {
   const sample = EDITIONS.find((e) => e.name === SAMPLE_EDITION)
