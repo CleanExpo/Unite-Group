@@ -1,8 +1,15 @@
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 export const dynamic = 'force-dynamic'
 
 import { BoardroomClient } from '@/founder/boardroom/BoardroomClient'
 import { PageHeader } from '@/components/ui/PageHeader'
 
+export const metadata = noIndexPageMetadata({
+  path: "/founder/boardroom",
+  title: "Boardroom | Unite Group",
+  description: "Private founder workspace: Boardroom.",
+})
 export default function BoardroomPage() {
   return (
     <div className="p-6 space-y-6">
