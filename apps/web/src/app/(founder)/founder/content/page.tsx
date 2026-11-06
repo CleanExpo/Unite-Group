@@ -1,3 +1,5 @@
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 export const dynamic = 'force-dynamic'
 
 // /founder/content — Mission Control content library.
@@ -32,6 +34,11 @@ interface DraftRow {
   created_at: string | null
 }
 
+export const metadata = noIndexPageMetadata({
+  path: "/founder/content",
+  title: "Content | Unite Group",
+  description: "Private founder workspace: Content.",
+})
 function formatDate(iso: string | null): string {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('en-AU', { day: '2-digit', month: '2-digit', year: 'numeric' })
