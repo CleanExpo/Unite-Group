@@ -1,3 +1,5 @@
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 export const dynamic = 'force-dynamic'
 
 import { chakra, syne, jbMono } from '../fonts'
@@ -9,6 +11,11 @@ import { PortfolioView } from './PortfolioView'
 import { IntegrationStatus } from '@/founder/dashboard/IntegrationStatus'
 import { BusinessFocusRail } from '@/components/command-centre/business-focus/BusinessFocusRail'
 
+export const metadata = noIndexPageMetadata({
+  path: "/founder/command-centre/portfolio",
+  title: "Portfolio | Unite Group",
+  description: "Private founder workspace: Portfolio.",
+})
 export default async function PortfolioDeckPage() {
   const projects = await getProjects()
   const [integrationStatuses, user] = await Promise.all([
