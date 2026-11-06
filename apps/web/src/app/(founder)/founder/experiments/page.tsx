@@ -1,3 +1,5 @@
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 // src/app/(founder)/founder/experiments/page.tsx
 export const dynamic = 'force-dynamic'
 
@@ -32,6 +34,11 @@ interface ExperimentRow {
   variant_count?: number
 }
 
+export const metadata = noIndexPageMetadata({
+  path: "/founder/experiments",
+  title: "Experiments | Unite Group",
+  description: "Private founder workspace: Experiments.",
+})
 function mapRow(row: ExperimentRow): Experiment & { variantCount: number } {
   return {
     id: row.id,

@@ -5,9 +5,14 @@ import { redirect } from 'next/navigation'
 import { createClient, getUser } from '@/lib/supabase/server'
 import { InboxView } from '@/founder/inbox/InboxView'
 import { loadInbox, parseSourceParam, type InboxClient } from '@/lib/crm/inbox'
+import { noIndexPageMetadata } from '@/lib/page-metadata'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: 'Inbox — Nexus' }
+export const metadata = noIndexPageMetadata({
+  path: '/founder/inbox',
+  title: 'Inbox | Unite Group',
+  description: 'Website leads, card enquiries and feedback.',
+})
 
 export default async function InboxPage({
   searchParams,
