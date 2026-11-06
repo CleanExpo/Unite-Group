@@ -3,14 +3,14 @@ import type { Metadata } from 'next'
 import { LegalSection as Section, LegalSubHeading as SubHeading } from '@/public/legal/legal-document'
 import { LegalPageShell } from '@/public/legal/legal-page-shell'
 import { COMPANY_NAME, companyAbnLabel } from '@/lib/legal/company'
-import { SITE_URL } from '@/lib/public-site'
+import { publicPageMetadata } from '@/lib/page-metadata'
 
-export const metadata: Metadata = {
-  title: 'Privacy Policy — Unite-Group Application',
-  description: 'Privacy Policy for the Unite-Group Application operated by Unite-Group Nexus Pty Ltd.',
-  robots: { index: true, follow: true },
-  alternates: { canonical: `${SITE_URL}/privacy-policy` },
-}
+export const metadata: Metadata = publicPageMetadata({
+  path: '/privacy-policy',
+  title: 'Privacy Policy | Unite Group',
+  description:
+    'How Unite Group handles personal information for the Unite-Group Application operated by Unite-Group Nexus Pty Ltd.',
+})
 
 const LAST_UPDATED = '25 October 2026'
 const CONTACT_EMAIL = 'contact@unite-group.in'
