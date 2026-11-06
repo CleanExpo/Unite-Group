@@ -200,6 +200,22 @@ ol.crumbs a:hover {
   color: var(--pub-highlight);
 }
 
+.chipLive {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(74, 222, 128, 0.45);
+  background: rgba(74, 222, 128, 0.1);
+  font-family: var(--pub-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #86efac;
+}
+
 .heroActions {
   display: flex;
   flex-wrap: wrap;
