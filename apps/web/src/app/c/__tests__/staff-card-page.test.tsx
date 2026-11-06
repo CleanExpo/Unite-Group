@@ -78,7 +78,7 @@ describe('/c/<staff slug>', () => {
   it('is never indexed: its words are changed by a customer link with no review', async () => {
     const meta = await generateMetadata(params)
     expect(meta.robots).toEqual({ index: false, follow: false })
-    expect(meta.alternates).toBeUndefined()
+    expect(String(meta.alternates?.canonical)).toBe(`https://unite-group.in/c/${SLUG}`)
   })
 
   it('has no enquiry form: enquiries are keyed on card_owners, which a staff card is not in', async () => {
