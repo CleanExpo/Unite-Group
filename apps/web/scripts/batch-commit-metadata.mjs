@@ -42,9 +42,17 @@ function msgForPath(p) {
   return `chore(web): ${short(p)}`
 }
 
-const out = execSync('git status --short -u', { encoding: 'utf8', cwd: ROOT })
-const lines = out.trim().split('\n').filter(Boolean)
-const files = lines.map((l) => l.slice(3)).sort()
+function changedPaths() {
+  /** Paths with changes (staged, unstaged, or untracked). Avoids parsing `git status --short` lines — `slice(3)` breaks when status is two letters glued to the path (e.g. `MM` + `apps/...` → `MMapps/...`). */
+  const z = { encoding: 'utf8', cwd: ROOT }
+  const split0 = (s) => s.split('\0').filter(Boolean)
+  const staged = split0(execSync('git diff --cached --name-only -z', z))
+  const unstaged = split0(execSync('git diff --name-only -z', z))
+  const untracked = split0(execSync('git ls-files -o --exclude-standard -z', z))
+  return [...new Set([...staged, ...unstaged, ...untracked])]
+}
+
+const files = changedPaths().sort()
 
 if (files.length !== 112) {
   console.error(`Expected 112 changed files, got ${files.length}. Abort.`)
@@ -62,7 +70,7 @@ let i = 0
 for (let c = 0; c < pairCount; c++) {
   const a = files[i++]
   const b = files[i++]
-  const title = `chore(web): batch ${c + 1}/41 — ${basename(a)} + ${basename(b)}`
+  const title = `chore(web): batch ${c + 1}/${pairCount} — ${basename(a)} + ${basename(b)}`
   const body = `${title}\n\n- ${short(a)}\n- ${short(b)}`
   sh(`git add "${a}" "${b}"`)
   sh(`git commit -m ${JSON.stringify(body)}`)
