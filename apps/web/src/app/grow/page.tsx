@@ -6,6 +6,7 @@ import { SiteNav } from '@/public/site/site-nav'
 import { SectionIntro } from '@/public/section-intro'
 import m from '@/public/layout/marketing-page.module.css'
 import { COMPANY_NAME, companyAbnLabel } from '@/lib/legal/company'
+import { publicPageMetadata } from '@/lib/page-metadata'
 
 import g from './grow-page.module.css'
 import { LeadForm } from './lead-form'
@@ -15,13 +16,13 @@ import { GROW_PACKAGES, formatAud, paymentLinkFor, serializeJsonLd } from './pac
 
 const PAGE_URL = 'https://unite-group.in/grow'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicPageMetadata({
+  path: '/grow',
   title: 'Local business growth: websites, Google profile and AI search | Unite Group',
   description:
     'Unite Group sets up and runs your website, Google Business Profile, reviews and AI-search visibility. Fixed prices in AUD. Free AI-visibility audit.',
-  alternates: { canonical: PAGE_URL },
   robots: { index: false, follow: false },
-}
+})
 
 const STEPS = [
   { title: 'Free audit', body: 'We measure your site speed, Google profile and whether AI assistants mention you. You get the numbers.' },
