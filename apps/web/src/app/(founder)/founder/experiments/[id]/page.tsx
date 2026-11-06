@@ -1,3 +1,5 @@
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 // src/app/(founder)/founder/experiments/[id]/page.tsx
 export const dynamic = 'force-dynamic'
 
@@ -78,6 +80,11 @@ interface ResultRow {
   created_at: string
 }
 
+export const metadata = noIndexPageMetadata({
+  title: "Id | Unite Group",
+  description: "Private founder workspace: Id.",
+  canonical: null,
+})
 function mapExperiment(r: ExperimentRow): Experiment {
   return {
     id: r.id,
