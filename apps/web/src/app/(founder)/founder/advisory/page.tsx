@@ -1,7 +1,14 @@
 import { Suspense } from 'react'
 import { AdvisoryWorkbench } from '@/founder/advisory/AdvisoryWorkbench'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { noIndexPageMetadata } from '@/lib/page-metadata'
 
+
+export const metadata = noIndexPageMetadata({
+  path: "/founder/advisory",
+  title: "Advisory | Unite Group",
+  description: "Private founder workspace: Advisory.",
+})
 export default function AdvisoryPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto">
