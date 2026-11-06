@@ -21,6 +21,7 @@ import {
   HOME_HERO,
   HOME_TODAY,
   HOME_HOW,
+  HOME_TRUST_STRIP,
 } from './copy'
 import { STEP_SCREENS } from '../home-screens'
 import { ContactForm } from '../contact-form'
@@ -101,7 +102,7 @@ export function HomePage() {
                 <a
                   href={HOME_HERO.primaryHref}
                   data-track="cta"
-                  data-track-label="home-hero-start"
+                  data-track-label="home-hero-order"
                   className={`${hp.cta} ${hp.ctaPrimary}`}
                 >
                   {HOME_HERO.primaryCta}
@@ -121,8 +122,24 @@ export function HomePage() {
         </div>
       </section>
 
+      <section data-position id="trust" className={hp.trustStrip} aria-labelledby="trust-strip-title">
+        <div className={hp.wrap}>
+          <h2 id="trust-strip-title" className={hp.trustStripTitle}>
+            {HOME_TRUST_STRIP.eyebrow}
+          </h2>
+          <ul className={hp.trustGrid}>
+            {HOME_TRUST_STRIP.items.map((item) => (
+              <li key={item.title} className={hp.trustCard}>
+                <p className={hp.trustCardTitle}>{item.title}</p>
+                <p className={hp.trustCardLine}>{item.line}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
       <div className={hp.chapterIntro}>
-        <section id="start" className={hp.sectionTight} aria-labelledby="start-title">
+        <section data-position id="start" className={hp.sectionTight} aria-labelledby="start-title">
           <div className={hp.wrap}>
             <h2 id="start-title" className={hp.pathTitle}>
               Where do you want to start?
