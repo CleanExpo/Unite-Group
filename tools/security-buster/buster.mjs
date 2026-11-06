@@ -69,9 +69,24 @@ const CONTROL_HOLES = [
   ['xss', /xss|cross[- ]site|html injection/i],
   ['missing auth', /auth/i],
 ];
+// Each planted hole needs its OWN finding: a non-negated title naming that hole and a
+// concrete attack path. One finding can account for at most one hole, so a single
+// "no SQL, command injection, XSS or auth issues" reply cannot pass the control.
+const NEGATED = /\b(no|not|none|without)\b|not found|nothing/i;
+const MIN_ATTACK_CHARS = 20;
 export function missedControlHoles(findings) {
-  const text = findings.map((f) => `${f.title ?? ''} ${f.attack ?? ''}`);
-  return CONTROL_HOLES.filter(([, re]) => !text.some((t) => re.test(t))).map(([name]) => name);
+  const usable = findings.filter((f) => {
+    const title = String(f.title ?? '');
+    return title && !NEGATED.test(title) && String(f.attack ?? '').trim().length >= MIN_ATTACK_CHARS;
+  });
+  const used = new Set();
+  const missed = [];
+  for (const [name, re] of CONTROL_HOLES) {
+    const i = usable.findIndex((f, idx) => !used.has(idx) && re.test(String(f.title)));
+    if (i === -1) missed.push(name);
+    else used.add(i);
+  }
+  return missed;
 }
 
 export function tokensUsedToday(ledger = LEDGER, today = new Date().toISOString().slice(0, 10)) {

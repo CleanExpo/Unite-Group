@@ -110,13 +110,28 @@ test('a reply without usage is booked at the full cap, not as zero', async () =>
 });
 
 test('the positive control fails the run when a planted hole is missed', () => {
+  const atk = 'attacker sends a crafted request parameter to exploit this';
   const all = [
-    { title: 'SQL injection in /user' }, { title: 'Command injection via ping' },
-    { title: 'Reflected XSS in name' }, { title: 'Missing authorisation on /admin/delete' },
+    { title: 'SQL injection in /user', attack: atk }, { title: 'Command injection via ping', attack: atk },
+    { title: 'Reflected XSS in name', attack: atk }, { title: 'Missing authorisation on /admin/delete', attack: atk },
   ];
   assert.deepEqual(missedControlHoles(all), []);
   assert.deepEqual(missedControlHoles(all.slice(0, 3)), ['missing auth']);
   assert.equal(missedControlHoles([]).length, 4);
+});
+
+test('the positive control is not fooled by one negated or empty finding', () => {
+  // Negative controls: one finding that merely names every category must not pass.
+  assert.equal(missedControlHoles([{ title: 'No SQL, command injection, XSS, or auth issues found', attack: '', fix: '' }]).length, 4);
+  assert.ok(missedControlHoles([{ title: 'SQL injection, command injection, XSS and missing auth', attack: 'attacker sends a crafted request parameter' }]).length >= 3,
+    'one finding can account for at most one planted hole');
+  assert.equal(missedControlHoles([
+    { title: 'SQL injection', attack: '' }, { title: 'Command injection', attack: '' },
+    { title: 'XSS', attack: '' }, { title: 'Missing auth', attack: '' },
+  ]).length, 4, 'findings without a concrete attack path do not count');
+  assert.equal(missedControlHoles([
+    { title: 'No SQL injection found', attack: 'n/a, input is parameterised so an attacker cannot inject' },
+  ]).length, 4, 'a negated finding does not count');
 });
 
 test('approved list must be an array', () => {
