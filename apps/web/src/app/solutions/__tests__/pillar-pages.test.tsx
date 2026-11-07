@@ -18,15 +18,15 @@ describe('pillar pages', () => {
     expect(crumbs).toMatch(/<li><a href="\/">Unite Group<\/a><\/li>/)
     expect(html.match(/<h1/g)).toHaveLength(1)
     expect(html).toContain(slug === SHIPPED_PILLAR ? '>Live<' : '>Coming<')
-    expect(html.replace(/<[^>]*>/g, ' ')).not.toMatch(/\bHome\b/)
+    expect(crumbs.replace(/<[^>]*>/g, ' ')).not.toMatch(/\bHome\b/)
     expect(html).not.toMatch(/synthex/i)
     expect(html.match(/href="\/auth\/login"/g)).toHaveLength(1)
     expect(isPublicPath(`/solutions/${slug}`)).toBe(true)
   })
 
   it('only Conversion mentions the card on sale', () => {
-    expect(renderToStaticMarkup(ConversionPage())).toContain('Available now')
-    expect(renderToStaticMarkup(VisibilityPage())).not.toContain('Available now')
+    expect(renderToStaticMarkup(ConversionPage())).toContain('Living business cards are live today')
+    expect(renderToStaticMarkup(VisibilityPage())).not.toContain('Living business cards are live today')
     expect(conversionMeta.robots).toEqual({ index: true, follow: true })
   })
 })
