@@ -5,7 +5,8 @@ export const HOME_HERO = {
   wordmark: 'Unite-Group',
   kicker: 'Australia & New Zealand',
   title: 'Every business. One system.',
-  lead: 'An AI marketing agency, with Margot as its AI face.',
+  lead:
+    'Unite Group is an AI marketing agency — film, pages, and follow-up in one stack. Margot is the AI face your customers meet first.',
   /** Primary path for cold traffic: order flow (see also #start for every path). */
   primaryCta: 'Order a living card',
   primaryHref: '/cards/order',
@@ -20,15 +21,15 @@ export const HOME_TRUST_STRIP = {
   items: [
     {
       title: 'Australian operator',
-      line: 'Pricing and delivery are run from a known Australian company with clear GST treatment.',
+      line: 'AUD pricing, GST called out, and delivery from an Australian company — ABN on the footer, no offshore mystery invoice.',
     },
     {
       title: 'Approve before it goes live',
-      line: 'You get a private proof link for your card or signature before anything is public.',
+      line: 'Every card and public page ships behind a private proof link. Nothing publishes until you say yes.',
     },
     {
       title: 'Direct email, not a ticket maze',
-      line: 'Questions go to our team; replies are written for your situation, not a script.',
+      line: 'You write to a real inbox. We answer in plain language with the next step, not a template number.',
     },
   ],
 } as const
@@ -96,8 +97,8 @@ export const HOME_CONTACT = {
 } as const
 
 export const HOME_FOOTER = {
-  ctaTitle: 'Ready when you are.',
-  ctaLead: 'Order a living card, compare plans, or send one question — we keep the reply human.',
+  ctaTitle: 'Start with one win, then grow from there.',
+  ctaLead: 'Order a living card today, compare Starter and signatures on pricing, or ask one question — we reply by email.',
   orderCta: 'Order a card',
   contactCta: 'Ask a question',
 } as const
