@@ -3,8 +3,11 @@ import { formatAud } from '@/app/grow/packages'
 import { liveCardTiers } from '@/lib/public-pricing'
 import {
   CONTACT_EMAIL,
+  PILLARS,
   PRICE_NOTE,
+  SHIPPED_PILLAR,
   lowestCardPrice,
+  pillarPath,
 } from '@/lib/public-site'
 import { readMargotPhoneNumber } from '@/lib/margot/phone-line'
 import { CONTACT_MAILTO } from '../site/site-nav'
@@ -19,6 +22,8 @@ import {
   HOME_CONTACT,
   HOME_FAQ,
   HOME_HERO,
+  HOME_PILLARS,
+  HOME_START,
   HOME_TODAY,
   HOME_HOW,
   HOME_TRUST_STRIP,
@@ -45,11 +50,11 @@ type StartLink = {
 // Phill's five steps, names and lines (design-pass gap 05.2 / 05.5). The Create line names a price only while
 // online ordering is live; see createLine.
 const START_LINKS: StartLink[] = [
-  { key: 'discover', no: '01', name: 'Discover', line: 'See the Starter plan and add-ons', href: '/pricing' },
-  { key: 'diagnose', no: '02', name: 'Diagnose', line: 'A check of what is holding your business back', href: '/solutions/intelligence', coming: true },
+  { key: 'discover', no: '01', name: 'Discover', line: 'Compare Starter, signatures, and card tiers in AUD', href: '/pricing' },
+  { key: 'diagnose', no: '02', name: 'Diagnose', line: 'See what Intelligence will summarise when it ships', href: '/solutions/intelligence', coming: true },
   { key: 'create', no: '03', name: 'Create', line: 'Ask us about a living video card', href: '/cards/order', paid: true },
-  { key: 'results', no: '04', name: 'Explore results', line: 'Watch the living cards we have made', href: '/cards' },
-  { key: 'talk', no: '05', name: 'Talk', line: 'Ask a question and we reply by email', href: '#contact' },
+  { key: 'results', no: '04', name: 'Explore results', line: 'Nine showroom films — yours ends on your logo', href: '/cards' },
+  { key: 'talk', no: '05', name: 'Talk', line: 'One question by email; a human reply with a next step', href: '#contact' },
 ]
 
 // Not for sale yet: CRM first (Phill, 27/10/2026: just "CRM"), then the three intelligence products.
@@ -141,9 +146,11 @@ export function HomePage() {
       <div className={hp.chapterIntro}>
         <section data-position id="start" className={hp.sectionTight} aria-labelledby="start-title">
           <div className={hp.wrap}>
+            <p className={hp.eyebrow}>{HOME_START.eyebrow}</p>
             <h2 id="start-title" className={hp.pathTitle}>
-              Where do you want to start?
+              {HOME_START.title}
             </h2>
+            <p className={hp.sectionLead}>{HOME_START.lead}</p>
             <ol className={hp.pathRail}>
               {START_LINKS.map((link) => (
                 <li key={link.key}>
@@ -163,6 +170,33 @@ export function HomePage() {
                 </li>
               ))}
             </ol>
+            <div className={hp.pillarMini} aria-labelledby="pillar-mini-title">
+              <h3 id="pillar-mini-title" className={hp.pillarMiniTitle}>
+                {HOME_PILLARS.title}
+              </h3>
+              <p className={hp.pillarMiniLead}>{HOME_PILLARS.lead}</p>
+              <ul className={hp.pillarMiniList}>
+                {PILLARS.map((p) => (
+                  <li key={p.slug}>
+                    <a href={pillarPath(p.slug)} data-track="cta" data-track-label={`home-pillar-${p.slug}`}>
+                      <span className={hp.pillarMiniName}>
+                        {p.name}
+                        {p.slug === SHIPPED_PILLAR ? (
+                          <span className={`${pub.chip} ${pub.chipLive}`} data-chip="live">
+                            Live
+                          </span>
+                        ) : (
+                          <span className={pub.chip} data-chip="coming">
+                            Coming
+                          </span>
+                        )}
+                      </span>
+                      <span className={hp.pillarMiniLine}>{p.line}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </section>
       </div>
