@@ -288,7 +288,7 @@
 .bannerText { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 8px; min-height: 320px; padding: clamp(28px, 5vw, 40px) clamp(24px, 4vw, 36px); max-width: 36rem; }
 .bannerIntro { margin-bottom: 0 !important; }
 .bannerIntro::after { display: none !important; }
-.bannerTitle { margin: 0; font-family: var(--pub-display); font-size: clamp(2.2rem, 6vw, 4rem); font-weight: 800; line-height: 0.95; text-transform: uppercase; }
+.bannerTitle { margin: 0; font-family: var(--pub-display); font-size: clamp(1.85rem, 5vw, 3rem); font-weight: 600; line-height: 1.1; letter-spacing: -0.02em; }
 
 /* ---- FAQ ---- */
 .faq {
@@ -403,7 +403,7 @@
 .crumbs { display: flex; flex-wrap: wrap; gap: 4px 8px; margin: 0; padding: 24px 0 0; list-style: none; font-size: 14px; color: var(--pub-muted); }
 .crumbs li + li::before { content: '/'; margin-right: 8px; color: var(--pub-line-strong); }
 .pillarHero { padding: 24px 0 48px; }
-.h1 { margin: 12px 0 0; max-width: 40rem; font-family: var(--pub-display); font-size: clamp(2.4rem, 6vw, 4rem); font-weight: 800; line-height: 0.98; text-transform: uppercase; }
+.h1 { margin: 12px 0 0; max-width: 40rem; font-family: var(--pub-display); font-size: clamp(2rem, 5vw, 3.25rem); font-weight: 600; line-height: 1.08; letter-spacing: -0.02em; text-wrap: balance; }
 .bullets { margin: 24px 0 0; padding-left: 20px; max-width: 40rem; color: var(--pub-ink-soft); }
 .bullets li { margin-bottom: 8px; }
 .available { margin-top: 32px; padding: 20px; max-width: 40rem; border: 1px solid var(--pub-accent); border-radius: var(--pub-radius); background: var(--pub-accent-soft); }
