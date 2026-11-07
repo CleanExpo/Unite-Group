@@ -23,7 +23,9 @@ type Colours = Record<string, string>
 const PAGES = ['/cards/order', '/privacy-policy', '/solutions/visibility']
 
 const navLink = (page: Page) => page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Cards', exact: true })
-const menuLink = (page: Page) => page.getByRole('navigation', { name: 'Main' }).locator('details a').first()
+const whatWeDo = (page: Page) =>
+  page.getByRole('navigation', { name: 'Main' }).locator('summary', { hasText: /^What we do$/ }).locator('..')
+const menuLink = (page: Page) => whatWeDo(page).locator('a').first()
 const crumbLink = (page: Page) => page.locator('main ol[class*="crumbs"] a').first()
 const footerLink = (page: Page) => page.locator('footer ul a').first()
 
@@ -67,7 +69,7 @@ async function read(page: Page): Promise<Colours> {
     footer: await colourOf(page, footerLink(page), false),
   }
   // The "What we do" dropdown: its links share the nav colour and have their own hover rule.
-  const details = page.getByRole('navigation', { name: 'Main' }).locator('details')
+  const details = whatWeDo(page)
   await details.locator('summary').click()
   out.menu = await colourOf(page, menuLink(page), false)
   out['menu:hover'] = await colourOf(page, menuLink(page), true)

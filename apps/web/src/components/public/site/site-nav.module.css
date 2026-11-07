@@ -183,6 +183,10 @@ ul.links a:hover {
   color: var(--pub-accent-ink) !important;
 }
 
+.drawerToggle {
+  display: none;
+}
+
 .skipLink {
   position: absolute;
   left: -9999px;
@@ -213,13 +217,68 @@ ul.links a:hover {
 
 @media (max-width: 768px) {
   .bar {
-    flex-wrap: wrap;
-    padding-block: 8px;
+    flex-wrap: nowrap;
+    width: 100%;
+    position: relative;
   }
 
   .nav {
-    width: 100%;
-    justify-content: space-between;
+    width: auto;
+    justify-content: flex-end;
+    order: 3;
+  }
+
+  .drawerToggle {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    order: 2;
+    min-height: 36px;
+    padding: 0 4px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--pub-ink-soft);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .menuCheck {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  .drawerToggle:hover {
+    color: var(--pub-ink);
+  }
+
+  .links {
+    display: none;
+  }
+
+  .bar:has(:checked) .links {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: var(--pub-gutter);
+    z-index: 2;
+    width: min(280px, calc(100vw - 32px));
+    padding: 6px;
+    border: 1px solid var(--pub-line);
+    border-radius: var(--pub-radius);
+    background: rgba(12, 14, 26, 0.98);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  }
+
+  .bar:has(:checked) .links a,
+  .bar:has(:checked) .links summary {
+    min-height: 36px;
+    padding: 6px 10px;
   }
 
   .menu {

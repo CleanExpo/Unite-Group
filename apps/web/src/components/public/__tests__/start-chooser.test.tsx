@@ -14,11 +14,11 @@ import RootPage from '@/app/page'
 
 // Design-pass gap 05.2 / 05.5: the hero has ONE primary step, and it leads to this chooser.
 const OPTIONS = [
-  { label: 'discover', no: '01', name: 'Discover', href: '/pricing', line: 'See the Starter plan and add-ons' },
-  { label: 'diagnose', no: '02', name: 'Diagnose', href: '/solutions/intelligence', line: 'A check of what is holding your business back' },
+  { label: 'discover', no: '01', name: 'Discover', href: '/pricing', line: 'Compare Starter, signatures, and card tiers in AUD' },
+  { label: 'diagnose', no: '02', name: 'Diagnose', href: '/solutions/intelligence', line: 'See what Intelligence will summarise when it ships' },
   { label: 'create', no: '03', name: 'Create', href: '/cards/order', line: 'Order a living video card, from $249' },
-  { label: 'results', no: '04', name: 'Explore results', href: '/cards', line: 'Watch the living cards we have made' },
-  { label: 'talk', no: '05', name: 'Talk', href: '#contact', line: 'Ask a question and we reply by email' },
+  { label: 'results', no: '04', name: 'Explore results', href: '/cards', line: 'Nine showroom films — yours ends on your logo' },
+  { label: 'talk', no: '05', name: 'Talk', href: '#contact', line: 'One question by email; a human reply with a next step' },
 ] as const
 
 const strip = (html: string) => html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
@@ -32,7 +32,10 @@ async function chooser() {
   expect(start, 'section #start exists').toBeGreaterThan(-1)
   const open = html.lastIndexOf('<section', start)
   const block = html.slice(open, html.indexOf('</section>', start) + '</section>'.length)
-  const items = [...block.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)].map((m) => m[1])
+  // The start section also holds the four-pillar mini list; lock the five-path rail only.
+  const lists = [...block.matchAll(/<ol\b[\s\S]*?<\/ol>/g)].map((m) => m[0])
+  expect(lists, 'exactly one chooser <ol> in #start').toHaveLength(1)
+  const items = [...lists[0].matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)].map((m) => m[1])
   return { html, block, items }
 }
 
@@ -50,13 +53,13 @@ describe('the start chooser', () => {
     expect(ids.slice(0, 4)).toEqual(['hero', 'trust', 'start', 'today'])
   })
 
-  it('is labelled by a visible h2 "Where do you want to start?"', async () => {
+  it('is labelled by a visible h2 "Pick the outcome you need first"', async () => {
     const { block } = await chooser()
     const labelled = block.match(/aria-labelledby="([^"]+)"/)?.[1]
     expect(labelled).toBeTruthy()
     const h2 = block.match(new RegExp(`<h2[^>]*id="${labelled}"[^>]*>([\\s\\S]*?)</h2>`))
     expect(h2).not.toBeNull()
-    expect(strip(h2![1])).toBe('Where do you want to start?')
+    expect(strip(h2![1])).toBe('Pick the outcome you need first')
   })
 
   it('is an ordered list of five links with the exact hrefs, in order', async () => {

@@ -49,8 +49,9 @@
   color: var(--pub-night-muted, var(--pub-muted));
 }
 
+/* UNI-3240: `ol` outranks the public shell's `.page a` in any stylesheet order. */
 ol.crumbs a {
-  color: inherit;
+  color: var(--pub-ink-soft);
   text-decoration: none;
 }
 

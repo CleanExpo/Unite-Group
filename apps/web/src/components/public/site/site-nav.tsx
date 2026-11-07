@@ -46,6 +46,10 @@ export function SiteNav() {
             Order card
           </a>
         </nav>
+        <label className={n.drawerToggle}>
+          <input type="checkbox" className={n.menuCheck} aria-label="Menu" />
+          Menu
+        </label>
       </div>
     </header>
   )

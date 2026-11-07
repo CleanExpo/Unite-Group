@@ -145,6 +145,71 @@ async function apply(page: Page, state: State, ctl: FormControl) {
   }
 }
 
+async function stayOnMachine(page: Page) {
+  await page.route('**/*', (route) => {
+    const url = new URL(route.request().url())
+    return url.hostname === '127.0.0.1' ? route.fallback() : route.abort()
+  })
+}
+
+test('mobile header is one row, Order is fully on screen, and the page does not overflow', async ({ page }, info) => {
+  test.skip(info.project.name !== 'mobile', '390px wrap/overflow gate')
+  await stayOnMachine(page)
+  const response = await page.goto('/cards/order', { waitUntil: 'networkidle' })
+  expect(response?.status()).toBe(200)
+  await page.evaluate(() => document.fonts.ready)
+
+  const banner = page.getByRole('banner')
+  const nav = page.getByRole('navigation', { name: 'Main' })
+  const order = nav.getByRole('link', { name: /Order card/ })
+  const menu = banner.locator('label').filter({ hasText: /^Menu$/ })
+  const cards = nav.getByRole('link', { name: 'Cards', exact: true })
+
+  await expect(menu).toBeVisible()
+  await expect(order).toBeVisible()
+  await expect(cards).toBeHidden()
+
+  const headerBox = await banner.boundingBox()
+  expect(headerBox, 'the site header paints').toBeTruthy()
+  expect(headerBox!.height, 'header stays one row at 390px').toBeLessThanOrEqual(64)
+
+  const orderBox = await order.boundingBox()
+  expect(orderBox, 'Order is painted').toBeTruthy()
+  expect(orderBox!.x, 'Order is not clipped on the left').toBeGreaterThanOrEqual(0)
+  expect(orderBox!.x + orderBox!.width, 'Order is not clipped on the right').toBeLessThanOrEqual(390)
+  expect(orderBox!.y + orderBox!.height, 'Order sits inside the header row').toBeLessThanOrEqual(headerBox!.y + headerBox!.height + 1)
+
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+  expect(overflow, 'no horizontal overflow').toBeLessThanOrEqual(0)
+})
+
+test('desktop header keeps the full link row on one line', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', '1440px must stay the open link row')
+  await stayOnMachine(page)
+  const response = await page.goto('/cards/order', { waitUntil: 'networkidle' })
+  expect(response?.status()).toBe(200)
+  await page.evaluate(() => document.fonts.ready)
+
+  const nav = page.getByRole('navigation', { name: 'Main' })
+  const menu = page.getByRole('banner').locator('label').filter({ hasText: /^Menu$/ })
+  const cards = nav.getByRole('link', { name: 'Cards', exact: true })
+  const grow = nav.getByRole('link', { name: 'Grow your business' })
+  const order = nav.getByRole('link', { name: /Order card/ })
+
+  await expect(menu).toBeHidden()
+  await expect(cards).toBeVisible()
+  await expect(grow).toBeVisible()
+  await expect(order).toBeVisible()
+
+  const headerBox = await page.getByRole('banner').boundingBox()
+  const cardsBox = await cards.boundingBox()
+  const growBox = await grow.boundingBox()
+  const orderBox = await order.boundingBox()
+  expect(headerBox?.height, 'desktop header stays a single bar').toBeLessThanOrEqual(64)
+  expect(Math.abs((cardsBox?.y ?? 0) - (growBox?.y ?? 0)), 'Cards and Grow stay on one row').toBeLessThan(8)
+  expect(Math.abs((cardsBox?.y ?? 0) - (orderBox?.y ?? 0)), 'Order stays on the same row as the links').toBeLessThan(8)
+})
+
 for (const state of STATES) {
   test(state.id, async ({ page }) => {
     const ctl = await load(page, state)
