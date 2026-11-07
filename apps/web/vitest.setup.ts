@@ -3,18 +3,9 @@ import { vi } from 'vitest';
 
 // Public pages load Instrument Sans via next/font; Vitest has no next/font transform.
 vi.mock('next/font/google', () => ({
-  Instrument_Sans: () => ({
-    variable: 'font-instrument-display-mock',
-    className: 'font-instrument-display-mock',
-  }),
-  Syne: () => ({
-    variable: 'font-syne-display-mock',
-    className: 'font-syne-display-mock',
-  }),
-  // @cleanexpo/premium-visuals fonts.ts (UNI-3215)
-  Fraunces: () => ({ variable: 'font-fraunces-mock', className: 'font-fraunces-mock' }),
-  Manrope: () => ({ variable: 'font-manrope-mock', className: 'font-manrope-mock' }),
-  JetBrains_Mono: () => ({ variable: 'font-jetbrains-mono-mock', className: 'font-jetbrains-mono-mock' }),
+  Fraunces: () => ({ variable: '--font-fraunces', className: 'font-fraunces-mock' }),
+  Manrope: () => ({ variable: '--font-manrope', className: 'font-manrope-mock' }),
+  JetBrains_Mono: () => ({ variable: '--font-jetbrains-mono', className: 'font-jetbrains-mono-mock' }),
 }));
 
 // Voice mission provenance is an HMAC keyed on a server-side secret, and
