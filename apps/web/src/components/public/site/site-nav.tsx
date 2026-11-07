@@ -27,7 +27,10 @@ export function SiteNav() {
                 <ul className={n.menu}>
                   {PILLARS.map((p) => (
                     <li key={p.slug}>
-                      <a href={pillarPath(p.slug)}>{p.name}</a>
+                      <a href={pillarPath(p.slug)}>
+                        <span className={n.menuItemTitle}>{p.name}</span>
+                        <span className={n.menuItemLine}>{p.line}</span>
+                      </a>
                     </li>
                   ))}
                 </ul>

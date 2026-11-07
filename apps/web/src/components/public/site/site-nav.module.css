@@ -128,11 +128,25 @@ ul.links a:hover {
 }
 
 .menu a {
+  display: grid;
+  gap: 2px;
   width: 100%;
   min-height: 36px;
-  padding: 6px 10px;
+  padding: 8px 10px;
   border-radius: 6px;
   font-size: 13px;
+}
+
+.menuItemTitle {
+  font-weight: 600;
+  color: var(--pub-ink);
+}
+
+.menuItemLine {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.35;
+  color: var(--pub-muted);
 }
 
 .menu a:hover {
