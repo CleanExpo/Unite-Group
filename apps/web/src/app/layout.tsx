@@ -13,9 +13,7 @@ import { SITE_URL } from '@/lib/public-site';
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   // No `template`: each route sets a full title (often already ending with “| Unite Group”).
-  title: {
-    default: 'Unite Group | Living business cards & growth',
-  },
+  title: 'Unite Group | Living business cards & growth',
   description:
     'Living business cards, Starter plans and email signatures for Australian and New Zealand businesses. One system to be found, impress and convert.',
   // Icons, apple-icon and the Open Graph / Twitter card come from the brand-pack
