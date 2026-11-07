@@ -8,8 +8,10 @@ const pillar = PILLARS.find((p) => p.slug === 'intelligence')!
 
 export const metadata: Metadata = publicPageMetadata({
   path: pillarPath(pillar.slug),
-  title: `${pillar.name} | Unite Group`,
-  description: pillar.intro,
+  title: pillar.seoTitle,
+  description: pillar.seoDescription,
+  openGraphTitle: `${pillar.name} | Unite Group`,
+  openGraphDescription: pillar.intro,
 })
 
 export default function IntelligencePage() {
