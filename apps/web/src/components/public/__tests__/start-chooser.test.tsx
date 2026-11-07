@@ -33,9 +33,9 @@ async function chooser() {
   const open = html.lastIndexOf('<section', start)
   const block = html.slice(open, html.indexOf('</section>', start) + '</section>'.length)
   // The start section also holds the four-pillar mini list; lock the five-path rail only.
-  const rail = block.match(/<ol\b[\s\S]*?<\/ol>/)
-  expect(rail, 'ordered start list').not.toBeNull()
-  const items = [...rail![0].matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)].map((m) => m[1])
+  const lists = [...block.matchAll(/<ol\b[\s\S]*?<\/ol>/g)].map((m) => m[0])
+  expect(lists, 'exactly one chooser <ol> in #start').toHaveLength(1)
+  const items = [...lists[0].matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)].map((m) => m[1])
   return { html, block, items }
 }
 

@@ -26,7 +26,9 @@ describe('pillar pages', () => {
 
   it('only Conversion mentions the card on sale', () => {
     expect(renderToStaticMarkup(ConversionPage())).toContain('Living business cards are live today')
-    expect(renderToStaticMarkup(VisibilityPage())).not.toContain('Living business cards are live today')
+    const visibility = renderToStaticMarkup(VisibilityPage())
+    expect(visibility).not.toContain('Living business cards are live today')
+    expect(visibility).not.toContain('Available now')
     expect(conversionMeta.robots).toEqual({ index: true, follow: true })
   })
 })

@@ -223,6 +223,15 @@ describe('D3: /grow is linked only from the main nav and the home hero, on the p
     expect(found).toEqual(REVIEWED_GROW_STRINGS)
   })
 
+  it('the page-metadata /grow occurrence sits inside the MarketingPath union, not a link', () => {
+    const src = readFileSync(join(SRC, 'lib/page-metadata.ts'), 'utf8')
+    const start = src.indexOf('export type MarketingPath')
+    const end = src.indexOf('export type IndexedPageMetadataOptions')
+    expect(start, 'MarketingPath union').toBeGreaterThan(-1)
+    expect(end, 'union ends before IndexedPageMetadataOptions').toBeGreaterThan(start)
+    expect(growStrings(src.slice(start, end)), 'the reviewed /grow string is a union member').toEqual(["'/grow'"])
+  })
+
   it.each(Object.keys(RENDERS).filter((k) => k !== '/' && k !== PRIVACY))('%s draws no /grow link of its own', async (key) => {
     expect(growHrefs(renderToStaticMarkup(await RENDERS[key]()))).toEqual([])
   })
