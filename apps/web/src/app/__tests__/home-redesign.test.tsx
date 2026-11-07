@@ -78,7 +78,7 @@ describe('the dark home: section order', () => {
     const h1 = hero.match(/\.h1\s*\{[^}]*\}/)?.[0] ?? ''
     expect(h1).toMatch(/font-family:\s*var\(--pub-display\)/)
     expect(h1).toMatch(/font-weight:\s*600/)
-    expect(tokens).toMatch(/--pub-display:[^;]*syne|--pub-display:[^;]*instrument/i)
+    expect(tokens).toMatch(/--pub-display:[^;]*fraunces|--pub-display:[^;]*manrope/i)
   })
 })
 
