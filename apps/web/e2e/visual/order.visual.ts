@@ -14,9 +14,7 @@ import { STATES, type FormControl, type State } from './states'
 const RECORD_DIR = join(__dirname, '..', '..', 'test-results', 'visual-records')
 const record: { state: string; matched: string[] }[] = []
 
-// Serial fail-fast skipped remaining mobile captures after the first AA miss, so
-// one container run could only bind one PNG. workers:1 still runs these in order.
-test.describe.configure({ mode: 'default' })
+test.describe.configure({ mode: 'serial' })
 
 async function load(page: Page, state: State): Promise<FormControl> {
   let held: ((status: number, body: unknown) => void) | null = null
