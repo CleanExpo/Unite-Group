@@ -35,7 +35,7 @@ export default function PricingPage() {
               as="h1"
               eyebrow="Pricing"
               title="One plan. Add what you need."
-              lead="Australian dollars on every line. GST is called out so nothing is hidden."
+              lead="Every price is in Australian dollars. GST is on the line so your finance person can approve it without a chase."
             />
           </div>
         </section>

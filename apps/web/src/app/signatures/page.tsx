@@ -7,7 +7,7 @@ import { SectionIntro } from '@/public/section-intro'
 import m from '@/public/layout/marketing-page.module.css'
 import { formatAud } from '@/app/grow/packages'
 import { PLUS_GST, SIGNATURE_ADDON } from '@/lib/public-pricing'
-import { CONTACT_EMAIL } from '@/lib/public-site'
+import { CONTACT_EMAIL, SITE_URL } from '@/lib/public-site'
 import { publicPageMetadata } from '@/lib/page-metadata'
 
 import sig from './signatures-page.module.css'
