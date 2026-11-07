@@ -35,10 +35,10 @@
   /* Content column: 80% of viewport, capped for ultra-wide screens. */
   --pub-max: min(80vw, 1360px);
   --pub-gutter: clamp(16px, 3vw, 28px);
-  --pub-font: var(--font-geist-sans), system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --pub-mono: var(--font-geist-mono), ui-monospace, 'SF Mono', Menlo, monospace;
-  /* Syne for display headlines; Instrument Sans + condensed stack as fallback (no-FOIT). */
-  --pub-display: var(--font-syne-display), var(--font-instrument-display), 'Avenir Next Condensed', 'Arial Narrow', 'Roboto Condensed', 'Helvetica Neue', var(--font-geist-sans), system-ui, sans-serif;
+  --pub-font: var(--font-manrope), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --pub-mono: var(--font-jetbrains-mono), ui-monospace, 'SF Mono', Menlo, monospace;
+  /* Fraunces for display; Manrope fallback (no-FOIT). */
+  --pub-display: var(--font-fraunces), var(--font-manrope), Georgia, 'Times New Roman', serif;
   --pub-section-space: clamp(4rem, 9vw, 5.75rem);
   --pub-glow: radial-gradient(120% 80% at 50% -20%, rgba(236, 123, 65, 0.28), rgba(236, 123, 65, 0) 55%);
 }
