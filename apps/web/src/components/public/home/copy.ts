@@ -6,7 +6,7 @@ export const HOME_HERO = {
   kicker: 'Australia & New Zealand',
   title: 'Every business. One system.',
   lead:
-    'Unite Group is an AI marketing agency — film, pages, and follow-up in one stack. Margot is the AI face your customers meet first.',
+    'Unite Group is an AI marketing agency — film, pages, and follow-up in one stack. Margot is my AI face — the first person you meet.',
   /** Primary path for cold traffic: order flow (see also #start for every path). */
   primaryCta: 'Order a living card',
   primaryHref: '/cards/order',
