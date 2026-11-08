@@ -40,6 +40,14 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "@vitest/*"
         update-types: ["version-update:semver-major"]
+      # Playwright is pinned twice: here and in the container image of
+      # .github/workflows/cards-visual-gate.yml (mcr.microsoft.com/playwright:vX-noble).
+      # #1388 moved the packages to 1.65.0 while the image stayed on 1.64.1, and every
+      # visual test failed at browser launch (UNI-3327). Upgrade by hand in one PR:
+      # packages + image tag + snapshots regenerated inside that image (UNI-3328).
+      - dependency-name: "playwright"
+      - dependency-name: "@playwright/test"
+      - dependency-name: "playwright-core"
   - package-ecosystem: "npm"
     directory: "/apps/workspace"
     schedule:
