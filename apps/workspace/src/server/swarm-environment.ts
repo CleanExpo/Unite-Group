@@ -1,4 +1,4 @@
-import { isAbsolute, join, relative, resolve, sep } from 'node:path'
+import path, { join, resolve } from 'node:path'
 import { existsSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { getHermesRoot, getLocalBinDir, getProfilesDir } from './claude-paths'
@@ -102,15 +102,55 @@ export function getSwarmEnvironment(): SwarmEnvironment {
  * `..` is compared whole, not by prefix: a child legitimately named `..foo`
  * yields the relative path `..foo`, which a `startsWith('..')` test would have
  * read as "outside the root" and allowed.
+ *
+ * On Windows the namespaced spellings `\\?\C:\...`, `\\.\C:\...` and
+ * `\\?\UNC\server\share\...` name the same files as `C:\...` and
+ * `\\server\share\...`, but `path.win32.relative` treats them as a different
+ * root and returns them unchanged, so they escaped the check. They are folded
+ * to the ordinary form first.
  */
 export function isForbiddenSwarmPath(
   pathValue: string | null | undefined,
 ): boolean {
+  return isUnderAnyRoot(pathValue, SWARM_FORBIDDEN_PATHS, path)
+}
+
+/** Containment of `pathValue` in any of `roots`, using the given platform's path rules. */
+export function isUnderAnyRoot(
+  pathValue: string | null | undefined,
+  roots: ReadonlyArray<string>,
+  p: typeof path.posix,
+): boolean {
   if (!pathValue) return false
-  return SWARM_FORBIDDEN_PATHS.some((root) => {
-    const rel = relative(root, pathValue)
+  const win = p.sep === '\\'
+  const target = win ? normaliseWin32(pathValue) : pathValue
+  return roots.some((r) => {
+    const root = win ? normaliseWin32(r) : r
+    const rel = p.relative(root, target)
     if (rel === '') return true
-    if (isAbsolute(rel)) return false
-    return rel !== '..' && !rel.startsWith(`..${sep}`)
+    if (p.isAbsolute(rel)) return false
+    return rel !== '..' && !rel.startsWith(`..${p.sep}`)
   })
+}
+
+/**
+ * Win32 aliases folded to one spelling before containment: namespace prefixes
+ * (`\\?\`, `\\.\`, `\\?\UNC\`), forward slashes, and trailing dots or spaces on
+ * a component (Windows opens `.ssh.` and `.ssh ` as `.ssh`). Folding is applied
+ * to roots and target alike and only ever makes more paths match a root, which
+ * is the safe direction for a denylist.
+ */
+function normaliseWin32(value: string): string {
+  let v = value.replace(/\//g, '\\')
+  const unc = /^\\\\[?.]\\UNC\\/i
+  if (unc.test(v)) v = `\\\\${v.replace(unc, '')}`
+  else if (/^\\\\[?.]\\/.test(v)) v = v.slice(4)
+  return v
+    .split('\\')
+    .map((part) => {
+      if (part === '.' || part === '..') return part
+      const trimmed = part.replace(/[. ]+$/, '')
+      return trimmed === '' ? part : trimmed
+    })
+    .join('\\')
 }

@@ -1,10 +1,11 @@
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { join, win32 } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   SWARM_SENSITIVE_HOME_ROOTS,
   getSwarmEnvironment,
   isForbiddenSwarmPath,
+  isUnderAnyRoot,
 } from './swarm-environment'
 
 describe('swarm environment sensitive-home boundary', () => {
@@ -43,5 +44,54 @@ describe('swarm environment sensitive-home boundary', () => {
     // Its relative path is `..foo`, which a startsWith('..') test would have
     // mistaken for an escape and allowed.
     expect(isForbiddenSwarmPath(join(sshRoot, '..foo'))).toBe(true)
+  })
+})
+
+// Windows path rules, exercised on every platform through path.win32 so the
+// Linux CI job covers them too (UNI-3152 review round 1).
+describe('credential boundary under Windows path rules', () => {
+  const roots = ['C:\\Users\\Bob\\.ssh', '\\\\fileserver\\home\\Bob\\.aws']
+  const denied = (p: string) => isUnderAnyRoot(p, roots, win32)
+
+  it('denies every spelling of a path inside a root', () => {
+    for (const p of [
+      'C:\\Users\\Bob\\.ssh',
+      'C:\\Users\\Bob\\.ssh\\id_ed25519',
+      // Forward-slash spellings are derived, so no literal POSIX-looking home path sits in the repo.
+      'C:\\Users\\Bob\\.ssh\\id_ed25519'.replace(/\\/g, '/'),
+      'c:\\users\\bob\\.SSH\\id_ed25519',
+      'C:\\Users\\Bob\\.ssh\\',
+      'C:\\Users\\Bob\\.ssh\\..foo',
+      '\\\\?\\C:\\Users\\Bob\\.ssh\\id_ed25519',
+      '\\\\.\\C:\\Users\\Bob\\.ssh\\id_ed25519',
+      '\\\\?\\C:\\Users\\Bob\\.ssh\\id_ed25519'.replace(/\\/g, '/'),
+      '\\\\fileserver\\home\\Bob\\.aws\\credentials',
+      '\\\\?\\UNC\\fileserver\\home\\Bob\\.aws\\credentials',
+      '\\\\?\\unc\\fileserver\\home\\Bob\\.aws\\credentials',
+      // Windows drops trailing dots and spaces from a component: these name the root itself.
+      'C:\\Users\\Bob\\.ssh.',
+      'C:\\Users\\Bob\\.ssh ',
+      'C:\\Users\\Bob\\.ssh. .',
+      'C:\\Users\\Bob\\.ssh.\\id_ed25519',
+      'C:\\Users\\Bob.\\.ssh\\id_ed25519',
+      'C:\\Users \\Bob\\.ssh \\id_ed25519',
+      '\\\\fileserver\\home\\Bob\\.aws.\\credentials',
+    ]) {
+      expect(denied(p), p).toBe(true)
+    }
+  })
+
+  it('still allows paths outside every root', () => {
+    for (const p of [
+      'C:\\Users\\Bob\\.sshfoo\\notes.txt',
+      'C:\\Users\\Bob\\Documents\\id_ed25519',
+      '\\\\?\\C:\\Users\\Bob\\Documents\\id_ed25519',
+      'D:\\Users\\Bob\\.ssh\\id_ed25519',
+      '\\\\fileserver\\home\\Bob\\.aws-backup\\x',
+      'C:\\Users\\Bob\\.ssh2\\id_ed25519',
+      'C:\\Users\\Bob\\.ssh.d\\id_ed25519',
+    ]) {
+      expect(denied(p), p).toBe(false)
+    }
   })
 })
