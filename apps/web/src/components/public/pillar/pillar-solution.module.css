@@ -251,14 +251,16 @@ ol.crumbs a:hover {
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-.btnPrimary {
+/* Beat public shell `.page a { color: accent }` (orange on orange), same as nav and footer. */
+a.btnPrimary {
   background: var(--pub-highlight);
-  color: var(--pub-night);
+  color: var(--pub-accent-ink) !important;
   border: 1px solid transparent;
 }
 
-.btnPrimary:hover {
+a.btnPrimary:hover {
   filter: brightness(1.06);
+  color: var(--pub-accent-ink) !important;
 }
 
 .btnGhost {
