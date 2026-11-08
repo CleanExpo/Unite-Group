@@ -424,7 +424,7 @@ function startServer({ appDir, port }) {
   const log = [];
   const child = spawn(process.execPath, [nextBin, 'start', '-p', String(port), '-H', '127.0.0.1'], {
     cwd: appDir,
-    env: { ...buildVerificationEnvironment(), PORT: String(port), NODE_OPTIONS: `--require ${PRELOAD}` },
+    env: { ...buildVerificationEnvironment(), PORT: String(port), NODE_OPTIONS: `--require ${JSON.stringify(PRELOAD)}` },
     detached: true, // its own process group, so the whole tree can be killed
     stdio: ['ignore', 'pipe', 'pipe'],
   });

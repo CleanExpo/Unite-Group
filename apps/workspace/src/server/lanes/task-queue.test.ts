@@ -18,7 +18,18 @@ beforeEach(async () => {
 })
 
 afterEach(async () => {
-  await fs.rm(root, { recursive: true, force: true })
+  // Windows does not release a directory name the instant its last handle
+  // closes, so removing the fixture can lose a race with the queue's own
+  // writes and fail with EBUSY. maxRetries is Node's documented remedy for
+  // exactly that; it retries EBUSY, EMFILE, ENFILE, ENOTEMPTY and EPERM with a
+  // backoff. This is teardown, not an assertion - nothing under test is
+  // retried.
+  await fs.rm(root, {
+    recursive: true,
+    force: true,
+    maxRetries: 10,
+    retryDelay: 50,
+  })
 })
 
 describe('Nexus durable task queue', () => {
@@ -48,12 +59,38 @@ describe('Nexus durable task queue', () => {
       authority: authority(),
     })
     expect(await queue.list()).toEqual([task])
-    expect((await fs.stat(queuePath)).mode & 0o777).toBe(0o600)
-    expect((await fs.stat(path.dirname(queuePath))).mode & 0o777).toBe(0o700)
     expect(await fs.readFile(queuePath, 'utf8')).toContain(
       'build the bounded slice',
     )
   })
+
+  // Split out and skipped on win32 because the assertion cannot be built
+  // there, not because the guarantee does not matter. Windows has no POSIX
+  // permission bits: Node reports mode 0o666 for any file it can write and
+  // 0o666 for the directory too, whatever `chmod 0o600`/`0o700` asked for.
+  // The check still runs on ubuntu-latest, which is the only platform the
+  // `apps/workspace` CI job gates.
+  it.skipIf(process.platform === 'win32')(
+    'keeps the ledger and its directory readable only by the owner (POSIX permission bits)',
+    async () => {
+      const queue = createNexusTaskQueue({
+        queuePath,
+        idgen: () => 'task-1',
+        now: () => 10,
+      })
+
+      await queue.enqueue({
+        idempotencyKey: 'idem-task-0015',
+        laneId: 'lane-1',
+        workerId: 'codex-cli',
+        mission: 'build the bounded slice',
+        authority: authority(),
+      })
+
+      expect((await fs.stat(queuePath)).mode & 0o777).toBe(0o600)
+      expect((await fs.stat(path.dirname(queuePath))).mode & 0o777).toBe(0o700)
+    },
+  )
 
   it('deduplicates an exact retry and rejects idempotency-key reuse', async () => {
     const idgen = vi.fn(() => 'task-idempotent')

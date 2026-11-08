@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const {
   existsSync,
@@ -36,7 +36,15 @@ vi.mock('node:fs', () => ({
 
 beforeEach(() => {
   vi.clearAllMocks()
-  delete process.env.CLAUDE_HOME
+  // local-provider-discovery reads HERMES_HOME BEFORE CLAUDE_HOME, so on a
+  // machine that exports HERMES_HOME the CLAUDE_HOME set below was dead and
+  // the mocked existsSync never matched the path the module asked for.
+  vi.stubEnv('HERMES_HOME', undefined)
+  vi.stubEnv('CLAUDE_HOME', undefined)
+})
+
+afterEach(() => {
+  vi.unstubAllEnvs()
 })
 
 async function loadMod() {
@@ -51,8 +59,10 @@ async function loadMod() {
 describe('local-provider-discovery', () => {
   it('isProviderConfigured uses YAML.parse and reads from CLAUDE_HOME', async () => {
     const activeHome = '/mock/profiles/jarvis'
-    process.env.CLAUDE_HOME = activeHome
-    const configPath = `${activeHome}/config.yaml`
+    vi.stubEnv('CLAUDE_HOME', activeHome)
+    // path.join, as the module builds it: a `${activeHome}/config.yaml`
+    // literal only matches on POSIX.
+    const configPath = path.join(activeHome, 'config.yaml')
     existsSync.mockImplementation((p: string) => p === configPath)
     readFileSync.mockImplementation((p: string) => {
       if (p === configPath)
@@ -67,8 +77,10 @@ describe('local-provider-discovery', () => {
 
   it('isProviderConfigured returns false when custom_providers is missing', async () => {
     const activeHome = '/mock/profiles/default'
-    process.env.CLAUDE_HOME = activeHome
-    const configPath = `${activeHome}/config.yaml`
+    vi.stubEnv('CLAUDE_HOME', activeHome)
+    // path.join, as the module builds it: a `${activeHome}/config.yaml`
+    // literal only matches on POSIX.
+    const configPath = path.join(activeHome, 'config.yaml')
     existsSync.mockImplementation((p: string) => p === configPath)
     readFileSync.mockImplementation((p: string) => {
       if (p === configPath) return 'model: some-model\n'
@@ -81,8 +93,10 @@ describe('local-provider-discovery', () => {
 
   it('ensureProviderInConfig rate-limits warnings via loggedWarnings Set', async () => {
     const activeHome = '/mock/profiles/default'
-    process.env.CLAUDE_HOME = activeHome
-    const configPath = `${activeHome}/config.yaml`
+    vi.stubEnv('CLAUDE_HOME', activeHome)
+    // path.join, as the module builds it: a `${activeHome}/config.yaml`
+    // literal only matches on POSIX.
+    const configPath = path.join(activeHome, 'config.yaml')
     existsSync.mockImplementation((p: string) => p === configPath)
     readFileSync.mockImplementation((p: string) => {
       if (p === configPath) return 'model: m\n'
