@@ -8,7 +8,7 @@ using the id below as the file name (for example media-cache/hero-home.webp) and
 """
 
 WFD = "https://woodfloordrying.com.au/wp-content/uploads/photo-gallery/{file}"
-ZYRO = "https://assets.zyrosite.com/cdn-cgi/image/format=webp,width={w},quality=78/UBoyo99OxXdo06Vh/{file}"
+ZYRO = "https://assets.zyrosite.com/cdn-cgi/image/format=webp,w={w},quality=72/UBoyo99OxXdo06Vh/{file}"
 
 # id: (original file on the old site, width to fetch, source, credit, alt text)
 # Files starting "wfd:" come from woodfloordrying.com.au (Ivi's own project photos). They are JPEGs, so build.py

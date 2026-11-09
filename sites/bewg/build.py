@@ -19,6 +19,8 @@ from pathlib import Path
 
 import os
 
+sys.path.insert(0, str(Path(__file__).resolve().parent / '.pydeps'))  # Pillow installed here on Vercel
+
 import content as C
 import media as M
 from pillars import PILLARS, SERVICE_AREAS
@@ -58,6 +60,11 @@ def fetch_media(offline: bool) -> list[str]:
                 raise ValueError("empty")
             if is_wfd:
                 data = to_webp(data, width)  # raises if Pillow is unavailable: image is left out, never shipped as a big JPG
+            elif len(data) > 200 * 1024:
+                try:
+                    data = to_webp(data, min(width, 1400))  # keep within the media budget when Pillow is present
+                except Exception:
+                    pass
             target.write_bytes(data)
             print(f"  fetched {mid} ({len(data)//1024} KB)")
         except Exception as exc:  # network blocked or file gone: build still succeeds, image is left out
@@ -74,7 +81,7 @@ def to_webp(data: bytes, width: int) -> bytes:
     if im.width > width:
         im = im.resize((width, round(im.height * width / im.width)))
     out = io.BytesIO()
-    im.save(out, "WEBP", quality=78, method=6)
+    im.save(out, "WEBP", quality=72, method=6)
     return out.getvalue()
 
 

@@ -90,6 +90,10 @@ if os.environ.get("REQUIRE_MEDIA"):
     if gone:
         fails.append(f"missing {len(gone)}/{len(M.MEDIA)} real photos: {', '.join(gone)}")
 
+for f in (DIST / "media").glob("*") if (DIST / "media").exists() else []:
+    if f.stat().st_size > 450 * 1024:
+        fails.append(f"media over 450 KB budget: {f.name} ({f.stat().st_size // 1024} KB)")
+
 print(f"checked {len(pages)} HTML pages, {len(REQUIRED_PAGES)} required files")
 if fails:
     print(f"FAIL {len(fails)}:")
