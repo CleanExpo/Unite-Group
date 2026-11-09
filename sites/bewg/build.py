@@ -73,16 +73,20 @@ def fetch_media(offline: bool) -> list[str]:
     return missing
 
 
-def to_webp(data: bytes, width: int) -> bytes:
+def to_webp(data: bytes, width: int, max_bytes: int = 400 * 1024) -> bytes:
+    """Re-encode to WebP, stepping quality and size down until the file fits the media budget."""
     import io
-    from PIL import Image  # installed by vercel.json installCommand; optional locally
-    im = Image.open(io.BytesIO(data))
-    im = im.convert("RGB")
-    if im.width > width:
-        im = im.resize((width, round(im.height * width / im.width)))
-    out = io.BytesIO()
-    im.save(out, "WEBP", quality=72, method=6)
-    return out.getvalue()
+    from PIL import Image  # installed into .pydeps by vercel.json installCommand; optional locally
+    src = Image.open(io.BytesIO(data)).convert("RGB")
+    out = b""
+    for w, q in ((width, 72), (width, 60), (min(width, 1200), 55), (1000, 50), (800, 45)):
+        im = src if src.width <= w else src.resize((w, round(src.height * w / src.width)))
+        buf = io.BytesIO()
+        im.save(buf, "WEBP", quality=q, method=6)
+        out = buf.getvalue()
+        if len(out) <= max_bytes:
+            break
+    return out
 
 
 def have(mid: str) -> bool:
