@@ -2,32 +2,71 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "python3 build.py",
   "outputDirectory": "dist",
-  "installCommand": "true",
+  "installCommand": "python3 -m pip install --quiet --user pillow || echo 'Pillow unavailable: Wood Floor Drying case-study photos will be left out'",
   "cleanUrls": false,
   "trailingSlash": true,
   "functions": {
-    "api/enquiry.js": { "maxDuration": 15 }
+    "api/enquiry.js": {
+      "maxDuration": 15
+    }
   },
   "redirects": [
-    { "source": "/portfolio", "destination": "/case-studies/", "permanent": true },
-    { "source": "/blog", "destination": "/resources/", "permanent": true },
-    { "source": "/the-floor-that-kept-lifting-and-the-garden-that-was-to-blame", "destination": "/resources/the-floor-that-kept-lifting/", "permanent": true },
-    { "source": "/continued-monitoring-in-building-inspections-why-one-reading-is-never-enough", "destination": "/resources/why-one-reading-is-never-enough/", "permanent": true },
-    { "source": "/why-a-single-point-mould-sample-is-often-a-limited-approach-to-understanding-building-and-occupant-issues", "destination": "/resources/single-point-mould-sample/", "permanent": true }
+    {
+      "source": "/portfolio",
+      "destination": "/case-studies/",
+      "permanent": true
+    },
+    {
+      "source": "/blog",
+      "destination": "/resources/",
+      "permanent": true
+    },
+    {
+      "source": "/the-floor-that-kept-lifting-and-the-garden-that-was-to-blame",
+      "destination": "/resources/the-floor-that-kept-lifting/",
+      "permanent": true
+    },
+    {
+      "source": "/continued-monitoring-in-building-inspections-why-one-reading-is-never-enough",
+      "destination": "/resources/why-one-reading-is-never-enough/",
+      "permanent": true
+    },
+    {
+      "source": "/why-a-single-point-mould-sample-is-often-a-limited-approach-to-understanding-building-and-occupant-issues",
+      "destination": "/resources/single-point-mould-sample/",
+      "permanent": true
+    }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
-        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=()"
+        }
       ]
     },
     {
       "source": "/media/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
     }
   ]
 }

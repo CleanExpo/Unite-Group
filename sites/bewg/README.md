@@ -58,3 +58,19 @@ pages for homeowners, LocalBusiness/FAQ/Article structured data, sitemap, robots
 
 Content for Ivi to supply: real Google reviews (`content.py` → `REVIEWS`), the body of the "continued monitoring"
 article (the old site only had its introduction), and her LinkedIn URL.
+
+## Found while capturing the group's sites (09/11/2026) — for Ivi
+
+| Site | Issue | Impact |
+|---|---|---|
+| moisturedetective.com.au/contact | Email is misspelt: `team@mosiutredectective.com.au` | Every email enquiry bounces |
+| moisturedetective.com.au/contact | Office phone link dials `61361390345285`, not 03 7075 1932 | Mobile callers reach a wrong number |
+| moisturedetective.com.au/contact | Address typo "basywawter" | Looks careless; hurts local search |
+| moisturedetective.com.au | Blog is republished Sensor Innovation (Norway) case studies, each listed up to 3 times | Duplicate content; reads as not their own work |
+| moisturedetective.com.au | "Online booking coming soon" | No booking path; could link to bewg.au/book/ today |
+| woodfloordrying.com.au | Phone 0413 282 997 differs from the group numbers | UNVERIFIED whether still answered |
+| woodfloordrying.com.au | Last edited 2016; "most qualified drying engineers in Australia", "satisfaction guaranteed" | Unbacked claims; stale |
+| woodfloordrying.com.au | Membership logos (ATFA, SCRIA, RIA, IICRC Clean Trust) | UNVERIFIED as current; not carried onto bewg.au |
+
+The three Wood Floor Drying projects (2014–2016) are carried onto bewg.au/case-studies/ word for word in facts, with
+their photos converted to WebP at build time (Pillow).

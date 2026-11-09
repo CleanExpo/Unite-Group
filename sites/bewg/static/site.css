@@ -154,3 +154,17 @@ p{margin:0 0 1em}
   .row{grid-template-columns:1fr}
   .sec{padding:56px 0}
 }
+
+/* case studies + credentials */
+.cases{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;margin-top:24px}
+.case{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:#fff}
+.case-media{margin:0;aspect-ratio:3/2;overflow:hidden}
+.case-body{padding:22px}
+.case-body h3{font-size:1.25rem}
+.facts{display:flex;flex-wrap:wrap;gap:8px 20px;margin:0 0 14px}
+.facts div{display:flex;flex-direction:column}
+.facts dt{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700}
+.facts dd{margin:0;font-weight:700;color:var(--green)}
+.cred-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px}
+.cred-grid h2{font-size:1.4rem}
+@media (max-width:900px){.cred-grid{grid-template-columns:1fr}}

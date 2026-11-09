@@ -20,26 +20,82 @@ BUSINESS = {
     "hours": [("Monday to Friday", "8:30am to 5:00pm"), ("Saturday", "9:00am to 12:00pm"), ("Sunday", "Closed")],
     "hours_schema": ["Mo-Fr 08:30-17:00", "Sa 09:00-12:00"],
     "facebook": "https://www.facebook.com/bewgroup1/",
+    "facebook_md": "https://www.facebook.com/Moisturedetective/",
     "area": "Melbourne and across Australia",
 }
 
 IVI = {
     "name": "Ivi Sims",
     "role": "Founder and principal investigator",
+    "linkedin": "https://www.linkedin.com/in/ivi-sims-4940b833/",
+    # Short list shown on home and about. Source: brii.au/trainers/ivi-sims (captured 09/11/2026) and
+    # R&R Magazine TradeTalks Ep 25 (02/01/2025).
     "credentials": [
         "IICRC Triple Master Restorer",
-        "Sits on IICRC and Standards Australia committees",
-        "25 years in cleaning, restoration and indoor air quality",
+        "IICRC and Standards Australia committee member",
+        "Board director, Indoor Air Quality Association (IAQA)",
+        "More than 25 years in restoration, 15+ in timber floor and structural drying",
     ],
     "bio": (
         "Ivi started in cleaning, moved into restoration and now works on the building science behind moisture, "
         "mould and indoor air. She has dried timber floors, managed major water losses and led mould remediation, "
-        "and she helps write the standards the industry works to. When BEWG investigates your building, Ivi's "
-        "method is behind every reading."
+        "and she helps write the standards the industry works to. She champions restoring over replacing: find "
+        "the cause, dry it properly, and save what can be saved."
     ),
+    "certifications": [
+        "Water Loss Specialist (WLS)", "Contents Loss Specialist (CLS)", "Certified Mold Professional (CMP)",
+        "Master Fire & Smoke Restorer (MSR)", "Master Water Restorer (MWR)", "Master Textile Cleaner (MTC)",
+    ],
+    "standards": [
+        "IICRC standards committees: BSR/IICRC S230 (inspection of flooring, subfloors and substrates) and ANSI/IICRC S220 (inspection of hard surface floor coverings)",
+        "IICRC field guides: health and safety for cleaning and restoration, and Building Moisture Inspection",
+        "Standards Australia committee ME-094 (water damage and mould remediation)",
+        "Representative for the Australasian Timber Flooring Association (ATFA)",
+        "Board of Directors, Indoor Air Quality Association since 2024 (member since 2008); founding member of the Australian IAQA chapter",
+    ],
+    "science": [
+        "Building physics and psychrometrics training through AIRAH",
+        "Studied building science under Dr Joseph Lstiburek (Building Science Corporation, USA)",
+        "Hygrothermal modelling with WUFI for walls, roofs and timber floors across Australian climate zones",
+        "Works with NCC 2022 Section J condensation provisions, AS 1884, AS 1668 and AS 3959",
+    ],
+    "press": [
+        ("R&R Magazine TradeTalks, Episode 25: From Foundations to Innovations (January 2025)",
+         "https://www.randrmagonline.com/articles/91117-from-foundations-to-innovations"),
+        ("R&R Magazine, by Ivi Sims: Responding to Melbourne's Holiday Flash Floods (March 2017)",
+         "https://www.randrmagonline.com/articles/87283-responding-to-melbournes-holiday-flash-floods"),
+    ],
     "video_url": "https://www.randrmagonline.com/articles/91117-from-foundations-to-innovations",
     "video_label": "Watch Ivi on R&R Magazine TradeTalks",
 }
+
+# Real projects (source: woodfloordrying.com.au project pages, captured 09/11/2026). Facts only, no embellishment.
+CASES = [
+    {
+        "title": "Three basketball courts kept open while 1,800 m² of timber dried",
+        "type": "Commercial", "date": "February 2014", "duration": "28 days",
+        "problem": "Water seeped under the basketball courts in wet weather, damaging 1,800 m² of timber.",
+        "work": "The courts stayed open every day. A containment area kept players safe, and a generator ran the extraction equipment 24 hours a day.",
+        "result": "Cupping reduced within 7 days of fixing the water entry. Four months later the floor was solid with no cupping, so no sand-back was needed, and the business never closed.",
+        "image": "case-basketball",
+    },
+    {
+        "title": "Messmate floor peaked 8 cm, training centre stayed open",
+        "type": "Commercial", "date": "May 2016", "duration": "17 days",
+        "problem": "A leaking door canopy and window trapped moisture under a messmate floor, which peaked up to 8 cm and became a trip hazard.",
+        "work": "The centre had to stay open 16 hours a day, so the drying set-up was planned with the business to keep safety risks down while air was moved through the floor.",
+        "result": "The floor returned to normal within 2 weeks. No sanding, no replacement, no disruption.",
+        "image": "case-messmate",
+    },
+    {
+        "title": "Cupped blackbutt kitchen floor flattened with no sanding",
+        "type": "Residential", "date": "July 2015", "duration": "15 days",
+        "problem": "Water damage in the kitchen and living room. Blackbutt boards on 3 cm battens over concrete: the battens wicked moisture from the slab and the boards cupped badly.",
+        "work": "We looked at the timber species to work out how much energy it would take to draw the moisture out, then dried with mats and blowers.",
+        "result": "Cupping came back down in 15 days with no sanding required.",
+        "image": "case-blackbutt",
+    },
+]
 
 # Each problem tile links to a service section and pre-ticks that problem on the booking form.
 PROBLEMS = [

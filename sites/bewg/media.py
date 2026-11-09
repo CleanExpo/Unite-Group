@@ -7,9 +7,12 @@ New images come from Phill's ChatGPT Pro account: see IMAGE-PROMPTS.md, then dro
 using the id below as the file name (for example media-cache/hero-home.webp) and set source to "generated".
 """
 
+WFD = "https://woodfloordrying.com.au/wp-content/uploads/photo-gallery/{file}"
 ZYRO = "https://assets.zyrosite.com/cdn-cgi/image/format=webp,width={w},quality=78/UBoyo99OxXdo06Vh/{file}"
 
 # id: (original file on the old site, width to fetch, source, credit, alt text)
+# Files starting "wfd:" come from woodfloordrying.com.au (Ivi's own project photos). They are JPEGs, so build.py
+# converts them to WebP when Pillow is available and leaves them out otherwise (media budget: no JPG over 80 KB).
 MEDIA = {
     "logo-bewg": ("bewg---logo-3ObbaCdFxwTHsHgg.png", 480, "client", "BEWG", "Building Environmental Wellness Group logo"),
     "ivi-onsite": ("ivi-photot-64ik2QzxdrCZaiM7.jpeg", 1400, "client", "BEWG", "Ivi Sims inspecting a building on site"),
@@ -25,6 +28,12 @@ MEDIA = {
     "clt-timber": ("clt-timber-zuBok24dr7MVfqrr.jpg", 1200, "client", "BEWG", "Moisture testing cross-laminated timber"),
     "logo-moisture-detective": ("logo-with-r-ChJcGeOsfROCKITq.png", 480, "client", "Moisture Detective", "Moisture Detective logo"),
     "logo-wood-floor-drying": ("logo-TSsowZMhhu2qJE9o.jpg", 480, "client", "Wood Floor Drying", "Wood Floor Drying logo"),
+    "case-basketball": ("wfd:Final_restoration_IMG_1592.jpg", 1200, "client", "Wood Floor Drying", "Restored basketball court timber floor after drying"),
+    "case-basketball-ir": ("wfd:Infrared_IMG_1594.jpg", 1200, "client", "Wood Floor Drying", "Infrared image of the basketball court floor during drying"),
+    "case-messmate": ("wfd:WFD_Messmate_2.jpg", 1200, "client", "Wood Floor Drying", "Messmate timber floor peaked by trapped moisture"),
+    "case-messmate-ir": ("wfd:WFD_Messmate_4.jpg", 1200, "client", "Wood Floor Drying", "Infrared image showing moisture under a messmate floor"),
+    "case-blackbutt": ("wfd:IMG_2450.JPG", 1200, "client", "Wood Floor Drying", "Cupped blackbutt floorboards before drying"),
+    "case-blackbutt-done": ("wfd:IMG_3502.JPG", 1200, "client", "Wood Floor Drying", "Blackbutt kitchen floor after drying, no sanding needed"),
     "post-floor": ("chatgpt-image-may-17-2026-09_58_23-pm-smGEF0zMthLta7R4.png", 1400, "generated", "BEWG (ChatGPT)", "Diagram of garden irrigation water reaching a timber floor"),
     "post-monitoring": ("a22fa707-8a6f-4186-ba48-5186a5b13ec0-BJPTKEBANIrlWTcp.png", 1400, "generated", "BEWG (ChatGPT)", "Environmental monitoring logger in a room"),
     "post-mould": ("f2448aa8-fcd8-4d7d-a661-1600c14d9566-75PFZYPrgBEWlVXR.png", 1400, "generated", "BEWG (ChatGPT)", "Mould sampling in a building"),

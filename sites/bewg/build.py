@@ -42,19 +42,34 @@ def fetch_media(offline: bool) -> list[str]:
         if offline:
             missing.append(mid)
             continue
-        url = M.ZYRO.format(w=width, file=file)
+        is_wfd = file.startswith("wfd:")
+        url = M.WFD.format(file=file[4:]) if is_wfd else M.ZYRO.format(w=width, file=file)
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "bewg-site-build"})
             with urllib.request.urlopen(req, timeout=20) as r:
                 data = r.read()
             if not data:
                 raise ValueError("empty")
+            if is_wfd:
+                data = to_webp(data, width)  # raises if Pillow is unavailable: image is left out, never shipped as a big JPG
             target.write_bytes(data)
             print(f"  fetched {mid} ({len(data)//1024} KB)")
         except Exception as exc:  # network blocked or file gone: build still succeeds, image is left out
             print(f"  WARN could not fetch {mid}: {type(exc).__name__}")
             missing.append(mid)
     return missing
+
+
+def to_webp(data: bytes, width: int) -> bytes:
+    import io
+    from PIL import Image  # installed by vercel.json installCommand; optional locally
+    im = Image.open(io.BytesIO(data))
+    im = im.convert("RGB")
+    if im.width > width:
+        im = im.resize((width, round(im.height * width / im.width)))
+    out = io.BytesIO()
+    im.save(out, "WEBP", quality=78, method=6)
+    return out.getvalue()
 
 
 def have(mid: str) -> bool:
@@ -114,7 +129,7 @@ def local_business_schema() -> dict:
                     "addressRegion": b["region"], "postalCode": b["postcode"], "addressCountry": "AU"},
         "openingHours": b["hours_schema"],
         "areaServed": [{"@type": "City", "name": "Melbourne"}, {"@type": "Country", "name": "Australia"}],
-        "founder": {"@type": "Person", "name": C.IVI["name"], "jobTitle": C.IVI["role"]},
+        "founder": {"@type": "Person", "name": C.IVI["name"], "jobTitle": C.IVI["role"], "sameAs": [C.IVI["linkedin"]]},
         "sameAs": [b["facebook"]],
         **({"logo": f"{SITE}/media/logo-bewg.webp"} if have("logo-bewg") else {}),
     }
@@ -193,7 +208,7 @@ def page(path: str, title: str, description: str, body: str, schema: list[dict] 
     </div>
   </div>
   <div class="wrap foot-base">
-    <p>© {YEAR} {e(C.BUSINESS['name'])} · <a href="/privacy/">Privacy</a> · <a href="{C.BUSINESS['facebook']}" rel="noopener">Facebook</a></p>
+    <p>© {YEAR} {e(C.BUSINESS['name'])} · <a href="/privacy/">Privacy</a> · <a href="{C.BUSINESS['facebook']}" rel="noopener">Facebook</a> · <a href="{C.IVI['linkedin']}" rel="noopener">Ivi on LinkedIn</a></p>
   </div>
 </footer>
 <script src="/site.js" defer></script>
@@ -229,7 +244,7 @@ def ivi_block() -> str:
 <h2>Ivi Sims, {e(C.IVI['role'].lower())}</h2>
 <p>{e(C.IVI['bio'])}</p>
 <ul class="ticks">{creds}</ul>
-<p><a href="{C.IVI['video_url']}" rel="noopener">{e(C.IVI['video_label'])} →</a></p>
+<p><a href="{C.IVI['video_url']}" rel="noopener">{e(C.IVI['video_label'])} →</a> · <a href="/about/#credentials">Full credentials</a></p>
 </div></div></section>"""
 
 
@@ -289,7 +304,7 @@ def build_home() -> None:
     <p class="eyebrow">Case study</p>
     <h2>The floor that kept lifting</h2>
     <p>The builder was being asked to replace a timber floor. We traced the moisture to the garden irrigation outside. The owner avoided an unnecessary replacement.</p>
-    <p><a class="btn btn-outline" href="/resources/{post['slug']}/">Read the case study</a></p>
+    <p><a class="btn btn-outline" href="/resources/{post['slug']}/">Read the case study</a> <a href="/case-studies/">See 3 more projects →</a></p>
   </div>
 </div></section>
 {reviews_block()}
@@ -330,6 +345,18 @@ def build_services() -> None:
          "floor and concrete moisture, and continuous monitoring.", body, [schema], og_image="mould-sampling")
 
 
+def cases_html() -> str:
+    cards = []
+    for c in C.CASES:
+        facts = f'<dl class="facts"><div><dt>Type</dt><dd>{e(c["type"])}</dd></div><div><dt>When</dt><dd>{e(c["date"])}</dd></div><div><dt>Drying time</dt><dd>{e(c["duration"])}</dd></div></dl>'
+        cards.append(f"""<article class="case reveal">{fig(c['image'], 'case-media', '(min-width: 900px) 33vw, 100vw')}
+<div class="case-body"><h3>{e(c['title'])}</h3>{facts}
+<p><b>The problem.</b> {e(c['problem'])}</p><p><b>What we did.</b> {e(c['work'])}</p><p><b>The result.</b> {e(c['result'])}</p></div></article>""")
+    return f"""<section class="sec"><div class="wrap"><p class="eyebrow">Timber floor projects</p>
+<h2>Restore, don't replace</h2><p class="lede">Three jobs where the floor was saved, and the business or family kept going.</p>
+<div class="cases">{''.join(cards)}</div></div></section>"""
+
+
 def build_case_studies() -> None:
     gallery = "".join(f'<figure class="g-item">{img(g, "cover", sizes="(min-width: 900px) 25vw, 50vw")}</figure>'
                       for g in C.GALLERY if resolve(g))
@@ -341,6 +368,7 @@ def build_case_studies() -> None:
 {fig(post['image'])}
 <div class="split-text reveal"><p class="eyebrow">Case study</p><h2>{e(post['title'])}</h2><p>{e(post['summary'])}</p>
 <p><a class="btn btn-outline" href="/resources/{post['slug']}/">Read the case study</a></p></div></div></section>
+{cases_html()}
 {f'<section class="sec alt"><div class="wrap"><h2>On site</h2><div class="gallery">{gallery}</div></div></section>' if gallery else ''}
 {cta_band()}"""
     page("/case-studies/", "Our Work and Case Studies",
@@ -378,11 +406,23 @@ def build_about() -> None:
 <p>We don't guess. We use moisture meters, thermal imaging, air sampling analysed by a NATA-accredited laboratory, airflow testing and continuous monitoring to find exactly where moisture is coming from and why.</p>
 <p>We investigate and report. Because we are not selling the repair, our advice is about the cause.</p>
 <p>Every call is answered by a qualified consultant who understands your problem. No call centres.</p>
+</div></section>
+<section id="credentials" class="sec"><div class="wrap cred-grid">
+<div><h2>IICRC certifications</h2><ul class="ticks">{''.join(f"<li>{e(x)}</li>" for x in C.IVI['certifications'])}</ul></div>
+<div><h2>Standards and industry roles</h2><ul class="ticks">{''.join(f"<li>{e(x)}</li>" for x in C.IVI['standards'])}</ul></div>
+<div><h2>Building science</h2><ul class="ticks">{''.join(f"<li>{e(x)}</li>" for x in C.IVI['science'])}</ul></div>
+<div><h2>In the press</h2><ul class="ticks">{''.join(f'<li><a href="{u}" rel="noopener">{e(t)}</a></li>' for t, u in C.IVI['press'])}</ul>
+<p><a href="{C.IVI['linkedin']}" rel="noopener">Ivi on LinkedIn →</a></p></div>
 </div></section>{cta_band()}"""
     person = {"@context": "https://schema.org", "@type": "Person", "name": C.IVI["name"], "jobTitle": C.IVI["role"],
-              "worksFor": {"@id": f"{SITE}/#business"}, "description": C.IVI["bio"]}
+              "worksFor": {"@id": f"{SITE}/#business"}, "description": C.IVI["bio"],
+              "sameAs": [C.IVI["linkedin"]],
+              "hasCredential": [{"@type": "EducationalOccupationalCredential", "name": x,
+                                 "recognizedBy": {"@type": "Organization", "name": "IICRC"}} for x in C.IVI["certifications"]],
+              "memberOf": [{"@type": "Organization", "name": "Indoor Air Quality Association"},
+                           {"@type": "Organization", "name": "Standards Australia committee ME-094"}]}
     page("/about/", "About BEWG and Ivi Sims",
-         "Meet Ivi Sims, IICRC Triple Master Restorer and founder of Building Environmental Wellness Group, "
+         "Meet Ivi Sims, IICRC Triple Master Restorer, IAQA board director and founder of Building Environmental Wellness Group, "
          "and how BEWG investigates moisture and mould.", body, [person], og_image="ivi-onsite")
 
 
