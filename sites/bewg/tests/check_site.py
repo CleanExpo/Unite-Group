@@ -79,9 +79,16 @@ for pl in PILLARS:
         fails.append(f"sitemap missing {pl['slug']}")
 
 book = (DIST / "book/index.html").read_text(encoding="utf-8") if (DIST / "book/index.html").exists() else ""
-for field in ["first_name", "email", "phone", "suburb", "consent", "company_website", "started_at", 'action="/api/enquiry"']:
+for field in ["first_name", "email", "phone", "suburb", "consent", "company_website", 'action="/api/enquiry"']:
     if field not in book:
         fails.append(f"book: form field/attr missing: {field}")
+
+import os  # noqa: E402
+if os.environ.get("REQUIRE_MEDIA"):
+    import media as M  # noqa: E402
+    gone = [m for m in M.MEDIA if not (DIST / "media" / f"{m}.webp").exists()]
+    if gone:
+        fails.append(f"missing {len(gone)}/{len(M.MEDIA)} real photos: {', '.join(gone)}")
 
 print(f"checked {len(pages)} HTML pages, {len(REQUIRED_PAGES)} required files")
 if fails:

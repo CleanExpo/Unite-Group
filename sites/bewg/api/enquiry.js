@@ -12,14 +12,45 @@ const { buildLead } = require('./_lead');
 
 const DEFAULT_URL = 'https://unite-group.in/api/leads';
 const TIMEOUT_MS = 10000;
+const MAX_BODY = 20000;
+// Per-IP limit inside this function: the CRM sees every BEWG lead as coming from this function's IP, so its own
+// per-IP limit can't tell visitors apart. In-memory per instance; enough to stop a single source flooding the CRM.
+const WINDOW_MS = 10 * 60 * 1000;
+const MAX_PER_WINDOW = 5;
+const hits = new Map();
+
+function clientIp(req) {
+  const h = req.headers || {};
+  const raw = h['x-vercel-forwarded-for'] || h['x-forwarded-for'] || h['x-real-ip'] || '';
+  return String(raw).split(',')[0].trim() || 'unknown';
+}
+
+function rateLimited(ip, now = Date.now()) {
+  const e = hits.get(ip);
+  if (!e || now - e.start > WINDOW_MS) { hits.set(ip, { start: now, count: 1 }); return false; }
+  e.count += 1;
+  if (hits.size > 5000) hits.clear();
+  return e.count > MAX_PER_WINDOW;
+}
+
+function leadsUrl() {
+  const u = (process.env.UNITE_LEADS_URL || DEFAULT_URL).trim();
+  try {
+    const parsed = new URL(u);
+    if (parsed.protocol === 'https:' && /(^|\.)unite-group\.in$/.test(parsed.hostname)) return parsed.toString();
+  } catch (_) { /* fall through */ }
+  return DEFAULT_URL;
+}
 
 async function readJson(req) {
+  const len = Number((req.headers || {})['content-length'] || 0);
+  if (len > MAX_BODY) throw new Error('too_large');
   if (req.body && typeof req.body === 'object') return req.body;
-  if (typeof req.body === 'string') return JSON.parse(req.body);
+  if (typeof req.body === 'string') { if (req.body.length > MAX_BODY) throw new Error('too_large'); return JSON.parse(req.body); }
   const chunks = [];
-  for await (const c of req) chunks.push(c);
+  let size = 0;
+  for await (const c of req) { size += c.length; if (size > MAX_BODY) throw new Error('too_large'); chunks.push(c); }
   const raw = Buffer.concat(chunks).toString('utf8');
-  if (raw.length > 20000) throw new Error('too_large');
   return raw ? JSON.parse(raw) : {};
 }
 
@@ -28,6 +59,10 @@ async function handler(req, res, fetchImpl = globalThis.fetch) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  if (rateLimited(clientIp(req))) {
+    return res.status(429).json({ error: 'Too many enquiries from this connection. Please call 03 7075 1932.' });
   }
 
   let body;
@@ -43,7 +78,7 @@ async function handler(req, res, fetchImpl = globalThis.fetch) {
     return res.status(result.status).json({ error: result.error });
   }
 
-  const url = (process.env.UNITE_LEADS_URL || DEFAULT_URL).trim();
+  const url = leadsUrl();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
@@ -68,3 +103,4 @@ async function handler(req, res, fetchImpl = globalThis.fetch) {
 
 module.exports = (req, res) => handler(req, res);
 module.exports.handler = handler;
+module.exports._test = { leadsUrl, rateLimited, hits };
