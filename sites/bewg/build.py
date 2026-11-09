@@ -17,9 +17,14 @@ import sys
 import urllib.request
 from pathlib import Path
 
+import os
+
 import content as C
 import media as M
+from pillars import PILLARS, SERVICE_AREAS
 from posts import POSTS
+
+POST_BY_SLUG = {p['slug']: p for p in POSTS}
 
 ROOT = Path(__file__).resolve().parent
 DIST = ROOT / "dist"
@@ -110,7 +115,7 @@ def img(mid: str, cls: str = "", eager: bool = False, sizes: str = "100vw") -> s
 
 # --------------------------------------------------------------------------- layout
 
-NAV = [("/services/", "Services"), ("/case-studies/", "Our work"), ("/resources/", "Resources"),
+NAV = [("/services/", "Services"), ("/service-areas/", "Areas"), ("/case-studies/", "Our work"), ("/resources/", "Resources"),
        ("/about/", "About Ivi"), ("/contact/", "Contact")]
 
 
@@ -130,9 +135,32 @@ def local_business_schema() -> dict:
         "openingHours": b["hours_schema"],
         "areaServed": [{"@type": "City", "name": "Melbourne"}, {"@type": "Country", "name": "Australia"}],
         "founder": {"@type": "Person", "name": C.IVI["name"], "jobTitle": C.IVI["role"], "sameAs": [C.IVI["linkedin"]]},
-        "sameAs": [b["facebook"]],
+        "sameAs": [u for _n, u in C.SOCIALS],
         **({"logo": f"{SITE}/media/logo-bewg.webp"} if have("logo-bewg") else {}),
     }
+
+
+def consoles_head() -> str:
+    """Search Console, Bing Webmaster and GA4 switch on from Vercel env vars at build time; nothing is hard-coded."""
+    out = []
+    if os.environ.get("GOOGLE_SITE_VERIFICATION"):
+        out.append(f'<meta name="google-site-verification" content="{e(os.environ["GOOGLE_SITE_VERIFICATION"])}">')
+    if os.environ.get("BING_SITE_VERIFICATION"):
+        out.append(f'<meta name="msvalidate.01" content="{e(os.environ["BING_SITE_VERIFICATION"])}">')
+    ga = os.environ.get("GA4_MEASUREMENT_ID", "").strip()
+    if ga and ga.replace("-", "").isalnum():
+        out.append(f'<script async src="https://www.googletagmanager.com/gtag/js?id={ga}"></script>'
+                   f'<script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments)}}'
+                   f'gtag("js",new Date());gtag("config","{ga}",{{anonymize_ip:true}});</script>')
+    return "\n".join(out)
+
+
+def crumbs(items: list[tuple[str, str]]) -> tuple[str, dict]:
+    html_ = '<nav class="crumbs" aria-label="Breadcrumb">' + " / ".join(
+        f'<a href="{u}">{e(n)}</a>' if i < len(items) - 1 else f'<span>{e(n)}</span>' for i, (n, u) in enumerate(items)) + "</nav>"
+    schema = {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
+        {"@type": "ListItem", "position": i, "name": n, "item": SITE + u} for i, (n, u) in enumerate(items, 1)]}
+    return html_, schema
 
 
 def page(path: str, title: str, description: str, body: str, schema: list[dict] | None = None,
@@ -171,6 +199,7 @@ def page(path: str, title: str, description: str, body: str, schema: list[dict] 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=Manrope:wght@400;500;600;700&display=swap">
 <script>document.documentElement.classList.add("js")</script>
 <link rel="stylesheet" href="/site.css">
+{consoles_head()}
 {schemas}
 </head>
 <body>
@@ -208,10 +237,13 @@ def page(path: str, title: str, description: str, body: str, schema: list[dict] 
     </div>
   </div>
   <div class="wrap foot-base">
-    <p>© {YEAR} {e(C.BUSINESS['name'])} · <a href="/privacy/">Privacy</a> · <a href="{C.BUSINESS['facebook']}" rel="noopener">Facebook</a> · <a href="{C.IVI['linkedin']}" rel="noopener">Ivi on LinkedIn</a></p>
+    <p>© {YEAR} {e(C.BUSINESS['name'])} · <a href="/privacy/">Privacy</a> · {' · '.join(f'<a href="{u}" rel="noopener" data-track="social:{e(n)}">{e(n)}</a>' for n, u in C.SOCIALS)}</p>
   </div>
 </footer>
 <script src="/site.js" defer></script>
+<script>window.va=window.va||function(){{(window.vaq=window.vaq||[]).push(arguments)}};</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/_vercel/speed-insights/script.js"></script>
 </body>
 </html>
 """
@@ -267,7 +299,7 @@ def reviews_block() -> str:
 
 def build_home() -> None:
     tiles = "".join(
-        f'<a class="tile reveal" href="/book/?problem={pid}"><h3>{e(t)}</h3><p>{e(d)}</p><span>Get it checked →</span></a>'
+        f'<a class="tile reveal" href="{pillar_for_problem(pid)}"><h3>{e(t)}</h3><p>{e(d)}</p><span>Find the cause →</span></a>'
         for pid, t, d in C.PROBLEMS)
     steps = "".join(f'<li class="reveal"><b>{i}</b><h3>{e(t)}</h3><p>{e(d)}</p></li>'
                     for i, (t, d) in enumerate(C.STEPS, 1))
@@ -322,27 +354,85 @@ def build_home() -> None:
          body, [local_business_schema(), faq_schema])
 
 
+def pillar_for_problem(pid: str) -> str:
+    for p in PILLARS:
+        if p["problem_id"] == pid:
+            return f"/services/{p['slug']}/"
+    return "/book/"
+
+
 def build_services() -> None:
-    blocks = []
-    for i, s in enumerate(C.SERVICES):
-        paras = "".join(f"<p>{e(p)}</p>" for p in s["body"])
-        blocks.append(f"""<section id="{s['id']}" class="sec{' alt' if i % 2 else ''}"><div class="wrap split{' rev' if i % 2 else ''}">
-{fig(s['image'])}
-<div class="split-text reveal"><h2>{e(s['title'])}</h2><p class="lede">{e(s['lede'])}</p>{paras}
-<p><a class="btn btn-outline" href="/book/?service={s['id']}">Book this inspection</a></p></div></div></section>""")
-    jump = "".join(f'<a href="#{s["id"]}">{e(s["title"])}</a>' for s in C.SERVICES)
-    body = f"""<section class="page-head"><div class="wrap"><p class="eyebrow">Services</p>
+    cards = "".join(f"""<a class="svc-card reveal" href="/services/{p['slug']}/">{img(p['image'], 'cover', sizes='(min-width: 900px) 33vw, 100vw')}
+<div><h2>{e(p['nav'])}</h2><p>{e(p['lede'])}</p><span>Read more →</span></div></a>""" for p in PILLARS)
+    bc, bcs = crumbs([("Home", "/"), ("Services", "/services/")])
+    body = f"""<section class="page-head"><div class="wrap">{bc}<p class="eyebrow">Services</p>
 <h1>Investigations that find the cause</h1>
-<p class="hero-lede">Every BEWG investigation uses building science to explain why a building is wet, mouldy or unhealthy, and what to do about it.</p>
-<nav class="jump" aria-label="Services">{jump}</nav></div></section>
-{''.join(blocks)}{cta_band()}"""
+<p class="hero-lede">Every BEWG investigation uses building science to explain why a building is wet, mouldy or unhealthy, and what to do about it. Pick the problem you're dealing with.</p></div></section>
+<section class="sec"><div class="wrap svc-grid">{cards}</div></section>{cta_band()}"""
     schema = {"@context": "https://schema.org", "@type": "ItemList", "itemListElement": [
-        {"@type": "ListItem", "position": i, "item": {"@type": "Service", "name": s["title"], "description": s["lede"],
-         "provider": {"@id": f"{SITE}/#business"}, "url": f"{SITE}/services/#{s['id']}"}}
-        for i, s in enumerate(C.SERVICES, 1)]}
-    page("/services/", "Inspection Services: Moisture, Mould, Condensation, Subfloor",
-         "Moisture inspections, mould inspections and air sampling, condensation and ventilation, subfloor, timber "
-         "floor and concrete moisture, and continuous monitoring.", body, [schema], og_image="mould-sampling")
+        {"@type": "ListItem", "position": i, "url": f"{SITE}/services/{p['slug']}/", "name": p["title"]}
+        for i, p in enumerate(PILLARS, 1)]}
+    page("/services/", "Inspection Services: Mould, Moisture, Condensation, Subfloor, IAQ",
+         "Independent mould, moisture, condensation, subfloor, timber floor, indoor air quality and new-build "
+         "inspections in Melbourne, plus continuous monitoring.", body, [schema, bcs], og_image="mould-sampling")
+    for p in PILLARS:
+        build_pillar(p)
+
+
+def build_pillar(p: dict) -> None:
+    url = f"/services/{p['slug']}/"
+    bc, bcs = crumbs([("Home", "/"), ("Services", "/services/"), (p["nav"], url)])
+    signs = "".join(f"<li>{e(x)}</li>" for x in p["signs"])
+    causes = "".join(f"<div class='cause'><h3>{e(t)}</h3><p>{e(d)}</p></div>" for t, d in p["causes"])
+    method = "".join(f"<li><b>{e(t)}.</b> {e(d)}</li>" for t, d in p["method"])
+    gets = "".join(f"<li>{e(x)}</li>" for x in p["deliverables"])
+    faqs = "".join(f"<details><summary>{e(q)}</summary><p>{e(a)}</p></details>" for q, a in p["faqs"])
+    related = "".join(f'<li><a href="/resources/{POST_BY_SLUG[s]["slug"]}/">{e(POST_BY_SLUG[s]["title"])}</a></li>'
+                      for s in p["related_posts"] if s in POST_BY_SLUG)
+    others = "".join(f'<li><a href="/services/{o["slug"]}/">{e(o["nav"])}</a></li>' for o in PILLARS if o is not p)
+    book = f"/book/?service={p['service_id']}&problem={p['problem_id']}"
+    body = f"""<section class="pillar-hero"><div class="wrap split">
+<div class="split-text">{bc}<p class="eyebrow">{e(p['nav'])}</p><h1>{e(p['title'])}</h1>
+<p class="hero-lede">{e(p['lede'])}</p>
+<p><a class="btn" href="{book}" data-track="cta:book:{p['slug']}">Book this inspection</a>
+<a class="btn btn-outline" href="tel:{C.BUSINESS['phone_office_e164']}" data-track="cta:call:{p['slug']}">Call {C.BUSINESS['phone_office']}</a></p></div>
+{fig(p['image'], eager=True)}</div></section>
+<section class="sec"><div class="wrap two-col">
+<div><h2>Signs to look for</h2><ul class="ticks">{signs}</ul></div>
+<div class="callout"><h2>Why our approach is different</h2><p>{e(p['why'])}</p></div></div></section>
+<section class="sec alt"><div class="wrap"><h2>Common causes</h2><div class="causes">{causes}</div></div></section>
+<section class="sec"><div class="wrap two-col">
+<div><h2>How we investigate</h2><ol class="method">{method}</ol></div>
+<div><h2>What you get</h2><ul class="ticks">{gets}</ul>
+<p class="muted">Led by {e(C.IVI['name'])}, {e(C.IVI['credentials'][0])}. <a href="/about/#credentials">Credentials</a></p></div></div></section>
+{cases_html() if p.get('show_cases') else ''}
+<section class="sec alt"><div class="wrap narrow"><h2>Questions about {e(p['nav'].lower())}</h2><div class="faq">{faqs}</div></div></section>
+<section class="sec"><div class="wrap two-col">
+<div><h2>Read more</h2><ul class="links">{related}</ul></div>
+<div><h2>Other investigations</h2><ul class="links">{others}</ul></div></div></section>
+{cta_band()}"""
+    service = {"@context": "https://schema.org", "@type": "Service", "name": p["title"], "serviceType": p["nav"],
+               "description": p["description"], "url": SITE + url, "provider": {"@id": f"{SITE}/#business"},
+               "areaServed": [{"@type": "City", "name": "Melbourne"}, {"@type": "State", "name": "Victoria"}]}
+    faq = {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
+        {"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in p["faqs"]]}
+    page(url, p["meta_title"], p["description"], body, [service, faq, bcs], og_image=p["image"])
+
+
+def build_service_areas() -> None:
+    bc, bcs = crumbs([("Home", "/"), ("Service areas", "/service-areas/")])
+    rows = "".join(f"<div class='area'><h2>{e(r)}</h2><p>{e(sub)}</p></div>" for r, sub in SERVICE_AREAS)
+    pills = "".join(f'<a href="/services/{p["slug"]}/">{e(p["nav"])}</a>' for p in PILLARS)
+    body = f"""<section class="page-head"><div class="wrap">{bc}<p class="eyebrow">Service areas</p>
+<h1>Moisture and mould investigations across Melbourne</h1>
+<p class="hero-lede">Based in {C.BUSINESS['locality']} in Melbourne's east. We work across Melbourne and Victoria, and interstate by arrangement.</p></div></section>
+<section class="sec"><div class="wrap areas">{rows}</div>
+<div class="wrap"><p class="muted">Don't see your suburb? Call {C.BUSINESS['phone_office']} or <a href="/book/">book online</a> and tell us where the property is.</p>
+<h2>What we investigate</h2><nav class="jump">{pills}</nav></div></section>{cta_band()}"""
+    page("/service-areas/", "Service Areas: Melbourne & Victoria",
+         "BEWG investigates moisture, mould, condensation and indoor air quality across Melbourne's eastern, "
+         "inner, south-east, northern and western suburbs, regional Victoria and interstate by arrangement.",
+         body, [local_business_schema(), bcs])
 
 
 def cases_html() -> str:
@@ -493,6 +583,7 @@ def build_privacy() -> None:
 <section class="sec"><div class="wrap narrow prose">
 <p>When you send an enquiry, we collect your name, contact details, property suburb and postcode, and what you tell us about the problem. We use it to respond to your enquiry and arrange an inspection.</p>
 <p>Your enquiry is stored in our customer management system, operated for us by Unite-Group in Australia. We do not sell your information. We only send marketing if you have agreed to it.</p>
+<p>We measure how the site is used with Vercel Web Analytics (no cookies, no personal data) and, if switched on, Google Analytics with IP anonymisation. These tell us which pages help people, not who you are.</p>
 <p>You can ask to see, correct or delete your information at any time: email <a href="mailto:{C.BUSINESS['email']}">{C.BUSINESS['email']}</a> or call {C.BUSINESS['phone_office']}.</p>
 <p class="muted">Last updated {dt.date.today().strftime('%d/%m/%Y')}.</p>
 </div></section>"""
@@ -513,7 +604,7 @@ def build_meta_files() -> None:
         f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{sm}</urlset>',
         encoding="utf-8")
     (DIST / "robots.txt").write_text(f"User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: {SITE}/sitemap.xml\n", encoding="utf-8")
-    services = "\n".join(f"- {s['title']}: {s['lede']}" for s in C.SERVICES)
+    services = "\n".join(f"- [{p['title']}]({SITE}/services/{p['slug']}/): {p['lede']}" for p in PILLARS)
     (DIST / "llms.txt").write_text(
         f"# {C.BUSINESS['name']} (BEWG)\n\n> Independent moisture, mould, condensation and indoor air quality "
         f"investigations. Based in {C.BUSINESS['locality']} {C.BUSINESS['region']}; {C.BUSINESS['area']}. "
@@ -535,7 +626,7 @@ def main() -> int:
     for f in STATIC.iterdir():
         shutil.copy2(f, DIST / f.name)
     build_home(); build_services(); build_case_studies(); build_resources(); build_about()
-    build_book(); build_contact(); build_privacy(); build_404(); build_meta_files()
+    build_book(); build_contact(); build_privacy(); build_service_areas(); build_404(); build_meta_files()
     print(f"built {len(PAGES)} pages into dist/; media present {len(M.MEDIA) - len(missing)}/{len(M.MEDIA)}")
     if missing:
         print("  missing media (left out of pages, never hot-linked): " + ", ".join(missing))

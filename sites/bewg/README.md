@@ -20,6 +20,36 @@ Visitor fills /book/  →  POST /api/enquiry (this site, same origin)
 - Spam: hidden honeypot field + a 3-second minimum fill time. Bots get a silent 200 and nothing is sent.
 - If the CRM can't be reached, the visitor sees a message to call 03 7075 1932. Visitor details are never logged.
 
+## Pages (22)
+
+Home · Services hub · **8 pillar pages** (`/services/<slug>/`: mould inspection, moisture inspection, condensation and
+ventilation, subfloor, timber floor and concrete, indoor air quality, continuous monitoring, new-build) · Service areas ·
+Our work (4 case studies) · Resources + 3 articles · About (full credentials) · Book + thanks · Contact · Privacy · 404.
+Every pillar carries Service + FAQPage + BreadcrumbList schema, a pre-filled booking link and cross-links.
+Content lives in `pillars.py`; the checker fails any pillar under 450 words of main content.
+
+## Consoles and socials
+
+| Console | How it switches on | Status |
+|---|---|---|
+| Vercel Web Analytics + Speed Insights | Enable both in the Vercel project (Analytics tab); scripts are already on every page | BLOCKED-ON-FOUNDER: project not created yet |
+| Google Search Console | Add property `https://www.bewg.au`, choose HTML tag, put the code in Vercel env `GOOGLE_SITE_VERIFICATION`, redeploy, verify, submit `sitemap.xml` | needs Ivi's/Phill's Google login |
+| Bing Webmaster Tools | Same with env `BING_SITE_VERIFICATION` (or import from Search Console) | needs login |
+| Google Analytics 4 | Env `GA4_MEASUREMENT_ID` (G-XXXX); IP anonymised | optional |
+| Google Business Profile | Create/claim for 23 Corporate Blvd Bayswater; add its URL to `SOCIALS` in content.py | needs Ivi |
+
+Socials (footer + schema.org `sameAs`): BEWG Facebook, Moisture Detective Facebook, Ivi's LinkedIn — `SOCIALS` in
+`content.py`. No Instagram/YouTube found; add when they exist.
+
+## Website CRM events
+
+- Every booking lands in the Unite-Group CRM (`crm_leads`, business_key `bewg`) with a **Came from:** line:
+  first page seen, referring site and UTM campaign tags. No cookies; sessionStorage only.
+- Clicks on Book, Call and social links fire Vercel Analytics custom events (and GA4 events when configured):
+  `cta_book`, `cta_call`, `social_*`, `lead_submitted`.
+- Not wired (needs an `apps/web` change + founder approval): Unite-Group's own `/api/events` only tracks unite-group.in
+  paths, and the `/widget` chat agent needs a `site_keys` row in prod Supabase.
+
 ## Commands
 
 | Command | What it does |
@@ -55,6 +85,8 @@ Removed the stock-photo "Lena" testimonial, the template leftovers ("food busine
 "under your house" copy), the admin-only LinkedIn link, the duplicated page title, the stale © year and the
 "only place in Australia" claim. Added a real booking form wired to the CRM, Ivi's bio and credentials, problem
 pages for homeowners, LocalBusiness/FAQ/Article structured data, sitemap, robots.txt and llms.txt.
+
+Content for Ivi to confirm: the suburb list on /service-areas/ (from "Melbourne and across Australia").
 
 Content for Ivi to supply: real Google reviews (`content.py` → `REVIEWS`), the body of the "continued monitoring"
 article (the old site only had its introduction), and her LinkedIn URL.

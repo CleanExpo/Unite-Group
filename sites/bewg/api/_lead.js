@@ -69,6 +69,10 @@ function buildLead(body, now = Date.now()) {
   const heard = str(body.heard, 80);
   const insurance = body.insurance === 'yes' || body.insurance === true;
   const notes = longStr(body.message, 2000);
+  // Attribution (no personal data): first page seen, campaign tags, and the referring site's host name.
+  const landing = str(body.landing_page, 200);
+  const utm = str(body.utm, 200).replace(/[^\w=&.\-]/g, '');
+  const refHost = str(body.referrer_host, 120).replace(/[^\w.\-]/g, '');
 
   // crm_leads has no columns for these, so they go into the message as labelled lines the team can read at a glance.
   const lines = [
@@ -78,6 +82,9 @@ function buildLead(body, now = Date.now()) {
     howLong ? `Going on for: ${howLong}` : null,
     insurance ? 'Insurance claim or legal matter: yes' : null,
     callTime ? `Best time to call: ${callTime}` : null,
+    landing || utm || refHost
+      ? `Came from: ${[landing && `landed on ${landing}`, refHost && `via ${refHost}`, utm].filter(Boolean).join(' · ')}`
+      : null,
     notes ? `\n${notes}` : null,
   ].filter(Boolean);
 
@@ -90,7 +97,7 @@ function buildLead(body, now = Date.now()) {
       phone,
       message: lines.join('\n'),
       interests: problems.length ? problems.join(', ') : service || 'Inspection enquiry',
-      referral_source: heard || undefined,
+      referral_source: heard || refHost || undefined,
       marketing_consent: false,
       business_key: BUSINESS_KEY,
     },

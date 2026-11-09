@@ -85,3 +85,11 @@ test('handler refuses non-POST', async () => {
   await handler({ method: 'GET' }, res, async () => { throw new Error('should not call'); });
   assert.equal(res.code, 405);
 });
+
+test('attribution: landing page, campaign tags and referrer host land in the CRM message, sanitised', () => {
+  const r = buildLead({ ...good(), heard: '', landing_page: '/services/mould-inspection/', utm: 'utm_source=google&utm_campaign=mould<script>', referrer_host: 'www.google.com' }, NOW);
+  assert.equal(r.ok, true);
+  assert.match(r.lead.message, /^Came from: landed on \/services\/mould-inspection\/ · via www\.google\.com · utm_source=google&utm_campaign=mouldscript$/m);
+  assert.equal(r.lead.referral_source, 'www.google.com');
+  assert.ok(!r.lead.message.includes('<'), 'no markup survives');
+});

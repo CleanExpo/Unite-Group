@@ -15,7 +15,10 @@ BANNED = [
 ]
 REQUIRED_PAGES = ["index.html", "services/index.html", "case-studies/index.html", "resources/index.html",
                   "about/index.html", "book/index.html", "book/thanks/index.html", "contact/index.html",
-                  "privacy/index.html", "404.html", "sitemap.xml", "robots.txt", "llms.txt"]
+                  "privacy/index.html", "404.html", "sitemap.xml", "robots.txt", "llms.txt", "service-areas/index.html"]
+sys.path.insert(0, str(DIST.parent))
+from pillars import PILLARS  # noqa: E402
+REQUIRED_PAGES += [f"services/{p['slug']}/index.html" for p in PILLARS]
 
 fails = []
 for rel in REQUIRED_PAGES:
@@ -50,6 +53,30 @@ for p in pages:
             ok = (target / "index.html").exists() or target.with_suffix(".html").exists() or href == "/"
         if not ok:
             fails.append(f"{rel}: broken link {href}")
+
+import json  # noqa: E402
+for p in pages:
+    rel = p.relative_to(DIST).as_posix()
+    for block in re.findall(r'<script type="application/ld\+json">(.*?)</script>', p.read_text(encoding="utf-8"), re.S):
+        try:
+            json.loads(block)
+        except ValueError:
+            fails.append(f"{rel}: invalid JSON-LD")
+for pl in PILLARS:
+    f = DIST / f"services/{pl['slug']}/index.html"
+    if not f.exists():
+        continue
+    t = f.read_text(encoding="utf-8")
+    for need in ['"@type": "Service"', '"@type": "FAQPage"', '"@type": "BreadcrumbList"', f"/book/?service={pl['service_id']}"]:
+        if need not in t:
+            fails.append(f"services/{pl['slug']}: missing {need}")
+    words = len(re.sub(r"<[^>]+>", " ", t.split("<main", 1)[1].split("</main>", 1)[0]).split())
+    if words < 450:
+        fails.append(f"services/{pl['slug']}: thin page ({words} words < 450)")
+sm = (DIST / "sitemap.xml").read_text(encoding="utf-8") if (DIST / "sitemap.xml").exists() else ""
+for pl in PILLARS:
+    if f"/services/{pl['slug']}/" not in sm:
+        fails.append(f"sitemap missing {pl['slug']}")
 
 book = (DIST / "book/index.html").read_text(encoding="utf-8") if (DIST / "book/index.html").exists() else ""
 for field in ["first_name", "email", "phone", "suburb", "consent", "company_website", "started_at", 'action="/api/enquiry"']:

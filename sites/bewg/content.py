@@ -234,3 +234,11 @@ CASE_STUDY = {
 PROPERTY_TYPES = ["House", "Apartment or unit", "Townhouse", "Commercial building", "New build", "Other"]
 HOW_LONG = ["Less than a month", "1 to 6 months", "More than 6 months", "Not sure"]
 HEARD = ["Google", "Referral or word of mouth", "Facebook or LinkedIn", "Builder or insurer", "Other"]
+
+# Social profiles shown in the footer and as schema.org sameAs. Only real, public URLs (verified 09/11/2026).
+# Add Instagram/YouTube/Google Business Profile URLs here when Ivi has them.
+SOCIALS = [
+    ("Facebook", "https://www.facebook.com/bewgroup1/"),
+    ("Moisture Detective on Facebook", "https://www.facebook.com/Moisturedetective/"),
+    ("Ivi on LinkedIn", "https://www.linkedin.com/in/ivi-sims-4940b833/"),
+]

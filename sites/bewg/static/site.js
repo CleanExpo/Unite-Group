@@ -17,6 +17,30 @@
     items.forEach((el) => io.observe(el));
   } else items.forEach((el) => el.classList.add('in'));
 
+  // Attribution + click tracking (Vercel Analytics custom events and GA4 when configured; never personal data)
+  const track = (name, data) => {
+    try { if (window.va) window.va('event', { name, data }); } catch (_) {}
+    try { if (window.gtag) window.gtag('event', name, data || {}); } catch (_) {}
+  };
+  try {
+    const q = new URLSearchParams(location.search);
+    const utm = ['utm_source', 'utm_medium', 'utm_campaign'].filter((k) => q.get(k)).map((k) => `${k}=${q.get(k)}`).join('&');
+    if (!sessionStorage.getItem('bewg_landing')) {
+      sessionStorage.setItem('bewg_landing', location.pathname);
+      if (utm) sessionStorage.setItem('bewg_utm', utm);
+      if (document.referrer && !document.referrer.startsWith(location.origin)) {
+        sessionStorage.setItem('bewg_ref', new URL(document.referrer).hostname);
+      }
+    }
+  } catch (_) {}
+  document.addEventListener('click', (ev) => {
+    const a = ev.target.closest('a');
+    if (!a) return;
+    const tag = a.getAttribute('data-track')
+      || (a.href.startsWith('tel:') ? 'cta:call' : a.pathname === '/book/' && a.origin === location.origin ? 'cta:book' : null);
+    if (tag) track(tag.split(':').slice(0, 2).join('_'), { where: location.pathname, label: tag });
+  });
+
   // Booking form -> /api/enquiry -> Unite-Group CRM
   const form = document.getElementById('enquiry');
   if (!form) return;
@@ -40,6 +64,11 @@
     const fd = new FormData(form);
     const data = Object.fromEntries(fd.entries());
     data.problems = fd.getAll('problems');
+    try {
+      data.landing_page = sessionStorage.getItem('bewg_landing') || '';
+      data.utm = sessionStorage.getItem('bewg_utm') || '';
+      data.referrer_host = sessionStorage.getItem('bewg_ref') || '';
+    } catch (_) {}
     const submit = form.querySelector('button[type=submit]');
     submit.disabled = true;
     status.textContent = 'Sending…';
@@ -49,7 +78,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      if (res.ok) { location.href = '/book/thanks/'; return; }
+      if (res.ok) { track('lead_submitted', { problems: data.problems.join(',') }); location.href = '/book/thanks/'; return; }
       const body = await res.json().catch(() => ({}));
       throw new Error(body.error || 'send_failed');
     } catch (err) {
