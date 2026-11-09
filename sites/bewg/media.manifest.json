@@ -1,0 +1,177 @@
+{
+  "site": "bewg",
+  "items": [
+    {
+      "id": "logo-bewg",
+      "file": "media-cache/logo-bewg.webp",
+      "source": "client",
+      "credit": "BEWG",
+      "alt": "Building Environmental Wellness Group logo",
+      "origin": "bewg.au (Hostinger) /bewg---logo-3ObbaCdFxwTHsHgg.png"
+    },
+    {
+      "id": "ivi-onsite",
+      "file": "media-cache/ivi-onsite.webp",
+      "source": "client",
+      "credit": "BEWG",
+      "alt": "Ivi Sims inspecting a building on site",
+      "origin": "bewg.au (Hostinger) /ivi-photot-64ik2QzxdrCZaiM7.jpeg"
+    },
+    {
+      "id": "mould-drywall",
+      "file": "media-cache/mould-drywall.webp",
+      "source": "client",
+      "credit": "BEWG",
+      "alt": "Mould growth on plasterboard found during an inspection",
+      "origin": "bewg.au (Hostinger) /mould_drywall-UvTuLCUYNODUJLMt.jpg"
+    },
+    {
+      "id": "onsite-1",
+      "file": "media-cache/onsite-1.webp",
+      "source": "client",
+      "credit": "BEWG",
+      "alt": "Investigation under a house",
+      "origin": "bewg.au (Hostinger) /img-20241212-wa0009-cSunk3gwG1g8Qdh4.jpg"
+    },
+    {
+      "id": "onsite-2",
+      "file": "media-cache/onsite-2.webp",
+      "source": "client",
+      "credit": "BEWG",
+      "alt": "Moisture testing on a concrete slab",
+      "origin": "bewg.au (Hostinger) /577029359_122178546482452784_5690373285726552434_n-C9NqIFfKImVJP8Od.jpg"
+    },
+    {
+      "id": "onsite-3",
+      "file": "media-cache/onsite-3.webp",
+      "source": "client",
+      "credit": "BEWG",
+      "alt": "BEWG investigator at work on site",
+      "origin": "bewg.au (Hostinger) /img_4562-NunnXV6PmPIHRUIf.JPG"
+    },
+    {
+      "id": "mould-sampling",
+      "file": "media-cache/mould-sampling.webp",
+      "source": "client",
+      "credit": "BEWG",
+      "alt": "Air sampling for mould spores indoors",
+      "origin": "bewg.au (Hostinger) /mould_sampling-pU3bj8Aozhl9Ll3V.jpg"
+    },
+    {
+      "id": "mould-swab",
+      "file": "media-cache/mould-swab.webp",
+      "source": "client",
+      "credit": "BEWG",
+      "alt": "Surface swab test for mould",
+      "origin": "bewg.au (Hostinger) /mould_swab_testing-NOitmNXE6H4mBy9W.jpg"
+    },
+    {
+      "id": "measuring-condensation",
+      "file": "media-cache/measuring-condensation.webp",
+      "source": "client",
+      "credit": "BEWG",
+      "alt": "Measuring condensation risk on a wall surface",
+      "origin": "bewg.au (Hostinger) /measuring-condensation-in-buildings-lJUSo8ySJq4KtTqB.webp"
+    },
+    {
+      "id": "tech",
+      "file": "media-cache/tech.webp",
+      "source": "client",
+      "credit": "BEWG",
+      "alt": "Moisture monitoring equipment in use",
+      "origin": "bewg.au (Hostinger) /tech-d20QUjKq50hF8SNx.jpg"
+    },
+    {
+      "id": "vane-hood",
+      "file": "media-cache/vane-hood.webp",
+      "source": "client",
+      "credit": "BEWG",
+      "alt": "Vane hood airflow test on a ventilation outlet",
+      "origin": "bewg.au (Hostinger) /vne-test-H3g63KhMBsuZYmGj.jpg"
+    },
+    {
+      "id": "clt-timber",
+      "file": "media-cache/clt-timber.webp",
+      "source": "client",
+      "credit": "BEWG",
+      "alt": "Moisture testing cross-laminated timber",
+      "origin": "bewg.au (Hostinger) /clt-timber-zuBok24dr7MVfqrr.jpg"
+    },
+    {
+      "id": "logo-moisture-detective",
+      "file": "media-cache/logo-moisture-detective.webp",
+      "source": "client",
+      "credit": "Moisture Detective",
+      "alt": "Moisture Detective logo",
+      "origin": "bewg.au (Hostinger) /logo-with-r-ChJcGeOsfROCKITq.png"
+    },
+    {
+      "id": "logo-wood-floor-drying",
+      "file": "media-cache/logo-wood-floor-drying.webp",
+      "source": "client",
+      "credit": "Wood Floor Drying",
+      "alt": "Wood Floor Drying logo",
+      "origin": "bewg.au (Hostinger) /logo-TSsowZMhhu2qJE9o.jpg"
+    },
+    {
+      "id": "post-floor",
+      "file": "media-cache/post-floor.webp",
+      "source": "generated",
+      "credit": "BEWG (ChatGPT)",
+      "alt": "Diagram of garden irrigation water reaching a timber floor",
+      "origin": "bewg.au (Hostinger) /chatgpt-image-may-17-2026-09_58_23-pm-smGEF0zMthLta7R4.png"
+    },
+    {
+      "id": "post-monitoring",
+      "file": "media-cache/post-monitoring.webp",
+      "source": "generated",
+      "credit": "BEWG (ChatGPT)",
+      "alt": "Environmental monitoring logger in a room",
+      "origin": "bewg.au (Hostinger) /a22fa707-8a6f-4186-ba48-5186a5b13ec0-BJPTKEBANIrlWTcp.png"
+    },
+    {
+      "id": "post-mould",
+      "file": "media-cache/post-mould.webp",
+      "source": "generated",
+      "credit": "BEWG (ChatGPT)",
+      "alt": "Mould sampling in a building",
+      "origin": "bewg.au (Hostinger) /f2448aa8-fcd8-4d7d-a661-1600c14d9566-75PFZYPrgBEWlVXR.png"
+    },
+    {
+      "id": "hero-home",
+      "file": "media-cache/hero-home.webp",
+      "source": "generated",
+      "credit": "ChatGPT Pro (Phill McGurk)",
+      "alt": "Investigator using a thermal camera on a damp ceiling in a Melbourne home",
+      "status": "pending: see IMAGE-PROMPTS.md",
+      "fallback": "ivi-onsite"
+    },
+    {
+      "id": "subfloor",
+      "file": "media-cache/subfloor.webp",
+      "source": "generated",
+      "credit": "ChatGPT Pro (Phill McGurk)",
+      "alt": "Subfloor investigation under a house",
+      "status": "pending: see IMAGE-PROMPTS.md",
+      "fallback": "onsite-1"
+    },
+    {
+      "id": "concrete",
+      "file": "media-cache/concrete.webp",
+      "source": "generated",
+      "credit": "ChatGPT Pro (Phill McGurk)",
+      "alt": "In-situ relative humidity testing on a concrete slab",
+      "status": "pending: see IMAGE-PROMPTS.md",
+      "fallback": "onsite-2"
+    },
+    {
+      "id": "monitoring",
+      "file": "media-cache/monitoring.webp",
+      "source": "generated",
+      "credit": "ChatGPT Pro (Phill McGurk)",
+      "alt": "Data logger tracking humidity and temperature in a room",
+      "status": "pending: see IMAGE-PROMPTS.md",
+      "fallback": "tech"
+    }
+  ]
+}
