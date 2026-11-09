@@ -19,6 +19,8 @@ from pathlib import Path
 
 import os
 
+sys.path.insert(0, str(Path(__file__).resolve().parent / '.pydeps'))  # Pillow installed here on Vercel
+
 import content as C
 import media as M
 from pillars import PILLARS, SERVICE_AREAS
@@ -32,6 +34,7 @@ CACHE = ROOT / "media-cache"
 STATIC = ROOT / "static"
 SITE = C.BUSINESS["url"]
 YEAR = dt.date.today().year
+PRIVACY_UPDATED = "09/11/2026"  # change only when the notice's wording changes
 e = html.escape
 
 # --------------------------------------------------------------------------- media
@@ -57,6 +60,11 @@ def fetch_media(offline: bool) -> list[str]:
                 raise ValueError("empty")
             if is_wfd:
                 data = to_webp(data, width)  # raises if Pillow is unavailable: image is left out, never shipped as a big JPG
+            elif len(data) > 200 * 1024:
+                try:
+                    data = to_webp(data, min(width, 1400))  # keep within the media budget when Pillow is present
+                except Exception:
+                    pass
             target.write_bytes(data)
             print(f"  fetched {mid} ({len(data)//1024} KB)")
         except Exception as exc:  # network blocked or file gone: build still succeeds, image is left out
@@ -65,16 +73,20 @@ def fetch_media(offline: bool) -> list[str]:
     return missing
 
 
-def to_webp(data: bytes, width: int) -> bytes:
+def to_webp(data: bytes, width: int, max_bytes: int = 400 * 1024) -> bytes:
+    """Re-encode to WebP, stepping quality and size down until the file fits the media budget."""
     import io
-    from PIL import Image  # installed by vercel.json installCommand; optional locally
-    im = Image.open(io.BytesIO(data))
-    im = im.convert("RGB")
-    if im.width > width:
-        im = im.resize((width, round(im.height * width / im.width)))
-    out = io.BytesIO()
-    im.save(out, "WEBP", quality=78, method=6)
-    return out.getvalue()
+    from PIL import Image  # installed into .pydeps by vercel.json installCommand; optional locally
+    src = Image.open(io.BytesIO(data)).convert("RGB")
+    out = b""
+    for w, q in ((width, 72), (width, 60), (min(width, 1200), 55), (1000, 50), (800, 45)):
+        im = src if src.width <= w else src.resize((w, round(src.height * w / src.width)))
+        buf = io.BytesIO()
+        im.save(buf, "WEBP", quality=q, method=6)
+        out = buf.getvalue()
+        if len(out) <= max_bytes:
+            break
+    return out
 
 
 def have(mid: str) -> bool:
@@ -169,7 +181,7 @@ def page(path: str, title: str, description: str, body: str, schema: list[dict] 
     canonical = SITE + path
     og = resolve(og_image or "hero-home")
     schemas = "".join(
-        f'<script type="application/ld+json">{json.dumps(s, ensure_ascii=False)}</script>' for s in (schema or [])
+        f'<script type="application/ld+json">{json.dumps(s, ensure_ascii=False).replace("</", "<\\/")}</script>' for s in (schema or [])
     )
     nav = "".join(
         f'<a href="{href}"{" aria-current=\"page\"" if path.startswith(href) else ""}>{label}</a>' for href, label in NAV
@@ -441,9 +453,9 @@ def cases_html() -> str:
         facts = f'<dl class="facts"><div><dt>Type</dt><dd>{e(c["type"])}</dd></div><div><dt>When</dt><dd>{e(c["date"])}</dd></div><div><dt>Drying time</dt><dd>{e(c["duration"])}</dd></div></dl>'
         cards.append(f"""<article class="case reveal">{fig(c['image'], 'case-media', '(min-width: 900px) 33vw, 100vw')}
 <div class="case-body"><h3>{e(c['title'])}</h3>{facts}
-<p><b>The problem.</b> {e(c['problem'])}</p><p><b>What we did.</b> {e(c['work'])}</p><p><b>The result.</b> {e(c['result'])}</p></div></article>""")
+<p><b>The problem.</b> {e(c['problem'])}</p><p><b>What was done.</b> {e(c['work'])}</p><p><b>The result.</b> {e(c['result'])}</p></div></article>""")
     return f"""<section class="sec"><div class="wrap"><p class="eyebrow">Timber floor projects</p>
-<h2>Restore, don't replace</h2><p class="lede">Three jobs where the floor was saved, and the business or family kept going.</p>
+<h2>Restore, don't replace</h2><p class="lede">Three drying projects by Wood Floor Drying, part of our group, where the floor was saved and the business or family kept going.</p>
 <div class="cases">{''.join(cards)}</div></div></section>"""
 
 
@@ -494,7 +506,7 @@ def build_about() -> None:
 <section class="sec alt"><div class="wrap narrow">
 <h2>How we work</h2>
 <p>We don't guess. We use moisture meters, thermal imaging, air sampling analysed by a NATA-accredited laboratory, airflow testing and continuous monitoring to find exactly where moisture is coming from and why.</p>
-<p>We investigate and report. Because we are not selling the repair, our advice is about the cause.</p>
+<p>Our inspections report the cause, not a sales pitch. Where drying or restoration is needed, our group company Wood Floor Drying can quote, and you are free to use any contractor you choose.</p>
 <p>Every call is answered by a qualified consultant who understands your problem. No call centres.</p>
 </div></section>
 <section id="credentials" class="sec"><div class="wrap cred-grid">
@@ -507,8 +519,7 @@ def build_about() -> None:
     person = {"@context": "https://schema.org", "@type": "Person", "name": C.IVI["name"], "jobTitle": C.IVI["role"],
               "worksFor": {"@id": f"{SITE}/#business"}, "description": C.IVI["bio"],
               "sameAs": [C.IVI["linkedin"]],
-              "hasCredential": [{"@type": "EducationalOccupationalCredential", "name": x,
-                                 "recognizedBy": {"@type": "Organization", "name": "IICRC"}} for x in C.IVI["certifications"]],
+              "hasCredential": [{"@type": "EducationalOccupationalCredential", "name": x} for x in C.IVI["certifications"]],
               "memberOf": [{"@type": "Organization", "name": "Indoor Air Quality Association"},
                            {"@type": "Organization", "name": "Standards Australia committee ME-094"}]}
     page("/about/", "About BEWG and Ivi Sims",
@@ -546,7 +557,6 @@ def build_book() -> None:
   <label>Best time to call<select name="call_time"><option value="">Any time</option><option>Morning</option><option>Afternoon</option></select></label>
   <label>How did you hear about us?<select name="heard"><option value="">Choose</option>{options(C.HEARD)}</select></label></fieldset>
   <div class="hp" aria-hidden="true"><label>Leave this empty<input name="company_website" tabindex="-1" autocomplete="off"></label></div>
-  <input type="hidden" name="started_at" value="">
   <label class="check consent"><input type="checkbox" name="consent" value="yes" required> I agree BEWG may contact me about this enquiry. See our <a href="/privacy/">privacy notice</a>.</label>
   <button class="btn" type="submit">Send my enquiry</button>
   <p class="form-status" role="status" aria-live="polite"></p>
@@ -582,10 +592,10 @@ def build_privacy() -> None:
     body = f"""<section class="page-head"><div class="wrap narrow"><p class="eyebrow">Privacy</p><h1>Privacy notice</h1></div></section>
 <section class="sec"><div class="wrap narrow prose">
 <p>When you send an enquiry, we collect your name, contact details, property suburb and postcode, and what you tell us about the problem. We use it to respond to your enquiry and arrange an inspection.</p>
-<p>Your enquiry is stored in our customer management system, operated for us by Unite-Group in Australia. We do not sell your information. We only send marketing if you have agreed to it.</p>
+<p>Your enquiry is stored in our customer management system, operated for us by Unite-Group. Our service providers may process it outside Australia. We do not sell your information. We only send marketing if you have agreed to it.</p>
 <p>We measure how the site is used with Vercel Web Analytics (no cookies, no personal data) and, if switched on, Google Analytics with IP anonymisation. These tell us which pages help people, not who you are.</p>
 <p>You can ask to see, correct or delete your information at any time: email <a href="mailto:{C.BUSINESS['email']}">{C.BUSINESS['email']}</a> or call {C.BUSINESS['phone_office']}.</p>
-<p class="muted">Last updated {dt.date.today().strftime('%d/%m/%Y')}.</p>
+<p class="muted">Last updated {PRIVACY_UPDATED}.</p>
 </div></section>"""
     page("/privacy/", "Privacy notice", "How BEWG collects and uses the information you send us.", body)
 
@@ -630,6 +640,9 @@ def main() -> int:
     print(f"built {len(PAGES)} pages into dist/; media present {len(M.MEDIA) - len(missing)}/{len(M.MEDIA)}")
     if missing:
         print("  missing media (left out of pages, never hot-linked): " + ", ".join(missing))
+        if os.environ.get("VERCEL") and len(missing) > len(M.MEDIA) // 2:
+            print("FAIL: most real photos are missing on a Vercel build; commit media-cache/ or fix the source")
+            return 1
     return 0
 
 

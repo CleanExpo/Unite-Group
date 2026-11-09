@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "python3 build.py",
   "outputDirectory": "dist",
-  "installCommand": "python3 -m pip install --quiet --user pillow || echo 'Pillow unavailable: Wood Floor Drying case-study photos will be left out'",
+  "installCommand": "python3 -m pip install --quiet --target .pydeps pillow",
   "cleanUrls": false,
   "trailingSlash": true,
   "functions": {
@@ -68,5 +68,8 @@
         }
       ]
     }
+  ],
+  "regions": [
+    "syd1"
   ]
 }

@@ -91,7 +91,7 @@ CASES = [
         "title": "Cupped blackbutt kitchen floor flattened with no sanding",
         "type": "Residential", "date": "July 2015", "duration": "15 days",
         "problem": "Water damage in the kitchen and living room. Blackbutt boards on 3 cm battens over concrete: the battens wicked moisture from the slab and the boards cupped badly.",
-        "work": "We looked at the timber species to work out how much energy it would take to draw the moisture out, then dried with mats and blowers.",
+        "work": "The team looked at the timber species to work out how much energy it would take to draw the moisture out, then dried with mats and blowers.",
         "result": "Cupping came back down in 15 days with no sanding required.",
         "image": "case-blackbutt",
     },
@@ -203,7 +203,7 @@ FAQS = [
     ),
     (
         "Are your inspections independent?",
-        "Yes. We investigate and report. We do not need to sell you the repair, so the advice is about the cause.",
+        "Yes. The inspection and report stand on their own. If drying or restoration is needed, our group company Wood Floor Drying can quote, and you are free to use any contractor.",
     ),
     (
         "Where do you work?",

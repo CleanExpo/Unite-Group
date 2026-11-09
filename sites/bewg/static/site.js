@@ -44,8 +44,7 @@
   // Booking form -> /api/enquiry -> Unite-Group CRM
   const form = document.getElementById('enquiry');
   if (!form) return;
-  const started = form.querySelector('[name=started_at]');
-  if (started) started.value = String(Date.now());
+  const t0 = performance.now();
 
   const params = new URLSearchParams(location.search);
   const pre = params.get('problem');
@@ -64,6 +63,8 @@
     const fd = new FormData(form);
     const data = Object.fromEntries(fd.entries());
     data.problems = fd.getAll('problems');
+    data.elapsed_ms = Math.round(performance.now() - t0);
+    delete data.started_at;
     try {
       data.landing_page = sessionStorage.getItem('bewg_landing') || '';
       data.utm = sessionStorage.getItem('bewg_utm') || '';
