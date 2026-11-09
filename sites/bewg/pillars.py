@@ -94,7 +94,7 @@ PILLARS = [
         "why": "Fixing the wrong thing is the most expensive mistake in water damage. In one of our case studies, a builder was being asked to replace a timber floor; the water was actually coming from garden irrigation outside.",
         "faqs": [
             ("Will you need to cut holes in my walls?", "Usually not. Most moisture mapping is non-invasive. If a small inspection hole would answer a question, we explain why and ask first."),
-            ("Do you fix the leak too?", "No. We investigate and report independently, so our advice is about the cause, not about selling you a repair."),
+            ("Do you fix the leak too?", "Not as part of the inspection. The report stands on its own and tells you who you are likely to need; you are free to use any contractor."),
             ("Can you help with an insurance claim?", "Yes. Our reports set out the evidence: readings, photos, likely cause and timeline."),
         ],
         "related_posts": ["the-floor-that-kept-lifting", "why-one-reading-is-never-enough"],

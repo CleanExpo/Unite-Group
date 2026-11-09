@@ -31,14 +31,17 @@ function longStr(v, max) {
  * or { ok: false, status: 200, silent: true } for bots, so they get no signal.
  */
 function buildLead(body, now = Date.now()) {
+  void now;
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
     return { ok: false, status: 400, error: 'Please fill in the form and try again.' };
   }
 
   // Bot traps: the hidden field must be empty and the form must not be submitted instantly.
   if (str(body.company_website, 200)) return { ok: false, status: 200, silent: true };
-  const started = Number(body.started_at);
-  if (Number.isFinite(started) && started > 0 && now - started < MIN_FILL_MS) {
+  // Fill time is measured on the visitor's device (performance.now() difference), so a wrong device clock can't
+  // drop a real lead. A missing or invalid value is treated as a bot: the site's own script always sends it.
+  const elapsed = Number(body.elapsed_ms);
+  if (!Number.isFinite(elapsed) || elapsed < MIN_FILL_MS) {
     return { ok: false, status: 200, silent: true };
   }
 
@@ -85,6 +88,7 @@ function buildLead(body, now = Date.now()) {
     landing || utm || refHost
       ? `Came from: ${[landing && `landed on ${landing}`, refHost && `via ${refHost}`, utm].filter(Boolean).join(' · ')}`
       : null,
+    `Contact consent: yes (booking form, ${new Date(now).toISOString()})`,
     notes ? `\n${notes}` : null,
   ].filter(Boolean);
 
