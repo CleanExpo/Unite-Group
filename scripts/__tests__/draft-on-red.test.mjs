@@ -13,6 +13,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import {
+  CI_WORKFLOW,
   DRAFT_MUTATION,
   MAX_SWEEP_PAGES,
   PR_QUERY,
@@ -31,8 +32,10 @@ const REPO = 'Unite-Group';
 const HEAD = 'a'.repeat(40);
 const OTHER = 'b'.repeat(40);
 
-const check = (name, conclusion, { isRequired = true, status = 'COMPLETED' } = {}) => ({
+/** A check run. `workflow` is the Actions workflow that ran it; null for an app check (no workflow). */
+const check = (name, conclusion, { isRequired = true, status = 'COMPLETED', workflow = CI_WORKFLOW } = {}) => ({
   __typename: 'CheckRun', name, status, conclusion, isRequired,
+  checkSuite: workflow === null ? { workflowRun: null } : { workflowRun: { workflow: { name: workflow } } },
 });
 const status = (context, state, { isRequired = true } = {}) => ({
   __typename: 'StatusContext', context, state, isRequired,
@@ -165,6 +168,13 @@ test('RED: no nexus/release-receipt on the head after CI completes (#1366/#1367/
   assertDrafted(gh, 1366, `${RECEIPT_CONTEXT} (missing)`);
 });
 
+test('RED: on CI completion the event itself says CI finished, even if its check runs are not in the rollup', async () => {
+  // Only a status-only head (no CI check runs listed): the workflow_run event is the evidence.
+  const { gh, out } = await judge(prData({ contexts: [status('Vercel', 'SUCCESS', { isRequired: false })] }));
+  assert.equal(out[0].action, 'draft');
+  assertDrafted(gh, 1371, `${RECEIPT_CONTEXT} (missing)`);
+});
+
 test('RED: a pending receipt is not a passing receipt', async () => {
   const contexts = [...GREEN_CONTEXTS().filter((c) => c.context !== RECEIPT_CONTEXT), status(RECEIPT_CONTEXT, 'PENDING')];
   const { gh } = await judge(prData({ contexts }));
@@ -265,6 +275,46 @@ test('SWEEP: a red PR is drafted and a green PR is left alone, on schedule and o
   }
 });
 
+test('SWEEP: while Monorepo CI is still running, a missing receipt is not red yet (no write)', async () => {
+  // Codex review of 940e156c, P1: a ready PR with CI mid-run was drafted for a missing receipt.
+  // The receipt is published only after GitHub is green, so it cannot exist before CI ends.
+  const running = GREEN_CONTEXTS()
+    .filter((c) => c.context !== RECEIPT_CONTEXT)
+    .map((c) => (c.name === 'apps/web — lint, type-check, test, build' ? { ...c, status: 'IN_PROGRESS', conclusion: null } : c));
+  const queued = GREEN_CONTEXTS()
+    .filter((c) => c.context !== RECEIPT_CONTEXT)
+    .map((c) => ({ ...c, status: 'QUEUED', conclusion: null }));
+  const noChecksYet = [];
+  const appCheckOnly = [check('CodeRabbit', 'SUCCESS', { isRequired: false, workflow: null })];
+  for (const contexts of [running, queued, noChecksYet, appCheckOnly]) {
+    const { gh, out } = await sweep({ prs: { 1390: prData({ number: 1390, contexts }) }, pages: [[listed(1390)]] });
+    assert.equal(out[0].action, 'none', JSON.stringify(contexts.map((c) => [c.name, c.status])));
+    assert.match(out[0].reason, /Monorepo CI has not finished/);
+    assert.deepEqual(gh.writes(), []);
+  }
+});
+
+test('SWEEP: once Monorepo CI has finished on the head, a missing receipt is red again', async () => {
+  // Same PR as above with every CI check run completed: the sweep must still catch it.
+  const done = GREEN_CONTEXTS().filter((c) => c.context !== RECEIPT_CONTEXT);
+  const { gh } = await sweep({ prs: { 1390: prData({ number: 1390, contexts: done }) }, pages: [[listed(1390)]] });
+  assertDrafted(gh, 1390, `${RECEIPT_CONTEXT} (missing)`);
+  // Another workflow's finished checks do not stand in for Monorepo CI.
+  const otherWorkflow = done.map((c) => (c.__typename === 'CheckRun' ? check(c.name, 'SUCCESS', { workflow: 'Other' }) : c));
+  const other = await sweep({ prs: { 1391: prData({ number: 1391, contexts: otherWorkflow }) }, pages: [[listed(1391)]] });
+  assert.deepEqual(other.gh.writes(), []);
+});
+
+test('SWEEP: a required check that already failed is red even while CI is still running', async () => {
+  const contexts = GREEN_CONTEXTS()
+    .filter((c) => c.context !== RECEIPT_CONTEXT)
+    .map((c) => (c.name === 'apps/web — lint, type-check, test, build' ? { ...c, status: 'IN_PROGRESS', conclusion: null } : c))
+    .map((c) => (c.name === 'Commit-message convention (Linear ref + Gate line)' ? { ...c, conclusion: 'FAILURE' } : c));
+  const { gh, out } = await sweep({ prs: { 1392: prData({ number: 1392, contexts }) }, pages: [[listed(1392)]] });
+  assertDrafted(gh, 1392, 'Commit-message convention (Linear ref + Gate line)');
+  assert.ok(!out[0].gates.some((g) => g.startsWith(RECEIPT_CONTEXT)), 'receipt not judged before CI ends');
+});
+
 test('SWEEP: drafts, closed PRs and PRs not on main in the list are not even queried', async () => {
   const { gh, out } = await sweep({
     prs: {},
@@ -361,7 +411,8 @@ test('guardedApi lets through only the PR query, the draft mutation, the two PR 
 
 test('normalisePr and decide agree with the comment format', () => {
   const pr = normalisePr(prData({ contexts: [] }));
-  const verdict = decide(pr);
+  assert.equal(decide(pr).action, 'none', 'no CI check runs yet: the receipt is not judged');
+  const verdict = decide(pr, { ciCompleted: true });
   assert.equal(verdict.action, 'draft');
   assert.match(commentFor(pr, verdict.gates), /^Turned back to draft by draft-on-red: required gate red on aaaaaaaa: nexus\/release-receipt \(missing\)\./);
 });
@@ -375,6 +426,7 @@ const CI = readFileSync(join(ROOT, '.github', 'workflows', 'ci.yml'), 'utf8').re
 test('workflow: watches the CI workflow by its real name (a renamed CI would never fire this)', () => {
   const ciName = CI.match(/^name:\s*(.+)$/m)?.[1]?.trim();
   assert.ok(ciName, 'ci.yml has a name');
+  assert.equal(CI_WORKFLOW, ciName, 'the script waits for the same workflow the trigger names');
   assert.match(WF_CODE, new RegExp(`workflows:\\s*\\[\\s*["']${ciName}["']\\s*\\]`));
   assert.match(WF_CODE, /^ {2}workflow_run:\n {4}workflows:.*\n {4}types:\s*\[\s*completed\s*\]/m);
 });
