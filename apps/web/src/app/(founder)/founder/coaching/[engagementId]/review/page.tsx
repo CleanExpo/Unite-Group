@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation'
 import { createClient, getUser } from '@/lib/supabase/server'
 import { ReviewQueueClient } from '@/components/coaching/ReviewQueueClient'
 import type { ReviewItem } from '@/components/coaching/ReviewQueue'
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 
 export const dynamic = 'force-dynamic'
 
@@ -15,6 +17,11 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  * screen shows the grounding (the transcript quote) beside the claim and keeps
  * the model's original text visible while the founder edits it.
  */
+export const metadata = noIndexPageMetadata({
+  title: "Review | Unite Group",
+  description: "Private founder workspace: Review.",
+  canonical: null,
+})
 export default async function ReviewPage({
   params,
 }: {

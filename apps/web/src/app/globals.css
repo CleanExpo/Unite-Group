@@ -419,7 +419,7 @@ svg.lucide {
   body {
     background-color: var(--surface-canvas);
     color: var(--color-text-primary);
-    font-family: var(--font-geist-sans), var(--font-primary);
+    font-family: var(--font-manrope), var(--font-geist-sans), var(--font-primary);
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 

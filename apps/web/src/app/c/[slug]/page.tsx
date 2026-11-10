@@ -8,6 +8,7 @@ import { getCard } from '@/lib/card/any-card'
 import { classifyUserAgent } from '@/lib/card/review-link'
 import { getCardReviewLink, logReviewEvent } from '@/lib/card/review-store'
 import { isSampleSlug, SAMPLE_CARD } from '@/lib/card/sample'
+import { noIndexPageMetadata, publicPageMetadata } from '@/lib/page-metadata'
 
 import { CardView } from './card-view'
 
@@ -17,19 +18,39 @@ export const dynamic = 'force-dynamic'
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
-  // the sample is an example for buyers: never indexed, never canonical
-  if (isSampleSlug(slug)) return { title: 'Sample card', robots: { index: false, follow: false } }
+  // the sample is an example for buyers: never indexed, no canonical URL
+  if (isSampleSlug(slug)) {
+    return noIndexPageMetadata({
+      title: 'Sample card',
+      description: 'Demonstration living business card.',
+      canonical: null,
+    })
+  }
   const card = await getCard(slug)
-  if (!card) return { title: 'Card not found', robots: { index: false, follow: false } }
+  if (!card) {
+    return noIndexPageMetadata({
+      title: 'Card not found',
+      description: 'This card is not available.',
+      path: `/c/${slug}`,
+      canonical: null,
+    })
+  }
   // A staff card's words are changed by a customer's link, with no review, so it never joins the site's search presence.
-  if (card.staff) return { title: [card.displayName, card.businessName].filter(Boolean).join(' | '), robots: { index: false, follow: false } }
+  if (card.staff) {
+    const title = [card.displayName, card.businessName].filter(Boolean).join(' | ')
+    return noIndexPageMetadata({
+      title,
+      description: [card.roleTitle, card.serviceArea].filter(Boolean).join(' · ') || `${card.displayName}'s business card`,
+      path: `/c/${card.slug}`,
+    })
+  }
   const title = [card.displayName, card.businessName].filter(Boolean).join(' | ')
-  return {
+  return publicPageMetadata({
     title,
     description: [card.roleTitle, card.serviceArea].filter(Boolean).join(' · ') || `${card.displayName}'s business card`,
-    alternates: { canonical: `https://unite-group.in/c/${card.slug}` },
+    path: `/c/${card.slug}`,
     robots: { index: true, follow: true },
-  }
+  })
 }
 
 export default async function OwnerCardPage({ params, searchParams }: Props) {

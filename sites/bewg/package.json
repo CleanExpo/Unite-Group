@@ -1,0 +1,14 @@
+{
+  "name": "bewg-site",
+  "private": true,
+  "description": "bewg.au: static site (build.py) + one Vercel function that forwards enquiries to the Unite-Group CRM",
+  "type": "commonjs",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "python3 build.py",
+    "build:offline": "python3 build.py --offline",
+    "test": "node --test tests/enquiry.test.js",
+    "check": "python3 tests/check_site.py",
+    "verify": "python3 build.py --offline && python3 tests/check_site.py && node --test tests/enquiry.test.js"
+  }
+}

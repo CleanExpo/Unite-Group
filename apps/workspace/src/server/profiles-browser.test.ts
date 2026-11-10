@@ -12,10 +12,18 @@ describe('listProfiles', () => {
     tempHome = fs.mkdtempSync(
       path.join(os.tmpdir(), 'hermes-workspace-profiles-'),
     )
+    // listProfiles reads HERMES_HOME (then CLAUDE_HOME) BEFORE it falls back to
+    // homedir(), so stubbing homedir alone leaves the real profile tree in
+    // play on any machine that exports either variable — this test read the
+    // developer's own profiles and found 'oracle' instead of the 'jarvis' it
+    // had just written. Deleting both makes the fixture the only source.
+    vi.stubEnv('HERMES_HOME', undefined)
+    vi.stubEnv('CLAUDE_HOME', undefined)
     vi.spyOn(os, 'homedir').mockReturnValue(tempHome)
   })
 
   afterEach(() => {
+    vi.unstubAllEnvs()
     vi.restoreAllMocks()
     fs.rmSync(tempHome, { recursive: true, force: true })
   })

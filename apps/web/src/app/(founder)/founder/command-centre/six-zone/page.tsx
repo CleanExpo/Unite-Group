@@ -1,3 +1,5 @@
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 export const dynamic = 'force-dynamic'
 
 import { chakra, syne, jbMono } from '../fonts'
@@ -6,6 +8,11 @@ import { loadBlockedLanesData } from '../BlockedLanesTile'
 import { findColumnIndex } from '@/lib/command-centre/markdown'
 import { SixZoneView } from './SixZoneView'
 
+export const metadata = noIndexPageMetadata({
+  path: "/founder/command-centre/six-zone",
+  title: "Six Zone | Unite Group",
+  description: "Private founder workspace: Six Zone.",
+})
 export default async function SixZoneCanvasPage() {
   const [queue, blocked] = await Promise.all([loadActionQueueData(), loadBlockedLanesData()])
   const actionIndex = findColumnIndex(queue.headers, 'action')

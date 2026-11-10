@@ -1,3 +1,5 @@
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 // src/app/(founder)/founder/schedule/page.tsx
 //
 // Founder viewer for the app's scheduled cron jobs. Single source of truth is
@@ -20,6 +22,11 @@ import { loadDashboardHealthFromSupabase } from '@/lib/command-centre/dashboard-
 import { cronNameFromPath, humaniseCronSchedule } from '@/lib/cron/humanise-schedule'
 import vercelConfig from '../../../../../vercel.json'
 
+export const metadata = noIndexPageMetadata({
+  path: "/founder/schedule",
+  title: "Schedule | Unite Group",
+  description: "Private founder workspace: Schedule.",
+})
 function formatAest(iso: string): string {
   const formatted = new Intl.DateTimeFormat('en-AU', {
     timeZone: 'Australia/Brisbane',

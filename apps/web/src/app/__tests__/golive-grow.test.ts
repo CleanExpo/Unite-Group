@@ -56,6 +56,13 @@ import PrivacyPolicyPage from '../privacy-policy/page'
 import TermsOfServicePage from '../terms-of-service/page'
 import NotFound from '../not-found'
 import OwnerCardPage from '../c/[slug]/page'
+import AuthConfirmPage from '../(auth)/auth/confirm/page'
+import AuthLoginPage from '../(auth)/auth/login/page'
+import AuthResetPasswordPage from '../(auth)/auth/reset-password/page'
+import ForgotPasswordPage from '../(auth)/forgot-password/page'
+import PortalJoinPage from '../(portal)/portal/join/page'
+import CardManagePage from '../cards/manage/page'
+import CardNotFound from '../c/[slug]/not-found'
 
 const APP = join(__dirname, '..')
 const SRC = join(APP, '..')
@@ -84,6 +91,15 @@ const RENDERS: Record<string, () => Promise<ReactElement>> = {
   '/terms-of-service': sync(TermsOfServicePage),
   'not-found': sync(NotFound),
   '/c/x': () => OwnerCardPage({ params: Promise.resolve({ slug: 'sam' }) }),
+  // Public (no auth wall) routes whose layouts now import page-metadata (UNI-3300). They must be
+  // rendered here so a /grow link cannot hide behind the metadata helper's MarketingPath union.
+  '/auth/confirm': sync(AuthConfirmPage),
+  '/auth/login': sync(AuthLoginPage),
+  '/auth/reset-password': sync(AuthResetPasswordPage),
+  '/forgot-password': sync(ForgotPasswordPage),
+  '/portal/join': () => PortalJoinPage({ searchParams: noProps }),
+  '/cards/manage': sync(CardManagePage),
+  'not-found:/c/x': sync(CardNotFound),
 }
 /** Section 10 of the privacy policy names the /grow form as a place it collects data (UNI-3018). That one link only. */
 const PRIVACY = '/privacy-policy'
@@ -111,6 +127,7 @@ const REVIEWED_GROW_STRINGS: Record<string, number> = {
   'components/public/home/home-page.tsx': 1, // the home hero link, allowed
   'app/privacy-policy/page.tsx': 1, // section 10 names the /grow form as a collection point, allowed
   'lib/legal/collection-notice.ts': 1, // 'grow' names a form type in CollectionNoticeForm; not a link
+  'lib/page-metadata.ts': 1, // '/grow' is a MarketingPath union member for noindex metadata; not a link
 }
 
 /** The project files a module imports, followed to the end. Packages are not followed. */
@@ -204,6 +221,15 @@ describe('D3: /grow is linked only from the main nav and the home hero, on the p
       if (n) found[posix(relative(SRC, f))] = n
     }
     expect(found).toEqual(REVIEWED_GROW_STRINGS)
+  })
+
+  it('the page-metadata /grow occurrence sits inside the MarketingPath union, not a link', () => {
+    const src = readFileSync(join(SRC, 'lib/page-metadata.ts'), 'utf8')
+    const start = src.indexOf('export type MarketingPath')
+    const end = src.indexOf('export type IndexedPageMetadataOptions')
+    expect(start, 'MarketingPath union').toBeGreaterThan(-1)
+    expect(end, 'union ends before IndexedPageMetadataOptions').toBeGreaterThan(start)
+    expect(growStrings(src.slice(start, end)), 'the reviewed /grow string is a union member').toEqual(["'/grow'"])
   })
 
   it.each(Object.keys(RENDERS).filter((k) => k !== '/' && k !== PRIVACY))('%s draws no /grow link of its own', async (key) => {

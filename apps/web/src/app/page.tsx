@@ -5,23 +5,19 @@ import { hasPrivateAccess } from "@/lib/auth/private-access";
 import { serializeJsonLd } from "@/app/grow/packages";
 import { PublicHome } from "@/public/home/public-home";
 import { entityJsonLd } from "@/lib/entity";
-import { SITE_URL } from "@/lib/public-site";
+import { publicPageMetadata } from "@/lib/page-metadata";
 
 // Auth redirect — must render at request time, not build time
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicPageMetadata({
+  path: "/",
   title: "Unite Group | Living business cards & growth for Australian businesses",
   description:
     "Living business cards, Starter plans and email signatures for businesses in Australia and New Zealand. One system to be found, impress and convert — with Margot as your AI guide.",
-  alternates: { canonical: SITE_URL },
-  robots: { index: true, follow: true },
-  openGraph: {
-    title: "Unite Group | Every business. One system.",
-    description: "Living business cards and clear growth paths for Australian businesses.",
-    url: SITE_URL,
-  },
-};
+  openGraphTitle: "Unite Group | Every business. One system.",
+  openGraphDescription: "Living business cards and clear growth paths for Australian businesses.",
+});
 
 export default async function RootPage() {
   const user = await getUser();

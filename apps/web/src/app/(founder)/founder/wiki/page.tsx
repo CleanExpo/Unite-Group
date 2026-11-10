@@ -1,3 +1,5 @@
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 export const dynamic = 'force-dynamic'
 
 import { redirect } from 'next/navigation'
@@ -31,6 +33,11 @@ async function getWikiPages(): Promise<WikiPageSummary[]> {
   }))
 }
 
+export const metadata = noIndexPageMetadata({
+  path: "/founder/wiki",
+  title: "Wiki | Unite Group",
+  description: "Private founder workspace: Wiki.",
+})
 function formatDate(iso: string): string {
   const d = new Date(iso)
   return d.toLocaleDateString('en-AU', { day: '2-digit', month: '2-digit', year: 'numeric' })

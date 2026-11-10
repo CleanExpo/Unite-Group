@@ -5,24 +5,21 @@ import { SiteFooter } from '@/public/site/site-footer'
 import { SiteNav } from '@/public/site/site-nav'
 import { SectionIntro } from '@/public/section-intro'
 import m from '@/public/layout/marketing-page.module.css'
-import { SITE_URL } from '@/lib/public-site'
+import { publicPageMetadata } from '@/lib/page-metadata'
 
 import { IntakeForm } from './intake-form'
-import { HERO_IMAGE, OFFER_ID, PAGE_PATH, STEPS } from './offer'
+import { HERO_IMAGE, OFFER_ID, STEPS } from './offer'
 import { SlotImage } from './slot-image'
 import s from './get-a-website.module.css'
 
-const PAGE_URL = `${SITE_URL}${PAGE_PATH}`
 const TITLE = 'Get a new website | Unite Group'
 const DESCRIPTION = 'Tell us about your business in a few short questions. We read your answers, then give you a clear plan and a quote before anything starts.'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicPageMetadata({
+  path: '/get-a-website',
   title: TITLE,
   description: DESCRIPTION,
-  alternates: { canonical: PAGE_URL },
-  robots: { index: true, follow: true },
-  openGraph: { title: TITLE, description: DESCRIPTION, url: PAGE_URL },
-}
+})
 
 export default function GetAWebsitePage() {
   return (

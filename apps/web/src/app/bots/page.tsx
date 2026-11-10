@@ -7,25 +7,22 @@ import { SiteNav } from '@/public/site/site-nav'
 import { SectionIntro } from '@/public/section-intro'
 import m from '@/public/layout/marketing-page.module.css'
 import { serializeJsonLd } from '@/app/grow/packages'
-import { BOTS, BOTS_HERO, BOTS_PAGE_PATH, LEAD_DEMO_ANCHOR, type Bot, type BotMediaSlot } from '@/lib/bots/catalogue'
+import { BOTS, BOTS_HERO, LEAD_DEMO_ANCHOR, type Bot, type BotMediaSlot } from '@/lib/bots/catalogue'
 import { botsPageJsonLd } from '@/lib/bots/jsonld'
-import { SITE_URL } from '@/lib/public-site'
+import { publicPageMetadata } from '@/lib/page-metadata'
 
 import { LeadDemo } from './lead-demo'
 import s from './bots.module.css'
 
-const PAGE_URL = `${SITE_URL}${BOTS_PAGE_PATH}`
 const TITLE = 'AI bots for small business | Unite Group'
 const DESCRIPTION =
   'Meet the Unite Group bots that answer enquiries, follow up leads, take bookings and handle order questions for small businesses. Try the lead follow-up bot live.'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicPageMetadata({
+  path: '/bots',
   title: TITLE,
   description: DESCRIPTION,
-  alternates: { canonical: PAGE_URL },
-  robots: { index: true, follow: true },
-  openGraph: { title: TITLE, description: DESCRIPTION, url: PAGE_URL },
-}
+})
 
 /** One named picture from the media manifest (premium-visuals PremiumImage: next/image, lazy, sized). */
 function BotImage({ slot }: { slot: BotMediaSlot }) {

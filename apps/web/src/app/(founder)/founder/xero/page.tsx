@@ -1,3 +1,5 @@
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 export const dynamic = 'force-dynamic'
 
 import { getUser } from '@/lib/supabase/server'
@@ -15,6 +17,11 @@ import { BUSINESSES } from '@/lib/businesses'
 // entity shape and defines the Unite-Group row locally (UNI-2330).
 type XeroEntity = { key: string; name: string; color: string; type: 'owned' | 'client' }
 
+export const metadata = noIndexPageMetadata({
+  path: "/founder/xero",
+  title: "Xero | Unite Group",
+  description: "Private founder workspace: Xero.",
+})
 function businessesByKey(keys: string[]): XeroEntity[] {
   return keys
     .map((key) => BUSINESSES.find((business) => business.key === key))

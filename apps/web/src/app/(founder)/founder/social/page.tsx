@@ -1,3 +1,5 @@
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 // src/app/(founder)/founder/social/page.tsx
 // Social Platform Management — Founder view
 // Route: /founder/social
@@ -46,6 +48,11 @@ async function getPlatformStatus(founderId: string) {
   })
 }
 
+export const metadata = noIndexPageMetadata({
+  path: "/founder/social",
+  title: "Social | Unite Group",
+  description: "Private founder workspace: Social.",
+})
 export default async function SocialPage({
   searchParams,
 }: {

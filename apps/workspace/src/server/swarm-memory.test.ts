@@ -40,7 +40,9 @@ describe('swarm-memory module', () => {
       model: 'GPT-5',
     })
     const root = mod.swarmWorkerMemoryRoot('swarmtest1')
-    expect(root.endsWith('profiles/swarmtest1/memory')).toBe(true)
+    // join, not a '/'-spelled literal: the module builds this path with
+    // path.join, so on Windows it ends in `profiles\swarmtest1\memory`.
+    expect(root.endsWith(join('profiles', 'swarmtest1', 'memory'))).toBe(true)
     expect(root.startsWith(tempHome)).toBe(true)
     expect(readFileSync(join(root, 'IDENTITY.md'), 'utf8')).toMatch(
       /Worker ID: swarmtest1/,
@@ -89,7 +91,9 @@ describe('swarm-memory module', () => {
       content: 'Handoff body',
       mirrorShared: false,
     })
-    expect(result.localPath.endsWith('handoffs/mission-test-1.md')).toBe(true)
+    expect(
+      result.localPath.endsWith(join('handoffs', 'mission-test-1.md')),
+    ).toBe(true)
     expect(result.localPath.startsWith(tempHome)).toBe(true)
     expect(readFileSync(result.localPath, 'utf8')).toMatch(/Handoff body/)
     expect(result.sharedPath).toBeUndefined()

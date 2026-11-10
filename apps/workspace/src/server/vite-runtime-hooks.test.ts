@@ -8,7 +8,17 @@ import { test } from 'vitest'
 import ts from 'typescript'
 
 const source = readFileSync(new URL('../../vite.config.ts', import.meta.url), 'utf8')
-const compiled = ts.transpileModule(source.replaceAll('import.meta.url', JSON.stringify('file:///fixture/vite.config.ts')), {
+
+// The fixture stands in for import.meta.url, and vite.config.ts feeds it to
+// fileURLToPath. A Windows file URL must carry a drive letter, so the former
+// literal 'file:///fixture/vite.config.ts' made that call throw
+// ERR_INVALID_FILE_URL_PATH and every case in this file failed before it
+// asserted anything. Built through pathToFileURL it is valid on each platform:
+// file:///fixture/vite.config.ts on POSIX, file:///C:/fixture/... on Windows.
+const fixtureConfigUrl = url.pathToFileURL(
+  path.resolve(path.sep, 'fixture', 'vite.config.ts'),
+).href
+const compiled = ts.transpileModule(source.replaceAll('import.meta.url', JSON.stringify(fixtureConfigUrl)), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
 }).outputText
 

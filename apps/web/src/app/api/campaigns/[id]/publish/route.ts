@@ -11,6 +11,7 @@ import { packageForGEO } from '@/lib/content/geo-schema'
 import type { POETScore, SurvivalCheck } from '@/lib/content/quality-gate'
 import { getCampaignApprovalState } from '@/lib/campaigns/approval'
 import type { CampaignAsset } from '@/lib/campaigns/types'
+import { insertCampaignDraftOnce, isCampaignPublishDedupeEnabled } from '@/lib/campaigns/publish-dedupe'
 
 export const dynamic = 'force-dynamic'
 
@@ -153,6 +154,90 @@ export async function POST(
 
   let draftsCreated = 0
   const postIds: string[] = []
+
+  // UNI-2326: with the switch on, the database unique key decides who creates
+  // each platform draft, so two concurrent requests cannot both insert one.
+  if (isCampaignPublishDedupeEnabled()) {
+    let draftsReused = 0
+    const failedPlatforms: string[] = []
+
+    for (const [platform, platformAssets] of byPlatform.entries()) {
+      const primary = platformAssets[0]
+      const mediaUrls = platformAssets
+        .map(a => a['image_url'] as string | null)
+        .filter((u): u is string => u !== null)
+
+      const result = await insertCampaignDraftOnce(supabase, {
+        founder_id: user.id,
+        business_key: businessKey,
+        title: null,
+        content: primary['copy'] as string,
+        media_urls: mediaUrls,
+        platforms: [platform],
+        status: 'draft',
+        scheduled_at: null,
+        campaign_id: id,
+        campaign_platform: platform,
+      })
+
+      if (!result.ok) {
+        console.error(`[Publish] Failed to prepare draft for ${platform}:`, result.error)
+        failedPlatforms.push(platform)
+        continue
+      }
+
+      if (result.created) {
+        postIds.push(result.postId)
+        draftsCreated++
+      } else {
+        draftsReused++
+      }
+
+      // Link only assets that are still unlinked, so a link made by another
+      // request is never overwritten. A failed link is repaired by a retry:
+      // the retry resolves to the same draft instead of inserting a new one.
+      const { error: linkError } = await supabase
+        .from('campaign_assets')
+        .update({ social_post_id: result.postId })
+        .in('id', platformAssets.map(a => a['id'] as string))
+        .eq('founder_id', user.id)
+        .is('social_post_id', null)
+
+      if (linkError) {
+        console.error(`[Publish] Failed to link assets for ${platform}:`, linkError.message)
+        failedPlatforms.push(platform)
+      }
+    }
+
+    if (failedPlatforms.length > 0) {
+      return NextResponse.json(
+        {
+          error: `Channel drafts could not be prepared for: ${failedPlatforms.join(', ')}`,
+          failedPlatforms,
+          draftsCreated,
+          draftsReused,
+          postIds,
+        },
+        { status: 500 },
+      )
+    }
+
+    return NextResponse.json({
+      draftsCreated,
+      draftsReused,
+      postIds,
+      ...(draftsCreated === 0 ? { alreadyPrepared: true } : {}),
+      approvalStatus: approval.status,
+      ...(qualityGate ? {
+        qualityGate: {
+          poetScore: qualityGate.poet.total,
+          poetPass: qualityGate.poet.pass,
+          survivalPass: qualityGate.survival.pass,
+          geoAiSnippet: qualityGate.geo.aiSnippet,
+        },
+      } : {}),
+    })
+  }
 
   for (const [platform, platformAssets] of byPlatform.entries()) {
     // Use the first variant's copy as the primary content

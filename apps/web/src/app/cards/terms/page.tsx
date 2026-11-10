@@ -3,15 +3,15 @@ import type { ReactNode } from 'react'
 
 import { LegalPageShell } from '@/public/legal/legal-page-shell'
 import { companyAbnLabel } from '@/lib/legal/company'
+import { publicPageMetadata } from '@/lib/page-metadata'
 
 import { CARD_ORDER_TERMS } from './terms-content'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicPageMetadata({
+  path: '/cards/terms',
   title: 'Card order terms | Unite Group',
   description: 'The terms for ordering a Living Business Card from Unite Group.',
-  alternates: { canonical: 'https://unite-group.in/cards/terms' },
-  robots: { index: true, follow: true },
-}
+})
 
 type Block =
   | { kind: 'h1' | 'h2' | 'p' | 'lead'; text: string }

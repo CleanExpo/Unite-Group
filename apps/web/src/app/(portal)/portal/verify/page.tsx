@@ -10,18 +10,20 @@ import { safePortalReturn } from '@/lib/portal/paths'
 import { createClient, getUser } from '@/lib/supabase/server'
 
 import { SecondFactorStep } from '../join/second-factor'
+import { noIndexPageMetadata } from '@/lib/page-metadata'
 
 export const dynamic = 'force-dynamic'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = noIndexPageMetadata({
+  path: '/portal/verify',
   title: 'Confirm it is you | Unite Group',
-  robots: { index: false, follow: false },
-}
+  description: 'Complete the second security step to open your portal.',
+})
 
 /**
  * /portal/verify?redirectTo=/portal/...  An owner signed in with the emailed link (aal1) confirms the second step here.
  * Signed out -> sign in, then back to the page they wanted. Already aal2 -> straight to that page. Otherwise the same
- * authenticator step the invite claim uses; on success it refreshes, this page sees aal2 and sends them on.
+ * authenticator or emailed-code step the invite claim uses; on success it refreshes, this page sees aal2 and sends them on.
  * The return path is only ever a portal page (safePortalReturn), so this cannot be used to bounce anyone elsewhere.
  */
 export default async function PortalVerifyPage({ searchParams }: { searchParams: Promise<{ redirectTo?: string | string[] }> }) {

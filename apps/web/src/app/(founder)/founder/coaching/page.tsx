@@ -1,10 +1,15 @@
 import Link from 'next/link'
 import { createClient, getUser } from '@/lib/supabase/server'
 import { sortEngagements } from '@/lib/coaching/sort'
+import { noIndexPageMetadata } from '@/lib/page-metadata'
 
 export const dynamic = 'force-dynamic'
 
-export const metadata = { title: 'Coaching Clinic' }
+export const metadata = noIndexPageMetadata({
+  path: '/founder/coaching',
+  title: 'Coaching | Unite Group',
+  description: 'Coaching engagements and consent.',
+})
 
 export default async function CoachingIndexPage() {
   const user = await getUser()

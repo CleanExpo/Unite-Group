@@ -2,9 +2,12 @@ import { redirect } from 'next/navigation'
 import { getUser } from '@/lib/supabase/server'
 import { FounderShell } from '@/components/layout/FounderShell'
 import { inter } from '@/app/(founder)/founder/command-centre/fonts'
+import { FOUNDER_AREA_METADATA } from './founder-metadata'
 
 // All founder pages require auth — render at request time only
 export const dynamic = 'force-dynamic';
+
+export const metadata = FOUNDER_AREA_METADATA
 
 export default async function FounderLayout({ children }: { children: React.ReactNode }) {
   const user = await getUser()

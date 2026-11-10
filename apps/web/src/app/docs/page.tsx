@@ -1,9 +1,11 @@
 // /docs — Nexus API documentation viewer (OpenAPI 3.1)
+import { noIndexPageMetadata } from '@/lib/page-metadata'
 
-export const metadata = {
-  title: 'Nexus API Docs',
-  description: 'Unite-Group Nexus — Mission Control API documentation',
-}
+export const metadata = noIndexPageMetadata({
+  path: '/docs',
+  title: 'Nexus API docs | Unite Group',
+  description: 'Mission Control API documentation for Unite Group.',
+})
 
 export default function DocsPage() {
   return (

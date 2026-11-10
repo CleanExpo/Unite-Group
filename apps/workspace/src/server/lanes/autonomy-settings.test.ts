@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -18,7 +18,15 @@ beforeEach(async () => {
   root = await mkdtemp(path.join(tmpdir(), 'autonomy-settings-'))
 })
 afterEach(async () => {
-  await rm(root, { recursive: true, force: true })
+  // Windows releases a directory name a moment after its last handle closes,
+  // so removing the fixture can fail with EBUSY. maxRetries is Node's
+  // documented remedy. Teardown only; nothing under test is retried.
+  await rm(root, {
+    recursive: true,
+    force: true,
+    maxRetries: 10,
+    retryDelay: 50,
+  })
 })
 
 describe('the hook is installed on every tool', () => {
@@ -108,8 +116,23 @@ describe('prepareLaneGate', () => {
   it('throws rather than returning an ungated wiring when it cannot write', async () => {
     // A lane that quietly proceeds ungated because setup failed is the exact
     // fail-open this ticket exists to prevent.
+    //
+    // The unwritable root is constructed, not merely named. The former
+    // '/nonexistent-root-xyz' leaned on the filesystem root being unwritable.
+    // That holds for an unprivileged POSIX user and fails in two places: on
+    // Windows it resolves to the current drive's root, which this user can
+    // create in, so prepareLaneGate succeeded and returned a wiring; and in
+    // any job running as root it would have silently stopped testing anything.
+    // A path whose parent is a regular FILE can never hold a directory, so
+    // mkdir reports ENOTDIR on every platform and under every user.
+    const blocker = path.join(root, 'not-a-directory')
+    await writeFile(blocker, 'a file, so no directory can be created beneath it\n')
+
     await expect(
-      prepareLaneGate('/nonexistent-root-xyz', { runId: 'run-1', laneId: 'lane-1' }),
+      prepareLaneGate(path.join(blocker, 'lanes'), {
+        runId: 'run-1',
+        laneId: 'lane-1',
+      }),
     ).rejects.toThrow()
   })
 })

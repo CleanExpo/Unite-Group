@@ -59,7 +59,7 @@ const strip = (html: string) => html.replace(/<script[\s\S]*?<\/script>/g, '').r
 
 describe('home hero server markup: copy and poster before video', () => {
   const html = renderToStaticMarkup(<PublicHome />)
-  const hero = html.slice(html.indexOf('id="hero"'), html.indexOf('id="start"'))
+  const hero = html.slice(html.indexOf('id="hero"'), html.indexOf('id="trust"'))
 
   it('has the H1, wordmark, agency line and hero CTAs from HOME_HERO', () => {
     expect(hero.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1].replace(/<[^>]*>/g, '')).toBe(HOME_HERO.title)
@@ -71,8 +71,8 @@ describe('home hero server markup: copy and poster before video', () => {
     expect(hero).toContain('href="/grow"')
   })
 
-  it('has one primary CTA to #start and does not link to the retired group anchor', () => {
-    expect(hero).toContain('data-track-label="home-hero-start"')
+  it('has one primary CTA to the order flow and does not link to the retired group anchor', () => {
+    expect(hero).toContain('data-track-label="home-hero-order"')
     expect(hero).not.toMatch(/href="#group"/)
   })
 
@@ -203,7 +203,7 @@ describe('the film files', () => {
 describe('the home cards gallery is not an empty box', () => {
   it('renders gallery tiles with edition posters', () => {
     const html = renderToStaticMarkup(<PublicHome />)
-    const cards = html.slice(html.indexOf('id="cards"'), html.indexOf('id="pillars"'))
+    const cards = html.slice(html.indexOf('id="cards"'), html.indexOf('id="how"'))
     expect(cards).toContain('data-gallery-tile')
     expect(cards).toContain('/cards/media/edition-blueprint-poster.jpg')
   })

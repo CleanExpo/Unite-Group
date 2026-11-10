@@ -8,14 +8,13 @@ import m from '@/public/layout/marketing-page.module.css'
 import { formatAud, serializeJsonLd } from '@/app/grow/packages'
 import { pricingPageJsonLd } from '@/lib/pricing-jsonld'
 import { cardFromAud, PLUS_GST, SIGNATURE_ADDON, STARTER_PLAN } from '@/lib/public-pricing'
-import { SITE_URL } from '@/lib/public-site'
+import { publicPageMetadata } from '@/lib/page-metadata'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicPageMetadata({
+  path: '/pricing',
   title: 'Pricing | Starter plan, signatures & living cards | Unite Group',
   description: `Starter plan ${formatAud(STARTER_PLAN.priceAud)} a month and email signatures at ${formatAud(SIGNATURE_ADDON.priceAud)} each, ${PLUS_GST}. Living business cards from ${cardFromAud() ?? 'ask us'}.`,
-  alternates: { canonical: `${SITE_URL}/pricing` },
-  robots: { index: true, follow: true },
-}
+})
 
 export default function PricingPage() {
   const cardFrom = cardFromAud()
@@ -36,7 +35,7 @@ export default function PricingPage() {
               as="h1"
               eyebrow="Pricing"
               title="One plan. Add what you need."
-              lead="Australian dollars on every line. GST is called out so nothing is hidden."
+              lead="Every price is in Australian dollars. GST is on the line so your finance person can approve it without a chase."
             />
           </div>
         </section>

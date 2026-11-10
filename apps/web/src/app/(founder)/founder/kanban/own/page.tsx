@@ -1,8 +1,15 @@
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 export const dynamic = 'force-dynamic'
 
 import { OwnBoard } from '@/founder/kanban/OwnBoard'
 import { PageHeader } from '@/components/ui/PageHeader'
 
+export const metadata = noIndexPageMetadata({
+  path: "/founder/kanban/own",
+  title: "Own | Unite Group",
+  description: "Private founder workspace: Own.",
+})
 export default function OwnKanbanPage() {
   return (
     <div

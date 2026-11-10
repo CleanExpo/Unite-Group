@@ -1,3 +1,5 @@
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 export const dynamic = 'force-dynamic'
 
 import { getUser } from '@/lib/supabase/server'
@@ -8,6 +10,11 @@ import {
 import { EmailWorkbench } from '@/founder/email/EmailWorkbench'
 import { PageHeader } from '@/components/ui/PageHeader'
 
+export const metadata = noIndexPageMetadata({
+  path: "/founder/email",
+  title: "Email | Unite Group",
+  description: "Private founder workspace: Email.",
+})
 export default async function EmailPage({
   searchParams,
 }: {

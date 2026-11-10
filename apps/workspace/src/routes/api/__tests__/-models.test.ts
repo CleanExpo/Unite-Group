@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const {
   existsSync,
@@ -68,7 +68,15 @@ vi.mock('../../../server/local-provider-discovery', () => ({
 
 beforeEach(() => {
   vi.clearAllMocks()
-  delete process.env.CLAUDE_HOME
+  // models.ts reads HERMES_HOME BEFORE CLAUDE_HOME, so a machine that exports
+  // HERMES_HOME made the CLAUDE_HOME set below dead and the mocked existsSync
+  // never matched. Both are cleared so the fixture is the only source.
+  vi.stubEnv('HERMES_HOME', undefined)
+  vi.stubEnv('CLAUDE_HOME', undefined)
+})
+
+afterEach(() => {
+  vi.unstubAllEnvs()
 })
 
 describe('models route', () => {
@@ -97,16 +105,21 @@ describe('models route', () => {
 
   it('reads default model from CLAUDE_HOME config using YAML.parse', async () => {
     const envHome = '/mock/profiles/jarvis'
-    process.env.CLAUDE_HOME = envHome
+    vi.stubEnv('CLAUDE_HOME', envHome)
 
+    // Built with path.join, as the route builds them. A `${envHome}/config.yaml`
+    // literal only matches on POSIX; on Windows the route asks for
+    // `\mock\profiles\jarvis\config.yaml` and the mock answered nothing.
+    const configPath = path.join(envHome, 'config.yaml')
+    const modelsPath = path.join(envHome, 'models.json')
     const configYaml = 'model: jarvis-model\nprovider: nous\n'
     const modelsJson = '[{"model":"x","provider":"y"}]'
     existsSync.mockImplementation((p: string) => {
-      return p === `${envHome}/models.json` || p === `${envHome}/config.yaml`
+      return p === modelsPath || p === configPath
     })
     readFileSync.mockImplementation((p: string) => {
-      if (p === `${envHome}/config.yaml`) return configYaml
-      if (p === `${envHome}/models.json`) return modelsJson
+      if (p === configPath) return configYaml
+      if (p === modelsPath) return modelsJson
       return ''
     })
 
@@ -122,12 +135,13 @@ describe('models route', () => {
 
   it('reads nested model object syntax from config using YAML.parse', async () => {
     const envHome = '/mock/profiles/jarvis'
-    process.env.CLAUDE_HOME = envHome
+    vi.stubEnv('CLAUDE_HOME', envHome)
 
+    const configPath = path.join(envHome, 'config.yaml')
     const configYaml = 'model:\n  default: nest-model\n  provider: anthropic\n'
-    existsSync.mockImplementation((p: string) => p === `${envHome}/config.yaml`)
+    existsSync.mockImplementation((p: string) => p === configPath)
     readFileSync.mockImplementation((p: string) => {
-      if (p === `${envHome}/config.yaml`) return configYaml
+      if (p === configPath) return configYaml
       return ''
     })
 

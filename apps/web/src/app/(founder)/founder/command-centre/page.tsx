@@ -1,3 +1,5 @@
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 // Founder Mission Control. Auth is enforced by the (founder) layout.
 // The desk uses the existing task authority; business and operational sources
 // remain available below and on their existing sub-decks.
@@ -23,6 +25,11 @@ import styles from './founder-desk.module.css'
 /** Pi-Dev-Ops builds view. A plain link: the no-prompt escort needs its login secret, which is founder-held (Q6). */
 const PI_DEV_OPS_BUILDS_URL = 'https://pi-dev-ops.vercel.app/builds'
 
+export const metadata = noIndexPageMetadata({
+  path: "/founder/command-centre",
+  title: "Command Centre | Unite Group",
+  description: "Private founder workspace: Command Centre.",
+})
 export default async function CommandDeckPage() {
   const [projects, tools, actionQueue, blockedLanes, blockedOnMe, stageBoard] = await Promise.all([
     getProjects(),

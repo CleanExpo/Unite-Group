@@ -1,0 +1,133 @@
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { buildLead, MIN_FILL_MS } = require('../api/_lead');
+const { handler } = require('../api/enquiry');
+
+const NOW = 1_800_000_000_000;
+const good = () => ({
+  first_name: ' Jo ', last_name: 'Citizen', email: 'Jo@Example.com', phone: '0412 345 678',
+  suburb: 'Bayswater', postcode: '3153', property_type: 'House', problems: ['mould', 'floor', 'evil'],
+  how_long: '1 to 6 months', insurance: 'yes', call_time: 'Morning', heard: 'Google',
+  message: 'Musty smell in the back bedroom.', consent: 'yes', company_website: '', elapsed_ms: 45000,
+});
+
+test('maps a valid enquiry onto the Unite-Group lead API shape with business_key bewg', () => {
+  const r = buildLead(good(), NOW);
+  assert.equal(r.ok, true);
+  assert.equal(r.lead.business_key, 'bewg');
+  assert.equal(r.lead.first_name, 'Jo');
+  assert.equal(r.lead.email, 'jo@example.com');
+  assert.equal(r.lead.marketing_consent, false);
+  assert.equal(r.lead.interests, 'Mould, Timber floor lifting or cupping');
+  assert.match(r.lead.message, /^Property: Bayswater 3153 · House$/m);
+  assert.match(r.lead.message, /Insurance claim or legal matter: yes/);
+  assert.match(r.lead.message, /Musty smell in the back bedroom\./);
+  assert.ok(!r.lead.message.includes('evil'), 'unknown problem values are dropped');
+  assert.match(r.lead.message, /^Contact consent: yes \(booking form, 2027-01-15T08:00:00\.000Z\)$/m);
+});
+
+test('rejects missing consent, bad email, short phone, missing suburb, bad postcode', () => {
+  for (const [patch, re] of [
+    [{ consent: '' }, /tick the box/],
+    [{ email: 'nope' }, /valid email/],
+    [{ phone: '123' }, /phone number/],
+    [{ suburb: '  ' }, /suburb/],
+    [{ postcode: '31a3' }, /4 digits/],
+    [{ first_name: '' }, /first name/],
+  ]) {
+    const r = buildLead({ ...good(), ...patch }, NOW);
+    assert.equal(r.ok, false, JSON.stringify(patch));
+    assert.equal(r.status, 400);
+    assert.match(r.error, re);
+  }
+});
+
+test('bots are dropped silently: honeypot filled, or submitted faster than a human can', () => {
+  assert.deepEqual(buildLead({ ...good(), company_website: 'spam.biz' }, NOW), { ok: false, status: 200, silent: true });
+  assert.equal(buildLead({ ...good(), elapsed_ms: MIN_FILL_MS - 1 }, NOW).silent, true);
+  const noTiming = good(); delete noTiming.elapsed_ms;
+  assert.equal(buildLead(noTiming, NOW).silent, true, 'missing fill time = bot');
+  assert.equal(buildLead({ ...good(), elapsed_ms: 'abc' }, NOW).silent, true, 'invalid fill time = bot');
+});
+
+function fakeRes() {
+  return {
+    code: 0, json_: null, headers: {},
+    setHeader(k, v) { this.headers[k] = v; },
+    status(c) { this.code = c; return this; },
+    json(b) { this.json_ = b; return this; },
+  };
+}
+
+test('handler forwards to the CRM and returns 201 when the CRM accepts', async () => {
+  let sent;
+  const fetchOk = async (url, init) => { sent = { url, body: JSON.parse(init.body) }; return { status: 201, ok: true }; };
+  const res = fakeRes();
+  await handler({ method: 'POST', body: { ...good() } }, res, fetchOk);
+  assert.equal(res.code, 201);
+  assert.equal(sent.url, 'https://unite-group.in/api/leads');
+  assert.equal(sent.body.business_key, 'bewg');
+});
+
+test('handler returns 502 with the phone fallback when the CRM fails, and never sends a bot lead', async () => {
+  const res = fakeRes();
+  await handler({ method: 'POST', body: { ...good() } }, res,
+    async () => ({ status: 500, ok: false }));
+  assert.equal(res.code, 502);
+  assert.match(res.json_.error, /03 7075 1932/);
+
+  let called = false;
+  const res2 = fakeRes();
+  await handler({ method: 'POST', body: { ...good(), company_website: 'x' } }, res2, async () => { called = true; });
+  assert.equal(res2.code, 200);
+  assert.equal(called, false);
+});
+
+test('handler refuses non-POST', async () => {
+  const res = fakeRes();
+  await handler({ method: 'GET' }, res, async () => { throw new Error('should not call'); });
+  assert.equal(res.code, 405);
+});
+
+test('attribution: landing page, campaign tags and referrer host land in the CRM message, sanitised', () => {
+  const r = buildLead({ ...good(), heard: '', landing_page: '/services/mould-inspection/', utm: 'utm_source=google&utm_campaign=mould<script>', referrer_host: 'www.google.com' }, NOW);
+  assert.equal(r.ok, true);
+  assert.match(r.lead.message, /^Came from: landed on \/services\/mould-inspection\/ · via www\.google\.com · utm_source=google&utm_campaign=mouldscript$/m);
+  assert.equal(r.lead.referral_source, 'www.google.com');
+  assert.ok(!r.lead.message.includes('<'), 'no markup survives');
+});
+
+const { _test } = require('../api/enquiry');
+
+test('a real lead is never dropped because the visitor device clock is wrong (timing is device-relative)', () => {
+  const r = buildLead({ ...good(), started_at: String(NOW + 5 * 60_000) }, NOW); // stale field from a fast clock is ignored
+  assert.equal(r.ok, true);
+});
+
+test('per-IP limit: 5 enquiries per 10 minutes, then 429', async () => {
+  _test.hits.clear();
+  const fetchOk = async () => ({ status: 201, ok: true });
+  const codes = [];
+  for (let i = 0; i < 6; i++) {
+    const res = fakeRes();
+    await handler({ method: 'POST', headers: { 'x-vercel-forwarded-for': '203.0.113.9' }, body: { ...good() } }, res, fetchOk);
+    codes.push(res.code);
+  }
+  assert.deepEqual(codes, [201, 201, 201, 201, 201, 429]);
+  _test.hits.clear();
+});
+
+test('UNITE_LEADS_URL only accepts https on unite-group.in; anything else falls back to the default', () => {
+  const prev = process.env.UNITE_LEADS_URL;
+  process.env.UNITE_LEADS_URL = 'http://169.254.169.254/latest'; assert.equal(_test.leadsUrl(), 'https://unite-group.in/api/leads');
+  process.env.UNITE_LEADS_URL = 'https://evil.example/api/leads'; assert.equal(_test.leadsUrl(), 'https://unite-group.in/api/leads');
+  process.env.UNITE_LEADS_URL = 'https://www.unite-group.in/api/leads'; assert.equal(_test.leadsUrl(), 'https://www.unite-group.in/api/leads');
+  if (prev === undefined) delete process.env.UNITE_LEADS_URL; else process.env.UNITE_LEADS_URL = prev;
+});
+
+test('oversized bodies are refused before parsing', async () => {
+  const res = fakeRes();
+  await handler({ method: 'POST', headers: { 'content-length': '50000' }, body: { ...good() } }, res, async () => { throw new Error('no'); });
+  assert.equal(res.code, 400);
+});

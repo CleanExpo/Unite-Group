@@ -2,27 +2,120 @@
 
 .heroGrid {
   display: grid;
-  gap: clamp(1.5rem, 4vw, 2.5rem);
-  align-items: center;
+  gap: clamp(1.75rem, 4vw, 2.75rem);
+  align-items: stretch;
 }
 
 @media (min-width: 900px) {
   .heroGrid {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 20rem);
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 22rem);
+    gap: clamp(2rem, 4vw, 3rem);
   }
+}
+
+.heroCopy {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1rem, 2.5vw, 1.5rem);
+}
+
+.heroFacts {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-width: 34rem;
+}
+
+@media (min-width: 520px) {
+  .heroFacts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 900px) {
+  .heroFacts {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+.heroFact {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: var(--pub-radius-lg);
+  border: 1px solid rgba(244, 241, 236, 0.1);
+  background: rgba(8, 9, 20, 0.45);
+}
+
+.heroFactIcon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 10px;
+  color: var(--pub-highlight);
+  background: rgba(236, 123, 65, 0.14);
+}
+
+.heroFactText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.heroFactTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pub-ink);
+  letter-spacing: -0.01em;
+}
+
+.heroFactLine {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--pub-ink-soft);
+}
+
+.heroShowcase {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.showcaseEyebrow {
+  margin: 0;
+  font-family: var(--pub-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pub-muted);
 }
 
 .qrWrap {
   position: relative;
   max-width: 22rem;
   margin-inline: auto;
+  padding: clamp(14px, 2.5vw, 18px);
+  border-radius: var(--pub-radius-xl);
+  border: 1px solid rgba(236, 123, 65, 0.22);
+  background: rgba(4, 6, 14, 0.85);
+  box-shadow:
+    0 28px 80px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(244, 241, 236, 0.06);
 }
 
 .qrFigure {
   pointer-events: none;
   position: absolute;
   right: 0.75rem;
-  bottom: 3.5rem;
+  bottom: 3.25rem;
   margin: 0;
   padding: 0.5rem;
   border-radius: var(--pub-radius);
@@ -45,11 +138,127 @@
   color: #111;
 }
 
+.editionsBand {
+  position: relative;
+}
+
+.editionsBand::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(70% 50% at 50% 0%, rgba(236, 123, 65, 0.06), transparent 60%);
+  z-index: 0;
+}
+
+.editionsBand .wrap {
+  position: relative;
+  z-index: 1;
+}
+
+.editionsHint {
+  margin: 0.35rem 0 1.25rem;
+  max-width: 40rem;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--pub-muted);
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 2rem 1rem;
+  gap: clamp(1.25rem, 3vw, 1.75rem) clamp(0.85rem, 2vw, 1.1rem);
   margin-top: 0.5rem;
+}
+
+/* —— Starter vs Business comparison —— */
+.compareGrid {
+  display: grid;
+  gap: clamp(1rem, 3vw, 1.5rem);
+  margin: clamp(0.75rem, 2vw, 1.25rem) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 720px) {
+  .compareGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.compareCard {
+  margin: 0;
+  padding: clamp(1.25rem, 3vw, 1.75rem);
+  border-radius: var(--pub-radius-lg);
+  border: 1px solid var(--pub-line);
+  background: var(--pub-bg);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.compareCard:hover {
+  border-color: rgba(236, 123, 65, 0.28);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.1);
+}
+
+.compareFeatured {
+  border-color: rgba(236, 123, 65, 0.42);
+  background: linear-gradient(165deg, rgba(236, 123, 65, 0.08) 0%, var(--pub-bg) 55%);
+  box-shadow:
+    0 12px 44px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(236, 123, 65, 0.12);
+}
+
+.compareName {
+  margin: 0 0 10px;
+  font-size: clamp(1.05rem, 2vw, 1.25rem);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--pub-ink);
+}
+
+.comparePrice {
+  margin: 0 0 12px;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--pub-ink);
+}
+
+.compareAmount {
+  color: var(--pub-highlight);
+}
+
+.compareGst {
+  font-size: 0.65em;
+  font-weight: 600;
+  color: var(--pub-muted);
+}
+
+.compareAsk {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--pub-muted);
+}
+
+.compareLine {
+  margin: 0 0 8px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--pub-ink-soft);
+}
+
+.compareMeta {
+  margin: 0 0 18px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--pub-muted);
+}
+
+.compareCtas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 @media (min-width: 640px) {
@@ -58,6 +267,33 @@
 
 @media (min-width: 1024px) {
   .grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+
+.stepCardLift {
+  position: relative;
+  transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.stepCardLift:hover {
+  transform: translateY(-2px);
+  border-color: rgba(236, 123, 65, 0.25);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+}
+
+.stepIcon {
+  display: inline-flex;
+  margin: 4px 0 0;
+  color: var(--pub-highlight);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stepCardLift:hover {
+    transform: none;
+  }
+
+  .compareCard:hover {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+  }
 }
 
 .page a:focus-visible {

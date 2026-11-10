@@ -20,6 +20,16 @@ const order = (edition: string | null, referrer: string | null = null) =>
 const checkedEditions = (html: string) => [...html.matchAll(/<input[^>]*name="edition"[^>]*>/g)].filter((m) => m[0].includes('checked')).map((m) => /value="([^"]+)"/.exec(m[0])?.[1])
 
 describe('/cards showroom', () => {
+  it('includes a Ready vs Custom comparison with both tiers and quotes from approved tier lines', () => {
+    const html = showroom()
+    expect(html).toContain('id="compare"')
+    expect(html).toContain('data-tier="ready"')
+    expect(html).toContain('data-tier="custom"')
+    for (const line of ['It ends on your logo and details.', 'We make a film for your business']) {
+      expect(html).toContain(line)
+    }
+  })
+
   it('shows the signature reveal and all nine editions, each with its poster, clip and AI label', () => {
     const html = showroom()
     for (const name of NAMES) {

@@ -1,16 +1,17 @@
 import type { Metadata } from 'next'
 
 import { loadPreferredEdition } from '@/lib/design-feedback/preferred'
+import { publicPageMetadata } from '@/lib/page-metadata'
 
 import { cleanRef, resolveEdition } from '../editions'
 import { OrderView } from './order-view'
 
-export const metadata: Metadata = {
-  title: 'Get your own living card | Unite Group',
-  description: 'Ask Unite Group to build your living business card. Choose your opener and send your details.',
-  alternates: { canonical: 'https://unite-group.in/cards/order' },
-  robots: { index: true, follow: true },
-}
+export const metadata: Metadata = publicPageMetadata({
+  path: '/cards/order',
+  title: 'Order a living business card | Video QR card Australia | Unite Group',
+  description:
+    'Order a living video business card for Australia and New Zealand. Pick an edition, send your logo and contact details, approve a private proof, then share by QR or link.',
+})
 
 type SearchParams = Record<string, string | string[] | undefined>
 

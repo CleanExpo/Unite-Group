@@ -38,7 +38,7 @@ const thumb = (p: Page) => p.getByRole('radio', { name: 'Forge' })
 const thumbLabel = (p: Page) => p.locator('label', { has: p.getByRole('radio', { name: 'Forge' }) })
 const orderReady = (p: Page) => p.locator('[data-tier="ready"]').getByRole('link')
 const nameField = (p: Page) => p.getByLabel('Your name')
-const consent = (p: Page) => p.getByRole('checkbox')
+const consent = (p: Page) => p.getByRole('checkbox', { name: /may email me marketing/i })
 const submit = (p: Page) => p.getByRole('button', { name: /Send my request|Sending/ })
 const privacy = (p: Page) => p.getByRole('contentinfo').getByRole('link', { name: 'Privacy' })
 const orderTerms = (p: Page) => p.getByRole('main').getByRole('link', { name: 'Order terms' })
@@ -58,6 +58,15 @@ async function fillRequired(page: Page) {
   await page.getByLabel('Email', { exact: true }).fill('sam@example.com.au')
 }
 
+/** Mobile collapses the Main links behind a Menu control; open it before targeting Cards. */
+async function revealMainNavLinks(page: Page) {
+  const menu = page.getByRole('banner').locator('label').filter({ hasText: /^Menu$/ })
+  if (await menu.isVisible()) {
+    await menu.click()
+    await nav(page).waitFor({ state: 'visible' })
+  }
+}
+
 const interactive = (id: string, target: (p: Page) => Locator, kinds: Kind[]): State[] =>
   kinds.map((kind) => ({ id: `${id}-${kind}`, kind, target }))
 
@@ -73,7 +82,7 @@ export const STATES: State[] = [
     },
   },
 
-  ...interactive('nav-link', nav, ['hover', 'focus', 'pressed']),
+  ...interactive('nav-link', nav, ['hover', 'focus', 'pressed']).map((s) => ({ ...s, setup: revealMainNavLinks })),
   ...interactive('hero-primary', heroPrimary, ['hover', 'focus', 'pressed']),
   ...interactive('hero-secondary', heroSecondary, ['hover', 'focus', 'pressed']),
   ...interactive('hero-play', heroPlay, ['hover', 'focus', 'pressed']),

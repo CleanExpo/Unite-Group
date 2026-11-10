@@ -21,7 +21,7 @@ export const REDEEM_COPY: Record<RedeemOutcome | RedeemAppOutcome, { title: stri
   used: { title: 'This code has already been used', body: 'Each code works once. If that was you, you are already set up. If not, ask for a new code.' },
   wrong_email: { title: 'This code is for a different email', body: 'Sign out, then sign in with the email address the code was sent to.' },
   rate_limited: { title: 'Too many tries', body: 'For your safety we have paused code checks for 15 minutes. Please try again after that.' },
-  needs_second_factor: { title: 'One more step', body: 'Confirm it is you with your authenticator app, then you can claim your portal.' },
+  needs_second_factor: { title: 'One more step', body: 'Confirm it is you with an authenticator app, or with a code we email you, then you can claim your portal.' },
   signed_out: { title: 'Please sign in first', body: 'Enter your email and we will send you a sign-in link.' },
   no_code: { title: 'We need your invite code', body: 'Paste the code from your invite to continue.' },
   error: { title: 'Something went wrong on our side', body: 'Nothing was changed. Please try again in a minute.' },

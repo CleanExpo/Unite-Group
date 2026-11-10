@@ -1,11 +1,18 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getFounderUserId } from '@/lib/auth/founder-user-id'
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 
 export const dynamic = 'force-dynamic'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+export const metadata = noIndexPageMetadata({
+  title: "Id | Unite Group",
+  description: "Private founder workspace: Id.",
+  canonical: null,
+})
 export default async function EnquiryPage({ params, searchParams }: {
   params: Promise<{ id: string }>
   searchParams?: Promise<{ erased?: string }>

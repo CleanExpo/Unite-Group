@@ -1,3 +1,5 @@
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 // src/app/(founder)/founder/contacts/[id]/page.tsx
 // Contact detail — UNI-2062 Phase 4. Server shell unwraps params; the client
 // component loads the founder-scoped contact from /api/contacts/[id].
@@ -5,6 +7,11 @@ import { ContactDetailClient } from '@/founder/contacts/ContactDetailClient'
 
 export const dynamic = 'force-dynamic'
 
+export const metadata = noIndexPageMetadata({
+  title: "Id | Unite Group",
+  description: "Private founder workspace: Id.",
+  canonical: null,
+})
 export default async function ContactDetailPage({
   params,
 }: {

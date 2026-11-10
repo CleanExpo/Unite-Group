@@ -284,23 +284,33 @@ describe('readPresets', () => {
     if (!existsSync(homeDir)) mkdirSync(homeDir, { recursive: true })
   })
 
-  // HIGH-3: stat errors that are not ENOENT
-  it('returns source=invalid when user file exists but is permission-denied (EACCES)', async () => {
-    // Skip on platforms where chmod doesn't restrict root
-    if (process.getuid?.() === 0) return
-    const path = join(homeDir, 'mcp-presets.json')
-    writeFileSync(path, JSON.stringify(VALID_SEED))
-    chmodSync(path, 0o000)
-    __resetPresetsCacheForTests()
-    try {
-      const result = await readPresets()
-      expect(result.source).toBe('invalid')
-      expect(result.error).toMatch(/cannot read existing user catalog/)
-      expect(result.errorPath).toBe(path)
-    } finally {
-      chmodSync(path, 0o644)
-    }
-  })
+  // HIGH-3: stat errors that are not ENOENT.
+  //
+  // Skipped where the input cannot be built, rather than asserted loosely.
+  // Windows has no POSIX permission bits: chmod 0o000 leaves the file readable,
+  // so readPresets succeeds and honestly reports source='user-file'. Root is
+  // skipped for the same class of reason, since root reads a 0o000 file anyway.
+  // The condition now sits on the test instead of a bare `return` inside it,
+  // which made the root skip indistinguishable from a pass. It still runs as an
+  // unprivileged user on ubuntu-latest, the only platform the apps/workspace
+  // CI job gates.
+  it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)(
+    'returns source=invalid when user file exists but is permission-denied (EACCES)',
+    async () => {
+      const path = join(homeDir, 'mcp-presets.json')
+      writeFileSync(path, JSON.stringify(VALID_SEED))
+      chmodSync(path, 0o000)
+      __resetPresetsCacheForTests()
+      try {
+        const result = await readPresets()
+        expect(result.source).toBe('invalid')
+        expect(result.error).toMatch(/cannot read existing user catalog/)
+        expect(result.errorPath).toBe(path)
+      } finally {
+        chmodSync(path, 0o644)
+      }
+    },
+  )
 
   it('returns source=invalid when user file path is a dangling symlink', async () => {
     const path = join(homeDir, 'mcp-presets.json')

@@ -1,3 +1,5 @@
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 // src/app/(founder)/founder/agents/page.tsx
 //
 // Founder agents cockpit — per-agent presence cards + 7-day activity heatmap.
@@ -60,6 +62,11 @@ const stateDotColour: Record<GatewayConnection['state'], string> = {
   offline: theme.bad,
 }
 
+export const metadata = noIndexPageMetadata({
+  path: "/founder/agents",
+  title: "Agents | Unite Group",
+  description: "Private founder workspace: Agents.",
+})
 function StateDot({ state }: { state: GatewayConnection['state'] }) {
   return (
     <span

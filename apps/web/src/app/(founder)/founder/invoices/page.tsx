@@ -2,9 +2,14 @@ import { Suspense } from 'react'
 import { getUser } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { InvoicesClient } from '@/founder/invoices/InvoicesClient'
+import { noIndexPageMetadata } from '@/lib/page-metadata'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: 'Invoices — Nexus' }
+export const metadata = noIndexPageMetadata({
+  path: '/founder/invoices',
+  title: 'Invoices | Unite Group',
+  description: 'Sales invoices across your connected accounts.',
+})
 
 export default async function InvoicesPage() {
   const user = await getUser()

@@ -1,3 +1,5 @@
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 export const dynamic = 'force-dynamic'
 
 import { redirect } from 'next/navigation'
@@ -12,6 +14,11 @@ export type ApprovalItem = Pick<
   'id' | 'type' | 'title' | 'description' | 'created_at' | 'expires_at'
 >
 
+export const metadata = noIndexPageMetadata({
+  path: "/founder/approvals",
+  title: "Approvals | Unite Group",
+  description: "Private founder workspace: Approvals.",
+})
 export default async function ApprovalsPage() {
   const user = await getUser()
   if (!user) redirect('/auth/login')

@@ -10,12 +10,13 @@ import { BookCall } from '../book-call'
 import { BOOKING_URL, THANKS_IMAGE } from '../offer'
 import { SlotImage } from '../slot-image'
 import s from '../get-a-website.module.css'
+import { noIndexPageMetadata } from '@/lib/page-metadata'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = noIndexPageMetadata({
+  path: '/get-a-website/thanks',
   title: 'Thank you | Unite Group',
   description: 'We have your answers and will contact you about your new website.',
-  robots: { index: false, follow: false },
-}
+})
 
 export default function GetAWebsiteThanksPage() {
   return (

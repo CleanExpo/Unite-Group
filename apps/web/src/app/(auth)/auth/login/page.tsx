@@ -8,6 +8,7 @@ import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
 import { buildEmailLinkOptions, buildGoogleSignInOptions } from "@/lib/auth/google-oauth-options";
 import { isPortalPath } from "@/lib/portal/paths";
+import { safeNextPath } from "@/lib/auth/implicit-fragment";
 
 function getSupabase() {
   return createBrowserClient(
@@ -25,12 +26,10 @@ const GoogleIcon = () => (
   </svg>
 );
 
+// Same guard as the server callback: a bare "starts with / but not //" check let
+// "/\evil.example" through, which browsers resolve to https://evil.example/.
 function normaliseRedirectPath(value: string | null): string {
-  if (!value || !/^\/(?!\/)/.test(value)) {
-    return "/founder/command-centre";
-  }
-
-  return value;
+  return safeNextPath(value);
 }
 
 function oauthErrorMessage(value: string | null): string {

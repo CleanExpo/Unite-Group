@@ -1,21 +1,29 @@
-import { Instrument_Sans, Syne } from 'next/font/google'
+import { Fraunces, JetBrains_Mono, Manrope } from 'next/font/google'
 
-/** Body UI and subheads on public pages. Must stay top-level const (next/font + Turbopack). */
-const instrumentDisplay = Instrument_Sans({
+/** Body and UI on public marketing pages. */
+const manrope = Manrope({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-manrope',
+  display: 'swap',
+})
+
+/** Headlines and display type on public marketing pages. */
+const fraunces = Fraunces({
   subsets: ['latin'],
   weight: ['500', '600', '700'],
-  variable: '--font-instrument-display',
+  variable: '--font-fraunces',
   display: 'swap',
 })
 
-/** Hero and major display moments on public marketing pages. */
-const syneDisplay = Syne({
+/** Labels, eyebrows, and data on public marketing pages. */
+const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
-  weight: ['700', '800'],
-  variable: '--font-syne-display',
+  weight: ['400', '500', '600'],
+  variable: '--font-jetbrains-mono',
   display: 'swap',
 })
 
-export { instrumentDisplay, syneDisplay }
+export { fraunces, jetbrainsMono, manrope }
 
-export const publicDisplayFontClassName = `${instrumentDisplay.variable} ${syneDisplay.variable}`
+export const publicDisplayFontClassName = `${manrope.variable} ${fraunces.variable} ${jetbrainsMono.variable}`

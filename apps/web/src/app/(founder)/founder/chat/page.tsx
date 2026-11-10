@@ -1,3 +1,5 @@
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 // src/app/(founder)/founder/chat/page.tsx
 //
 // Founder chat — talk to the estate's agent (the Nexus operator assistant)
@@ -10,6 +12,11 @@ export const dynamic = 'force-dynamic'
 import { getUser, createClient } from '@/lib/supabase/server'
 import { ChatClient, type ChatBusiness } from './ChatClient'
 
+export const metadata = noIndexPageMetadata({
+  path: "/founder/chat",
+  title: "Chat | Unite Group",
+  description: "Private founder workspace: Chat.",
+})
 export default async function FounderChatPage() {
   const user = await getUser()
 

@@ -317,7 +317,7 @@ describe('public card routes carry no restoration or sister-business content', (
 
   it('the home page film strip', () => {
     const home = html(createElement(PublicHome))
-    const strip = home.slice(home.indexOf('id="cards"'), home.indexOf('id="pillars"'))
+    const strip = home.slice(home.indexOf('id="cards"'), home.indexOf('id="how"'))
     expect(strip, 'positive control: the gallery rendered its tiles').toContain('data-gallery-tile="')
     expect(scan(strip)).toBeNull()
   })

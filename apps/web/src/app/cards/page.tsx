@@ -1,11 +1,19 @@
 import type { Metadata } from 'next'
+import {
+  BadgeCheck,
+  Film,
+  MessagesSquare,
+  Palette,
+  QrCode,
+  Sparkles,
+} from 'lucide-react'
 
 import { SiteFooter } from '@/public/site/site-footer'
 import { PublicPageShell } from '@/public/layout/public-page-shell'
 import { CONTACT_MAILTO, SiteNav } from '@/public/site/site-nav'
 import { cardsPageGraphJsonLd, cardsShowroomJsonLd } from '@/lib/cards-jsonld'
 import { liveCardTiers } from '@/lib/public-pricing'
-import { SITE_URL } from '@/lib/public-site'
+import { publicPageMetadata } from '@/lib/page-metadata'
 
 import { formatAud, serializeJsonLd, stripePaymentLink } from '@/app/grow/packages'
 
@@ -20,28 +28,55 @@ import p from './showroom-page.module.css'
 import s from './showroom.module.css'
 import { EXCLUSION_FACTS, FAQ_FACTS, HOSTING_FACTS, PRICE_NOTE, TIER_LINES } from './showroom-facts'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicPageMetadata({
+  path: '/cards',
   title: 'Living business cards Australia | Video card with QR | Unite Group',
   description:
     'Order a living business card that opens on a short film and ends on your logo. Nine editions, QR and vCard for Australian businesses. From $249 GST included.',
-  alternates: { canonical: `${SITE_URL}/cards` },
-  robots: { index: true, follow: true },
-  openGraph: {
-    title: 'Living business cards | Unite Group',
-    description: 'A business card that opens like a film and ends on your logo.',
-    url: `${SITE_URL}/cards`,
-  },
-}
+  openGraphTitle: 'Living business cards | Unite Group',
+  openGraphDescription: 'A business card that opens like a film and ends on your logo.',
+})
 
 const STEPS = [
-  { title: 'Pick an opener', body: 'Choose the edition you like. Yours ends on your own logo, not ours.' },
-  { title: 'Send your details', body: 'Your logo, colours, contact details and the businesses you want linked.' },
-  { title: 'Approve a proof', body: 'We build your card and send you a private link to check before anything goes live.' },
-]
+  {
+    icon: Sparkles,
+    title: 'Pick an opener',
+    body: 'Choose the edition you like. Yours ends on your own logo, not ours.',
+  },
+  {
+    icon: Palette,
+    title: 'Send your details',
+    body: 'Your logo, colours, contact details and the businesses you want linked.',
+  },
+  {
+    icon: BadgeCheck,
+    title: 'Approve a proof',
+    body: 'We build your card and send you a private link to check before anything goes live.',
+  },
+] as const
+
+const HERO_FACTS = [
+  {
+    icon: Film,
+    title: 'Short film opener',
+    line: 'A four-second clip loops in the tile, then your card opens the full story.',
+  },
+  {
+    icon: QrCode,
+    title: 'QR and one link',
+    line: 'Print the QR or share the link — same card on phone and desktop.',
+  },
+  {
+    icon: MessagesSquare,
+    title: 'Save to contacts',
+    line: 'One tap to vCard so people keep your details without retyping.',
+  },
+] as const
 
 export default function CardsShowroomPage() {
   const [signature, ...editions] = EDITIONS
   const live = liveCardTiers()
+  const liveTierIds = new Set(live.map((t) => t.id))
   const productLd = cardsShowroomJsonLd()
   // One-click buy (UNI-3049): the Starter pack Payment Link straight from the hero. Same env var and validator as the
   // order page, so an unset or non-Stripe value shows no button and /cards/order stays the way in.
@@ -65,7 +100,7 @@ export default function CardsShowroomPage() {
               </ol>
             </nav>
             <div className={p.heroGrid}>
-              <div>
+              <div className={p.heroCopy}>
                 <SectionIntro
                   as="h1"
                   id="cards-title"
@@ -73,6 +108,22 @@ export default function CardsShowroomPage() {
                   title="A business card that opens like a film and ends on your logo."
                   lead="One link or QR code. A short opener, your details, one-tap save to contacts, and links to your businesses."
                 />
+                <ul className={p.heroFacts} aria-label="What you get">
+                  {HERO_FACTS.map((fact) => {
+                    const Icon = fact.icon
+                    return (
+                      <li key={fact.title} className={p.heroFact}>
+                        <span className={p.heroFactIcon} aria-hidden="true">
+                          <Icon strokeWidth={1.75} size={22} />
+                        </span>
+                        <span className={p.heroFactText}>
+                          <strong className={p.heroFactTitle}>{fact.title}</strong>
+                          <span className={p.heroFactLine}>{fact.line}</span>
+                        </span>
+                      </li>
+                    )
+                  })}
+                </ul>
                 {ready && buyLink ? (
                   <div className={p.buyNow} data-buy-now={ready.id}>
                     <a href={buyLink} rel="noopener" data-track="cta" data-track-label="cards-hero-buy-ready" className={m.btnPrimary}>
@@ -94,23 +145,27 @@ export default function CardsShowroomPage() {
                   </a>
                 </div>
               </div>
-              <div className={p.qrWrap} data-card-qr>
-                <EditionTile edition={signature} />
-                <figure className={p.qrFigure}>
-                  <img src="/cards/living-card-qr.png" alt="QR code that opens unite-group.in/cards" width={128} height={128} />
-                  <figcaption>Scan to open this page</figcaption>
-                </figure>
+              <div className={p.heroShowcase}>
+                <p className={p.showcaseEyebrow}>Live preview</p>
+                <div className={p.qrWrap} data-card-qr>
+                  <EditionTile edition={signature} />
+                  <figure className={p.qrFigure}>
+                    <img src="/cards/living-card-qr.png" alt="QR code that opens unite-group.in/cards" width={128} height={128} />
+                    <figcaption>Scan to open this page</figcaption>
+                  </figure>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        <section id="editions" className={m.section}>
+        <section id="editions" className={`${m.section} ${p.editionsBand}`}>
           <div className={m.wrap}>
             <SectionIntro
               title="Nine editions"
               lead="Every example ends on the Unite Group logo. Yours ends on your own. Each clip is AI-generated and runs for about four seconds."
             />
+            <p className={p.editionsHint}>Hover or tap a tile to play the clip. Your card uses your logo and colours instead of ours.</p>
             <div className={p.grid}>
               {editions.map((edition) => (
                 <EditionTile key={edition.name} edition={edition} />
@@ -123,14 +178,73 @@ export default function CardsShowroomPage() {
           <div className={m.wrap}>
             <SectionIntro title="How you get your card" />
             <div className={m.stepsRow}>
-              {STEPS.map((step, i) => (
-                <div key={step.title} className={m.stepCard}>
-                  <p className={m.stepNo}>Step {i + 1}</p>
-                  <h3 className={m.stepTitle}>{step.title}</h3>
-                  <p className={m.stepBody}>{step.body}</p>
-                </div>
-              ))}
+              {STEPS.map((step, i) => {
+                const StepIcon = step.icon
+                return (
+                  <div key={step.title} className={`${m.stepCard} ${p.stepCardLift}`}>
+                    <p className={m.stepNo}>Step {i + 1}</p>
+                    <span className={p.stepIcon} aria-hidden="true">
+                      <StepIcon strokeWidth={1.5} size={24} />
+                    </span>
+                    <h3 className={m.stepTitle}>{step.title}</h3>
+                    <p className={m.stepBody}>{step.body}</p>
+                  </div>
+                )
+              })}
             </div>
+          </div>
+        </section>
+
+        <section id="compare" className={m.section} aria-labelledby="compare-title">
+          <div className={m.wrap}>
+            <SectionIntro
+              id="compare-title"
+              eyebrow="Compare"
+              title="Starter pack and Business Pack"
+              lead="Both are one-off prices with GST included. Choose the pack that matches how much bespoke film work you need."
+            />
+            <ul className={p.compareGrid}>
+              {CARD_TIERS.map((tier) => {
+                const on = liveTierIds.has(tier.id)
+                return (
+                  <li
+                    key={tier.id}
+                    className={`${p.compareCard} ${tier.id === 'ready' ? p.compareFeatured : ''}`}
+                    data-tier={tier.id}
+                  >
+                    <h3 className={p.compareName}>{tier.name}</h3>
+                    <p className={p.comparePrice}>
+                      {on ? (
+                        <>
+                          <span className={p.compareAmount}>{formatAud(tier.priceAud)}</span>
+                          <span className={p.compareGst}> GST included</span>
+                        </>
+                      ) : (
+                        <span className={p.compareAsk}>Ask us for the current price</span>
+                      )}
+                    </p>
+                    <p className={p.compareLine}>{TIER_LINES[tier.id]}</p>
+                    <p className={p.compareMeta}>{`${tier.rounds} rounds of changes.`}</p>
+                    <div className={p.compareCtas}>
+                      {on ? (
+                        <a
+                          href="/cards/order"
+                          data-track="cta"
+                          data-track-label={`cards-compare-${tier.id}`}
+                          className={tier.id === 'ready' ? m.btnPrimary : m.btnSecondary}
+                        >
+                          {`Order ${tier.name}`}
+                        </a>
+                      ) : (
+                        <a href={CONTACT_MAILTO} data-contact-email className={m.btnSecondary}>
+                          Email to order
+                        </a>
+                      )}
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
           </div>
         </section>
 

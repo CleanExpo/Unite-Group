@@ -1,6 +1,11 @@
 import { SkillHealthDashboard } from '@/founder/skills/SkillHealthDashboard'
+import { noIndexPageMetadata } from '@/lib/page-metadata'
 
-export const metadata = { title: 'Skills | Nexus' }
+export const metadata = noIndexPageMetadata({
+  path: '/founder/skills',
+  title: 'Skills health | Unite Group',
+  description: 'Automated evaluation scores for agent skills.',
+})
 
 export default function SkillsPage() {
   return (

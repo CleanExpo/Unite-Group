@@ -9,6 +9,7 @@ import { AccessPanel } from './access-panel'
 import { ChangeForm } from './change-form'
 import u from './portal-ui.module.css'
 import { RequestList } from './request-list'
+import { noIndexPageMetadata } from '@/lib/page-metadata'
 
 // Owner portal: ask for a change to your website, see each request's progress, approve a preview.
 // S1 (feat/portal-foundation) owns the shared (portal) layout and guard; this page checks access itself so it is
@@ -16,10 +17,11 @@ import { RequestList } from './request-list'
 
 export const dynamic = 'force-dynamic'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = noIndexPageMetadata({
+  path: '/portal/changes',
   title: 'Website changes | Unite Group',
-  robots: { index: false, follow: false },
-}
+  description: 'Request website changes and track progress in your portal.',
+})
 
 export default async function PortalChangesPage() {
   const { access, db } = await portalContext()

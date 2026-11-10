@@ -7,12 +7,13 @@ import r from './thanks.module.css'
 import { ThanksFilm } from './thanks-film'
 import { IntakeForm } from './intake-form'
 import { checkoutSessionId } from './session-id'
+import { noIndexPageMetadata } from '@/lib/page-metadata'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = noIndexPageMetadata({
+  path: '/cards/thanks',
   title: 'Thank you | Unite Group',
   description: 'Send the details for your living business card.',
-  robots: { index: false, follow: false },
-}
+})
 
 type SearchParams = Record<string, string | string[] | undefined>
 

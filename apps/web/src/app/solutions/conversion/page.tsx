@@ -1,16 +1,18 @@
 import type { Metadata } from 'next'
 
 import { PillarPage } from '@/public/pillar/pillar-page'
-import { PILLARS, SITE_URL, pillarPath } from '@/lib/public-site'
+import { publicPageMetadata } from '@/lib/page-metadata'
+import { PILLARS, pillarPath } from '@/lib/public-site'
 
 const pillar = PILLARS.find((p) => p.slug === 'conversion')!
 
-export const metadata: Metadata = {
-  title: `${pillar.name} | Unite Group`,
-  description: pillar.intro,
-  alternates: { canonical: `${SITE_URL}${pillarPath(pillar.slug)}` },
-  robots: { index: true, follow: true },
-}
+export const metadata: Metadata = publicPageMetadata({
+  path: pillarPath(pillar.slug),
+  title: pillar.seoTitle,
+  description: pillar.seoDescription,
+  openGraphTitle: `${pillar.name} | Unite Group`,
+  openGraphDescription: pillar.intro,
+})
 
 export default function ConversionPage() {
   return <PillarPage slug="conversion" />

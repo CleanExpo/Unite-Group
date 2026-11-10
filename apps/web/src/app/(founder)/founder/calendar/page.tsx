@@ -1,3 +1,5 @@
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
@@ -11,6 +13,11 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { loadSynthexPosts } from '@/lib/command-centre/synthex-posts'
 import { FounderCalendar } from './FounderCalendar'
 
+export const metadata = noIndexPageMetadata({
+  path: "/founder/calendar",
+  title: "Calendar | Unite Group",
+  description: "Private founder workspace: Calendar.",
+})
 export default async function CalendarPage() {
   const user = await getUser()
   const configured = isGoogleConfigured()

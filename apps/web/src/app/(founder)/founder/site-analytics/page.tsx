@@ -1,3 +1,5 @@
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 // src/app/(founder)/founder/site-analytics/page.tsx
 // Founder-only view of the first-party site analytics (UNI-3001). The founder layout requires a
 // signed-in user; this page additionally requires the founder allow-list, then reads through the
@@ -12,6 +14,11 @@ import { SiteAnalyticsView } from './site-analytics-view'
 
 export const dynamic = 'force-dynamic'
 
+export const metadata = noIndexPageMetadata({
+  path: "/founder/site-analytics",
+  title: "Site Analytics | Unite Group",
+  description: "Private founder workspace: Site Analytics.",
+})
 export default async function SiteAnalyticsPage({
   searchParams,
 }: {

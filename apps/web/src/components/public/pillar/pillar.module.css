@@ -24,6 +24,17 @@
   margin-inline: auto;
 }
 
+.browserBento {
+  max-width: min(100%, calc(var(--shot-w) + 2px));
+  width: 100%;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.42);
+}
+
+.phoneBento {
+  max-width: min(280px, 100%);
+  margin-inline: auto;
+}
+
 .browserBar {
   display: flex;
   gap: 6px;

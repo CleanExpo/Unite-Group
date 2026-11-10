@@ -12,7 +12,7 @@ import CardTermsPage from '@/app/cards/terms/page'
 import { OrderView } from '@/app/cards/order/order-view'
 import { PublicHome } from '@/public/home/public-home'
 import { PAYMENT_ENTITY_LINE } from '@/app/cards/payment-entity'
-import { CONTACT_MAILTO } from '@/public/site/site-nav'
+import { CONTACT_MAILTO, SiteNav } from '@/public/site/site-nav'
 
 // Phill 26/10/2026 (UNI-3034): /grow is linked from the nav and the home page; /cards, /cards/order and /cards/terms
 // carry the same site header as the home page; Email us stays in the page body on / and /cards; the QR code sits on the /cards card face.
@@ -45,6 +45,55 @@ describe('shared site header', () => {
 
   it('the guard can fail: a page without the header has no Main nav', () => {
     expect(mainNav('<main><a href="/grow">x</a></main>')).toBe('')
+  })
+})
+
+const SITE_NAV_CSS = readFileSync(join(__dirname, '../../components/public/site/site-nav.module.css'), 'utf8')
+
+function cssMedia(css: string, query: string) {
+  const start = css.indexOf(`@media ${query}`)
+  if (start < 0) return ''
+  const open = css.indexOf('{', start)
+  let depth = 0
+  for (let i = open; i < css.length; i++) {
+    if (css[i] === '{') depth++
+    else if (css[i] === '}') {
+      depth--
+      if (depth === 0) return css.slice(open + 1, i)
+    }
+  }
+  return ''
+}
+
+describe('shared site header: 390px collapse (UNI-3300)', () => {
+  it('keeps Order inside Main nav and puts the Menu control after it, so desktop flex children stay links + Order', () => {
+    const html = renderToStaticMarkup(createElement(SiteNav))
+    const nav = mainNav(html)
+    expect(nav).toMatch(/href="\/cards"[\s\S]*<\/ul>\s*<a href="\/cards\/order"/)
+    expect(nav).not.toContain('Menu')
+    expect(html).toMatch(/<\/nav>\s*<label[^>]*>[\s\S]*<input type="checkbox"[\s\S]*Menu<\/label>/)
+  })
+
+  it('hides the link list under 768px instead of wrapping the bar, so Order cannot overflow', () => {
+    const mobile = cssMedia(SITE_NAV_CSS, '(max-width: 768px)')
+    expect(mobile, 'the 768px header rules exist').not.toBe('')
+    expect(mobile).toMatch(/\.bar\s*\{[^}]*flex-wrap:\s*nowrap/)
+    expect(mobile).toMatch(/\.bar\s*\{[^}]*width:\s*100%/)
+    expect(mobile).not.toMatch(/\.bar\s*\{[^}]*flex-wrap:\s*wrap/)
+    expect(mobile).toMatch(/\.links\s*\{[^}]*display:\s*none/)
+    expect(mobile).toMatch(/:has\(:checked\)\s+\.links\s*\{[^}]*display:\s*flex/)
+    expect(mobile).toMatch(/\.drawerToggle\s*\{[^}]*display:\s*inline-flex/)
+    expect(SITE_NAV_CSS).toMatch(/\.drawerToggle\s*\{[^}]*display:\s*none/)
+  })
+
+  it('the guard can fail: a wrapping 768px bar is rejected', () => {
+    const wrapping = `
+@media (max-width: 768px) {
+  .bar { flex-wrap: wrap; padding-block: 8px; }
+  .nav { width: 100%; }
+}`
+    expect(wrapping).toMatch(/\.bar\s*\{[^}]*flex-wrap:\s*wrap/)
+    expect(cssMedia(wrapping, '(max-width: 768px)')).not.toMatch(/display:\s*none/)
   })
 })
 

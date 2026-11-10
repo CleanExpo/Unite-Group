@@ -11,16 +11,18 @@ import { AccessPanel } from '../changes/access-panel'
 import u from '../changes/portal-ui.module.css'
 
 import { SetupCard } from './setup-card'
+import { noIndexPageMetadata } from '@/lib/page-metadata'
 
 // Owner portal: connect Google Search Console, Bing, Google Business Profile and socials, one card per item.
 // Only public links and property ids are saved. OAuth tokens are out of scope (the secrets broker comes later).
 
 export const dynamic = 'force-dynamic'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = noIndexPageMetadata({
+  path: '/portal/setup',
   title: 'Connect your accounts | Unite Group',
-  robots: { index: false, follow: false },
-}
+  description: 'Connect Google Search Console, Bing, Google Business Profile and social accounts.',
+})
 
 export default async function PortalSetupPage() {
   const { access, db } = await portalContext()

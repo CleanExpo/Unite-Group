@@ -1,3 +1,5 @@
+import { noIndexPageMetadata } from '@/lib/page-metadata'
+
 export const dynamic = 'force-dynamic'
 
 import { NovelEditor } from '@/founder/editor/NovelEditor'
@@ -6,6 +8,11 @@ interface Props {
   params: Promise<{ businessKey: string }>
 }
 
+export const metadata = noIndexPageMetadata({
+  title: "New | Unite Group",
+  description: "Private founder workspace: New.",
+  canonical: null,
+})
 export default async function NewPageEditorPage({ params }: Props) {
   const { businessKey } = await params
 

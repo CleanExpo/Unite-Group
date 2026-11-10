@@ -164,12 +164,12 @@
 .h1 {
   margin: 10px 0 0;
   font-family: var(--pub-display);
-  font-size: clamp(2rem, 5.2vw, 3.5rem);
+  font-size: clamp(2rem, 5.2vw, 3.35rem);
   font-weight: 600;
-  line-height: 1.04;
-  letter-spacing: -0.04em;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
   text-wrap: balance;
-  max-width: 16ch;
+  max-width: 22ch;
 }
 
 .lead {
@@ -244,6 +244,61 @@
   .cta.ctaPrimary:hover {
     filter: none;
   }
+}
+
+/* —— Trust strip (facts below hero) —— */
+.trustStrip {
+  padding: clamp(1.5rem, 3.5vw, 2.25rem) 0 clamp(1rem, 2.5vw, 1.5rem);
+  background: var(--pub-bg);
+  border-bottom: 1px solid var(--pub-line);
+}
+
+.trustStripTitle {
+  margin: 0 0 clamp(1rem, 2vw, 1.25rem);
+  font-family: var(--pub-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pub-muted);
+}
+
+.trustGrid {
+  display: grid;
+  gap: clamp(12px, 2.5vw, 16px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 720px) {
+  .trustGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.trustCard {
+  margin: 0;
+  padding: clamp(14px, 2.5vw, 18px);
+  border-radius: var(--pub-radius-lg);
+  border: 1px solid var(--pub-line);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.trustCardTitle {
+  margin: 0 0 6px;
+  font-family: var(--pub-display);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--pub-ink);
+}
+
+.trustCardLine {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--pub-ink-soft);
 }
 
 /* —— Intro chapter (start + doors + status) —— */
@@ -326,6 +381,75 @@
 .pathPaid {
   border-color: rgba(236, 123, 65, 0.45) !important;
   background: rgba(236, 123, 65, 0.1) !important;
+}
+
+.pillarMini {
+  margin-top: 20px;
+  padding: 16px 18px;
+  border: 1px solid var(--pub-line);
+  border-radius: var(--pub-radius-lg);
+  background: rgba(8, 9, 20, 0.45);
+}
+
+.pillarMiniTitle {
+  margin: 0;
+  font-family: var(--pub-display);
+  font-size: clamp(1.1rem, 2vw, 1.35rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.pillarMiniLead {
+  margin: 8px 0 12px;
+  max-width: 42rem;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--pub-ink-soft);
+}
+
+.pillarMiniList {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 768px) {
+  .pillarMiniList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.pillarMiniList a {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: var(--pub-radius-lg);
+  border: 1px solid transparent;
+  text-decoration: none;
+  color: var(--pub-ink);
+}
+
+.pillarMiniList a:hover {
+  border-color: rgba(236, 123, 65, 0.35);
+  background: rgba(236, 123, 65, 0.06);
+}
+
+.pillarMiniName {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pillarMiniLine {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--pub-muted);
 }
 
 /* Bento doors */
