@@ -23,7 +23,9 @@ Correct flow:
 4. If your work depends on another in-flight branch, wait for that branch to
    merge to `main`, then rebase onto `main` — do not stack.
 
-## Commit messages — what the required check enforces
+## Commit messages
+
+### What the required check enforces (and nothing more)
 
 `main` requires the check **Commit-message convention (Linear ref + Gate line)**.
 It runs `node scripts/check-commit-messages.mjs origin/main HEAD` and fails the
@@ -31,19 +33,28 @@ PR if any one commit breaks either rule:
 
 1. **The subject names a Linear ticket**: `UNI-`, `RA-`, `SYN-`, `CCW-` or `DR-`
    followed by 1 to 5 digits, for example `(UNI-2658)`. Any letter case.
-2. **The body has a line starting `Gate:`** with text after it. Name the checks
-   that actually ran.
+2. **The body has a line starting `Gate:`** (optionally bold, `**Gate:**`) with
+   some text after it. The check reads only that the text is there, not what
+   it says.
 
 - **Every commit in `origin/main..HEAD` is checked**, not only the last one.
   A PR title with a ticket does not fix a commit subject without one.
 - Skipped: merge commits (two parents, or a `Merge branch …` /
-  `Merge pull request #…` subject) and Dependabot commits that carry both its
-  `[bot]` sign-off and its `updated-dependencies:` block.
+  `Merge remote-tracking branch …` / `Merge pull request #…` subject) and
+  Dependabot commits that carry both its `[bot]` sign-off and its
+  `updated-dependencies:` block.
+
+### Authoring advice (no check reads these)
+
+- On the `Gate:` line, name the checks that actually ran and their results.
 - Cloud agents (Cursor, Codex cloud, Claude off the PC) do not run the local
   release hooks. Run `npm run check:commit-messages` before you push.
-- **Open every PR as a draft.** A non-draft PR whose required gate is red is
-  turned back to draft by `.github/workflows/draft-on-red.yml`, with a comment
-  naming the gate.
+- **Open every PR as a draft.** Separately from the commit check,
+  `.github/workflows/draft-on-red.yml` turns a non-draft PR on `main` back to
+  draft, with a comment naming the gate, when a required check has failed, a
+  review thread is unresolved, or `nexus/release-receipt` is missing after
+  Monorepo CI has finished on the PR's head. It runs when Monorepo CI
+  finishes and every 15 minutes.
 
 The checker's own example (a test keeps this block identical to it):
 

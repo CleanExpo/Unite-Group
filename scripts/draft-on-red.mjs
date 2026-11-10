@@ -22,8 +22,15 @@
  *   - workflow_run: Monorepo CI completed on a head; open PRs with that exact head are judged.
  *   - schedule / workflow_dispatch: a sweep judges every open non-draft PR on main, so a PR
  *     that was opened, marked ready or reviewed while red is caught even if CI did not re-run.
- *     A sweep counts a missing receipt only once Monorepo CI has finished on the PR's head,
- *     read from the check runs on that head; while CI runs, only a failed check counts.
+ *
+ * WHEN A MISSING RECEIPT COUNTS. Only after Monorepo CI has finished on the PR's head: the
+ * release gate publishes the receipt after GitHub is green, so before that it cannot exist.
+ * One function owns "finished", `ciFinishedOnHead`, for both events. It reads GitHub's own
+ * list of Monorepo CI runs for that exact commit and says yes only when at least one run
+ * exists and every one is completed. It does not infer this from individual check runs (one
+ * job can finish while the run's later jobs have not appeared yet), nor from the
+ * workflow_run event (another run on the same commit can still be going). A failed required
+ * check and an open review thread count at any time.
  * GitHub runs both from the default branch only, so PR code never runs with this token.
  *
  * WHAT IT MAY DO. Exactly two writes, both checked at run time by `guardedApi`:
@@ -43,10 +50,12 @@ import { pathToFileURL } from 'node:url';
 export const RECEIPT_CONTEXT = 'nexus/release-receipt';
 export const BASE_BRANCH = 'main';
 /**
- * The CI workflow whose completion this script waits for, by its `name:` in ci.yml.
- * draft-on-red.yml's workflow_run trigger names the same workflow; a test compares both.
+ * The CI workflow whose completion this script waits for: its `name:` (which draft-on-red.yml's
+ * workflow_run trigger names) and its file (which the run list is read from). A test checks
+ * that this file exists and carries this name.
  */
 export const CI_WORKFLOW = 'Monorepo CI';
+export const CI_WORKFLOW_FILE = 'ci.yml';
 
 /** Check-run conclusions that GitHub's branch protection treats as not passing. */
 export const RED_CONCLUSIONS = Object.freeze([
@@ -68,6 +77,11 @@ export const MAX_SWEEP_PAGES = 10;
 /** The one REST read a sweep may send: one page of open PRs on main. */
 export function sweepPath(owner, repo, page) {
   return `/repos/${owner}/${repo}/pulls?state=open&base=${BASE_BRANCH}&per_page=100&page=${page}`;
+}
+
+/** The one Actions read: every CI_WORKFLOW run on one commit (one page of 100). */
+export function ciRunsPath(owner, repo, sha) {
+  return `/repos/${owner}/${repo}/actions/workflows/${CI_WORKFLOW_FILE}/runs?head_sha=${sha}&per_page=100`;
 }
 
 export const PR_QUERY = `query($owner: String!, $name: String!, $number: Int!) {
@@ -93,10 +107,7 @@ export const PR_QUERY = `query($owner: String!, $name: String!, $number: Int!) {
                 pageInfo { hasNextPage }
                 nodes {
                   __typename
-                  ... on CheckRun {
-                    name status conclusion isRequired(pullRequestNumber: $number)
-                    checkSuite { workflowRun { workflow { name } } }
-                  }
+                  ... on CheckRun { name status conclusion isRequired(pullRequestNumber: $number) }
                   ... on StatusContext { context state isRequired(pullRequestNumber: $number) }
                 }
               }
@@ -132,14 +143,7 @@ export function normalisePr(data) {
   }
   const contexts = (contextsPage?.nodes ?? []).map((node) => (node.__typename === 'StatusContext'
     ? { kind: 'status', name: node.context, state: node.state, isRequired: node.isRequired === true }
-    : {
-      kind: 'check',
-      name: node.name,
-      status: node.status,
-      conclusion: node.conclusion,
-      isRequired: node.isRequired === true,
-      workflow: node.checkSuite?.workflowRun?.workflow?.name ?? null,
-    }));
+    : { kind: 'check', name: node.name, status: node.status, conclusion: node.conclusion, isRequired: node.isRequired === true }));
   return {
     id: pr.id,
     number: pr.number,
@@ -165,23 +169,38 @@ function isGreen(ctx) {
 }
 
 /**
- * Has CI_WORKFLOW finished on this head? True only when the rollup holds at least one of its
- * check runs and every one of them is COMPLETED. No check runs yet means CI has not started.
+ * Has CI_WORKFLOW finished on this commit? The only owner of that answer, for every event.
+ * Reads GitHub's list of CI_WORKFLOW runs for `sha`. True only when at least one run exists
+ * and every run is completed (a re-run puts its run back to queued). No run yet means CI has
+ * not started, so the answer is no. A partial page, an answer that is not a run list, or a
+ * run for another commit throws: a read that cannot be trusted must not look finished.
  */
-export function ciCompletedOnHead(pr) {
-  const runs = pr.contexts.filter((c) => c.kind === 'check' && c.workflow === CI_WORKFLOW);
-  return runs.length > 0 && runs.every((c) => String(c.status).toUpperCase() === 'COMPLETED');
+export async function ciFinishedOnHead({ api, owner, repo, sha }) {
+  const answer = await api.rest('GET', ciRunsPath(owner, repo, sha));
+  const runs = answer?.workflow_runs;
+  if (!Array.isArray(runs) || !Number.isInteger(answer.total_count)) {
+    throw new Error(`listing ${CI_WORKFLOW} runs for ${sha.slice(0, 8)} did not return a run list`);
+  }
+  if (answer.total_count > runs.length) {
+    throw new Error(`${answer.total_count} ${CI_WORKFLOW} runs on ${sha.slice(0, 8)} but ${runs.length} read; refusing to judge from a partial page`);
+  }
+  for (const r of runs) {
+    if (r?.head_sha !== sha) {
+      throw new Error(`asked for ${CI_WORKFLOW} runs on ${sha.slice(0, 8)}, got one on ${String(r?.head_sha).slice(0, 8)}; the commit filter cannot be trusted`);
+    }
+  }
+  return runs.length > 0 && runs.every((r) => r.status === 'completed');
 }
 
 /**
  * Pure decision. Returns { action: 'none' | 'draft', reason, gates }.
  * `expectedHeadSha`, when given, is the SHA the triggering event was about.
- * `ciCompleted` is true when the event itself says CI finished on that SHA (workflow_run).
+ * `ciFinished` is `ciFinishedOnHead`'s answer for that SHA.
  * A missing receipt counts as red only after CI has finished on the head: before that, the
  * receipt cannot exist yet (the release gate publishes it only after GitHub is green).
  * A required check that has already failed counts at any time.
  */
-export function decide(pr, { expectedHeadSha = null, ciCompleted = false } = {}) {
+export function decide(pr, { expectedHeadSha = null, ciFinished = false } = {}) {
   if (pr.state !== 'OPEN') return { action: 'none', reason: `PR is ${pr.state}`, gates: [] };
   if (pr.isDraft) return { action: 'none', reason: 'PR is already a draft', gates: [] };
   if (pr.baseRefName !== BASE_BRANCH) {
@@ -208,7 +227,7 @@ export function decide(pr, { expectedHeadSha = null, ciCompleted = false } = {})
   for (const ctx of pr.contexts) {
     if (ctx.isRequired && isRed(ctx) && !gates.includes(ctx.name)) gates.push(ctx.name);
   }
-  const ciDone = ciCompleted === true || ciCompletedOnHead(pr);
+  const ciDone = ciFinished === true;
   if (ciDone && !receipts.some(isGreen) && !gates.includes(RECEIPT_CONTEXT)) {
     gates.push(`${RECEIPT_CONTEXT} (missing)`);
   }
@@ -239,6 +258,7 @@ export function guardedApi(api, { owner, repo }) {
   const commentPath = new RegExp(`^/repos/${owner}/${repo}/issues/\\d+/comments$`);
   const pullsForCommit = new RegExp(`^/repos/${owner}/${repo}/commits/[0-9a-f]{40}/pulls$`);
   const openPullsPage = new RegExp(`^/repos/${owner}/${repo}/pulls\\?state=open&base=${BASE_BRANCH}&per_page=100&page=\\d+$`);
+  const ciRunsForCommit = new RegExp(`^/repos/${owner}/${repo}/actions/workflows/ci\\.yml/runs\\?head_sha=[0-9a-f]{40}&per_page=100$`);
   return {
     graphql(query, variables) {
       const isMutation = /^\s*mutation\b/.test(query);
@@ -251,7 +271,9 @@ export function guardedApi(api, { owner, repo }) {
       return api.graphql(query, variables);
     },
     rest(method, path, body) {
-      if (method === 'GET' && (pullsForCommit.test(path) || openPullsPage.test(path))) return api.rest(method, path, body);
+      if (method === 'GET' && (pullsForCommit.test(path) || openPullsPage.test(path) || ciRunsForCommit.test(path))) {
+        return api.rest(method, path, body);
+      }
       if (method === 'POST' && commentPath.test(path)) return api.rest(method, path, body);
       throw new Error(`draft-on-red may not call ${method} ${path}`);
     },
@@ -269,7 +291,7 @@ export async function targetsFor({ eventName, event, api, owner, repo }) {
     if (!Array.isArray(pulls)) throw new Error('listing PRs for the commit did not return a list');
     return pulls
       .filter((p) => p.state === 'open' && p.head?.sha === sha && p.head?.repo?.full_name === `${owner}/${repo}`)
-      .map((p) => ({ number: p.number, expectedHeadSha: sha, ciCompleted: true }));
+      .map((p) => ({ number: p.number, expectedHeadSha: sha }));
   }
   if (SWEEP_EVENTS.includes(eventName)) {
     const targets = [];
@@ -280,7 +302,7 @@ export async function targetsFor({ eventName, event, api, owner, repo }) {
         if (p.state !== 'open' || p.draft === true || p.base?.ref !== BASE_BRANCH) continue;
         const sha = p.head?.sha;
         if (!/^[0-9a-f]{40}$/.test(String(sha))) throw new Error(`PR #${p.number} has no usable head sha: ${sha}`);
-        targets.push({ number: p.number, expectedHeadSha: sha, ciCompleted: false });
+        targets.push({ number: p.number, expectedHeadSha: sha });
       }
       if (list.length < 100) return targets;
     }
@@ -296,7 +318,8 @@ export async function run({ eventName, event, api, owner, repo, log = console.lo
   for (const target of await targetsFor({ eventName, event, api: safe, owner, repo })) {
     const data = await safe.graphql(PR_QUERY, { owner, name: repo, number: target.number });
     const pr = normalisePr(data);
-    const verdict = decide(pr, { expectedHeadSha: target.expectedHeadSha, ciCompleted: target.ciCompleted });
+    const ciFinished = await ciFinishedOnHead({ api: safe, owner, repo, sha: target.expectedHeadSha });
+    const verdict = decide(pr, { expectedHeadSha: target.expectedHeadSha, ciFinished });
     if (verdict.action === 'draft') {
       await safe.graphql(DRAFT_MUTATION, { id: pr.id });
       await safe.rest('POST', `/repos/${owner}/${repo}/issues/${pr.number}/comments`, { body: commentFor(pr, verdict.gates) });

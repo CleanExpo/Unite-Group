@@ -13,9 +13,11 @@ name: Draft on red gate
 #     unresolved review thread turns it back to draft.
 #   - schedule (every 15 minutes) and workflow_dispatch: a sweep judges every open non-draft
 #     PR on main the same way. This catches a PR that was opened, marked ready or reviewed
-#     while red, when CI did not run again. While Monorepo CI is still running on a PR's
-#     head, the sweep counts only a failed required check or an open thread; a missing
-#     receipt counts once CI has finished, because the receipt is published after that.
+#     while red, when CI did not run again.
+#   In both, a missing receipt counts only once every Monorepo CI run on the PR's head has
+#   finished, read from GitHub's run list for that commit (hence actions: read); the
+#   receipt is published after that. A failed required check or an open thread counts at
+#   any time.
 #
 # Why no pull_request / pull_request_target: pull_request_target hands a write token to runs
 # for fork PRs, and the pr-release-gate CI mirror replays every pull_request workflow
@@ -44,6 +46,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
   checks: read
   statuses: read

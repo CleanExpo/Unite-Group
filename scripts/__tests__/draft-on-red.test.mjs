@@ -14,10 +14,12 @@ import { fileURLToPath } from 'node:url';
 
 import {
   CI_WORKFLOW,
+  CI_WORKFLOW_FILE,
   DRAFT_MUTATION,
   MAX_SWEEP_PAGES,
   PR_QUERY,
   RECEIPT_CONTEXT,
+  ciRunsPath,
   commentFor,
   decide,
   guardedApi,
@@ -32,10 +34,8 @@ const REPO = 'Unite-Group';
 const HEAD = 'a'.repeat(40);
 const OTHER = 'b'.repeat(40);
 
-/** A check run. `workflow` is the Actions workflow that ran it; null for an app check (no workflow). */
-const check = (name, conclusion, { isRequired = true, status = 'COMPLETED', workflow = CI_WORKFLOW } = {}) => ({
+const check = (name, conclusion, { isRequired = true, status = 'COMPLETED' } = {}) => ({
   __typename: 'CheckRun', name, status, conclusion, isRequired,
-  checkSuite: workflow === null ? { workflowRun: null } : { workflowRun: { workflow: { name: workflow } } },
 });
 const status = (context, state, { isRequired = true } = {}) => ({
   __typename: 'StatusContext', context, state, isRequired,
@@ -65,10 +65,21 @@ function prData({
 }
 
 /**
- * Fake GitHub. Records every call; answers from `prs` (number -> data) and `pulls`
- * (a list, or a function of the request path for paged sweeps).
+ * GitHub's Monorepo CI run list for the commit in the request path, one run per status given
+ * ('completed', 'in_progress', 'queued', ...). No status means no run on that commit yet.
  */
-function fakeGithub({ prs = {}, pulls = [], failQuery = false } = {}) {
+const ciRuns = (...statuses) => (path) => {
+  const sha = path.match(/[?&]head_sha=([0-9a-f]{40})/)?.[1];
+  return { total_count: statuses.length, workflow_runs: statuses.map((status, i) => ({ id: i + 1, head_sha: sha, status })) };
+};
+const CI_FINISHED = ciRuns('completed');
+
+/**
+ * Fake GitHub. Records every call; answers from `prs` (number -> data), `pulls`
+ * (a list, or a function of the request path for paged sweeps) and `runs` (the CI run
+ * list, a function of the request path; by default one completed run on that commit).
+ */
+function fakeGithub({ prs = {}, pulls = [], runs = CI_FINISHED, failQuery = false } = {}) {
   const calls = [];
   return {
     calls,
@@ -85,6 +96,7 @@ function fakeGithub({ prs = {}, pulls = [], failQuery = false } = {}) {
       },
       async rest(method, path, body) {
         calls.push({ kind: 'rest', method, path, body });
+        if (method === 'GET' && path.includes('/actions/')) return runs(path);
         if (method === 'GET') return typeof pulls === 'function' ? pulls(path) : pulls;
         return { id: 1 };
       },
@@ -98,17 +110,18 @@ const listed = (number, sha = HEAD, extra = {}) => ({
 });
 
 /** Judge one PR the way the CI-completion run does: Monorepo CI finished on `eventSha`. */
-async function judge(data, { eventSha = HEAD } = {}) {
+async function judge(data, { eventSha = HEAD, runs = CI_FINISHED } = {}) {
   const { number } = data.repository.pullRequest;
-  const gh = fakeGithub({ prs: { [number]: data }, pulls: [listed(number, eventSha)] });
+  const gh = fakeGithub({ prs: { [number]: data }, pulls: [listed(number, eventSha)], runs });
   const out = await run({ eventName: 'workflow_run', event: ciDone(eventSha), api: gh.api, owner: OWNER, repo: REPO, log: () => {} });
   return { gh, out };
 }
 
 /** Run the sweep (schedule or workflow_dispatch) against a fake with paged PR lists. */
-async function sweep({ prs, pages, eventName = 'schedule' }) {
+async function sweep({ prs, pages, eventName = 'schedule', runs = CI_FINISHED }) {
   const gh = fakeGithub({
     prs,
+    runs,
     pulls: (path) => {
       const m = path.match(/[?&]page=(\d+)$/);
       assert.ok(m && path === sweepPath(OWNER, REPO, Number(m[1])), `unexpected list path ${path}`);
@@ -168,11 +181,21 @@ test('RED: no nexus/release-receipt on the head after CI completes (#1366/#1367/
   assertDrafted(gh, 1366, `${RECEIPT_CONTEXT} (missing)`);
 });
 
-test('RED: on CI completion the event itself says CI finished, even if its check runs are not in the rollup', async () => {
-  // Only a status-only head (no CI check runs listed): the workflow_run event is the evidence.
-  const { gh, out } = await judge(prData({ contexts: [status('Vercel', 'SUCCESS', { isRequired: false })] }));
+test('RED: every Monorepo CI run on the head finished -> missing receipt counts, whatever the rollup lists', async () => {
+  // A status-only rollup: GitHub's run list, not the check runs, says CI finished.
+  const { gh, out } = await judge(prData({ contexts: [status('Vercel', 'SUCCESS', { isRequired: false })] }),
+    { runs: ciRuns('completed', 'completed') });
   assert.equal(out[0].action, 'draft');
   assertDrafted(gh, 1371, `${RECEIPT_CONTEXT} (missing)`);
+});
+
+test('workflow_run: another Monorepo CI run on the same head still going -> receipt not judged yet', async () => {
+  // The event says one run finished; a dispatched run on the same commit can still be going.
+  const contexts = GREEN_CONTEXTS().filter((c) => c.context !== RECEIPT_CONTEXT);
+  const { gh, out } = await judge(prData({ contexts }), { runs: ciRuns('completed', 'in_progress') });
+  assert.equal(out[0].action, 'none');
+  assert.match(out[0].reason, /Monorepo CI has not finished/);
+  assert.deepEqual(gh.writes(), []);
 });
 
 test('RED: a pending receipt is not a passing receipt', async () => {
@@ -275,34 +298,34 @@ test('SWEEP: a red PR is drafted and a green PR is left alone, on schedule and o
   }
 });
 
-test('SWEEP: while Monorepo CI is still running, a missing receipt is not red yet (no write)', async () => {
+test('SWEEP: while Monorepo CI is not finished on the head, a missing receipt is not red yet (no write)', async () => {
   // Codex review of 940e156c, P1: a ready PR with CI mid-run was drafted for a missing receipt.
-  // The receipt is published only after GitHub is green, so it cannot exist before CI ends.
-  const running = GREEN_CONTEXTS()
-    .filter((c) => c.context !== RECEIPT_CONTEXT)
-    .map((c) => (c.name === 'apps/web — lint, type-check, test, build' ? { ...c, status: 'IN_PROGRESS', conclusion: null } : c));
-  const queued = GREEN_CONTEXTS()
-    .filter((c) => c.context !== RECEIPT_CONTEXT)
-    .map((c) => ({ ...c, status: 'QUEUED', conclusion: null }));
-  const noChecksYet = [];
-  const appCheckOnly = [check('CodeRabbit', 'SUCCESS', { isRequired: false, workflow: null })];
-  for (const contexts of [running, queued, noChecksYet, appCheckOnly]) {
-    const { gh, out } = await sweep({ prs: { 1390: prData({ number: 1390, contexts }) }, pages: [[listed(1390)]] });
-    assert.equal(out[0].action, 'none', JSON.stringify(contexts.map((c) => [c.name, c.status])));
-    assert.match(out[0].reason, /Monorepo CI has not finished/);
-    assert.deepEqual(gh.writes(), []);
+  // Codex review of b3e0330a, P1: one completed CI check run was taken as the whole run done.
+  // Here the rollup shows every CI check completed and green, yet the run list says not finished.
+  const contexts = GREEN_CONTEXTS().filter((c) => c.context !== RECEIPT_CONTEXT);
+  const notFinished = {
+    'run in progress': ciRuns('in_progress'),
+    'run queued': ciRuns('queued'),
+    'no run yet': ciRuns(),
+    'one of two runs still going': ciRuns('completed', 'in_progress'),
+    'a re-run queued': ciRuns('completed', 'queued'),
+  };
+  for (const [label, runs] of Object.entries(notFinished)) {
+    const { gh, out } = await sweep({ prs: { 1390: prData({ number: 1390, contexts }) }, pages: [[listed(1390)]], runs });
+    assert.equal(out[0].action, 'none', label);
+    assert.match(out[0].reason, /Monorepo CI has not finished/, label);
+    assert.deepEqual(gh.writes(), [], label);
   }
 });
 
-test('SWEEP: once Monorepo CI has finished on the head, a missing receipt is red again', async () => {
-  // Same PR as above with every CI check run completed: the sweep must still catch it.
-  const done = GREEN_CONTEXTS().filter((c) => c.context !== RECEIPT_CONTEXT);
-  const { gh } = await sweep({ prs: { 1390: prData({ number: 1390, contexts: done }) }, pages: [[listed(1390)]] });
-  assertDrafted(gh, 1390, `${RECEIPT_CONTEXT} (missing)`);
-  // Another workflow's finished checks do not stand in for Monorepo CI.
-  const otherWorkflow = done.map((c) => (c.__typename === 'CheckRun' ? check(c.name, 'SUCCESS', { workflow: 'Other' }) : c));
-  const other = await sweep({ prs: { 1391: prData({ number: 1391, contexts: otherWorkflow }) }, pages: [[listed(1391)]] });
-  assert.deepEqual(other.gh.writes(), []);
+test('SWEEP: once every Monorepo CI run on the head has finished, a missing receipt is red again', async () => {
+  const contexts = GREEN_CONTEXTS().filter((c) => c.context !== RECEIPT_CONTEXT);
+  for (const runs of [ciRuns('completed'), ciRuns('completed', 'completed')]) {
+    const { gh } = await sweep({ prs: { 1390: prData({ number: 1390, contexts }) }, pages: [[listed(1390)]], runs });
+    assertDrafted(gh, 1390, `${RECEIPT_CONTEXT} (missing)`);
+    // The answer came from the CI workflow's own run list for this exact head.
+    assert.ok(gh.calls.some((c) => c.kind === 'rest' && c.method === 'GET' && c.path === ciRunsPath(OWNER, REPO, HEAD)));
+  }
 });
 
 test('SWEEP: a required check that already failed is red even while CI is still running', async () => {
@@ -310,7 +333,7 @@ test('SWEEP: a required check that already failed is red even while CI is still 
     .filter((c) => c.context !== RECEIPT_CONTEXT)
     .map((c) => (c.name === 'apps/web — lint, type-check, test, build' ? { ...c, status: 'IN_PROGRESS', conclusion: null } : c))
     .map((c) => (c.name === 'Commit-message convention (Linear ref + Gate line)' ? { ...c, conclusion: 'FAILURE' } : c));
-  const { gh, out } = await sweep({ prs: { 1392: prData({ number: 1392, contexts }) }, pages: [[listed(1392)]] });
+  const { gh, out } = await sweep({ prs: { 1392: prData({ number: 1392, contexts }) }, pages: [[listed(1392)]], runs: ciRuns('in_progress') });
   assertDrafted(gh, 1392, 'Commit-message convention (Linear ref + Gate line)');
   assert.ok(!out[0].gates.some((g) => g.startsWith(RECEIPT_CONTEXT)), 'receipt not judged before CI ends');
 });
@@ -364,6 +387,23 @@ test('FAIL LOUD: a partial page of checks or threads throws and writes nothing',
   }
 });
 
+test('FAIL LOUD: a CI run list that cannot be trusted throws and writes nothing', async () => {
+  const red = GREEN_CONTEXTS().filter((c) => c.context !== RECEIPT_CONTEXT);
+  const cases = {
+    'not a run list': [() => ({ message: 'Resource not accessible by integration' }), /did not return a run list/],
+    'partial page': [() => ({ total_count: 101, workflow_runs: [{ id: 1, head_sha: HEAD, status: 'completed' }] }), /partial page/],
+    'run on another commit': [() => ({ total_count: 1, workflow_runs: [{ id: 1, head_sha: OTHER, status: 'completed' }] }), /commit filter cannot be trusted/],
+    'read fails': [() => { throw new Error('GET runs -> 403'); }, /403/],
+  };
+  for (const [label, [runs, error]] of Object.entries(cases)) {
+    for (const eventName of ['workflow_run', 'schedule']) {
+      const gh = fakeGithub({ prs: { 1371: prData({ contexts: red }) }, pulls: (path) => (path.includes('/commits/') ? [listed(1371)] : (/page=1$/.test(path) ? [listed(1371)] : [])), runs });
+      await assert.rejects(run({ eventName, event: ciDone(), api: gh.api, owner: OWNER, repo: REPO, log: () => {} }), error, `${label} (${eventName})`);
+      assert.deepEqual(gh.writes(), [], `${label} (${eventName})`);
+    }
+  }
+});
+
 test('FAIL LOUD: required flags that read false for the receipt throw (positive control)', async () => {
   const contexts = [...GREEN_CONTEXTS().filter((c) => c.context !== RECEIPT_CONTEXT), status(RECEIPT_CONTEXT, 'SUCCESS', { isRequired: false })];
   const gh = fakeGithub({ prs: { 1371: prData({ contexts: contexts.map((c) => ({ ...c, isRequired: false })) }) }, pulls: [listed(1371)] });
@@ -381,15 +421,16 @@ test('FAIL LOUD: an event it does not handle is refused, including the pull_requ
 
 // ---------------------------------------------------------------- only two writes exist
 
-test('guardedApi lets through only the PR query, the draft mutation, the two PR lists and a comment', async () => {
+test('guardedApi lets through only the PR query, the draft mutation, the two PR lists, the CI run list and a comment', async () => {
   const gh = fakeGithub();
   const safe = guardedApi(gh.api, { owner: OWNER, repo: REPO });
   await safe.graphql(PR_QUERY, {});
   await safe.graphql(DRAFT_MUTATION, { id: 'x' });
   await safe.rest('GET', `/repos/${OWNER}/${REPO}/commits/${HEAD}/pulls`);
   await safe.rest('GET', sweepPath(OWNER, REPO, 3));
+  await safe.rest('GET', ciRunsPath(OWNER, REPO, HEAD));
   await safe.rest('POST', `/repos/${OWNER}/${REPO}/issues/12/comments`, { body: 'x' });
-  assert.equal(gh.calls.length, 5);
+  assert.equal(gh.calls.length, 6);
 
   const refused = [
     () => safe.graphql('mutation($id: ID!) { mergePullRequest(input: { pullRequestId: $id }) { clientMutationId } }', {}),
@@ -404,15 +445,19 @@ test('guardedApi lets through only the PR query, the draft mutation, the two PR 
     () => safe.rest('GET', `/repos/${OWNER}/${REPO}/actions/secrets`),
     () => safe.rest('GET', `/repos/${OWNER}/${REPO}/pulls?state=all&base=main&per_page=100&page=1`),
     () => safe.rest('POST', sweepPath(OWNER, REPO, 1), { title: 'x' }),
+    () => safe.rest('GET', `/repos/${OWNER}/${REPO}/actions/workflows/other.yml/runs?head_sha=${HEAD}&per_page=100`),
+    () => safe.rest('GET', `/repos/${OWNER}/${REPO}/actions/workflows/ci.yml/runs?per_page=100`),
+    () => safe.rest('POST', `/repos/${OWNER}/${REPO}/actions/runs/1/rerun`),
+    () => safe.rest('POST', ciRunsPath(OWNER, REPO, HEAD), {}),
   ];
   for (const call of refused) assert.throws(call, /draft-on-red may/);
-  assert.equal(gh.calls.length, 5, 'nothing refused reached the API');
+  assert.equal(gh.calls.length, 6, 'nothing refused reached the API');
 });
 
 test('normalisePr and decide agree with the comment format', () => {
   const pr = normalisePr(prData({ contexts: [] }));
-  assert.equal(decide(pr).action, 'none', 'no CI check runs yet: the receipt is not judged');
-  const verdict = decide(pr, { ciCompleted: true });
+  assert.equal(decide(pr).action, 'none', 'CI not known to be finished: the receipt is not judged');
+  const verdict = decide(pr, { ciFinished: true });
   assert.equal(verdict.action, 'draft');
   assert.match(commentFor(pr, verdict.gates), /^Turned back to draft by draft-on-red: required gate red on aaaaaaaa: nexus\/release-receipt \(missing\)\./);
 });
@@ -421,12 +466,12 @@ test('normalisePr and decide agree with the comment format', () => {
 
 const WORKFLOW = readFileSync(join(ROOT, '.github', 'workflows', 'draft-on-red.yml'), 'utf8').replace(/\r\n/g, '\n');
 const WF_CODE = WORKFLOW.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
-const CI = readFileSync(join(ROOT, '.github', 'workflows', 'ci.yml'), 'utf8').replace(/\r\n/g, '\n');
+const CI = readFileSync(join(ROOT, '.github', 'workflows', CI_WORKFLOW_FILE), 'utf8').replace(/\r\n/g, '\n');
 
 test('workflow: watches the CI workflow by its real name (a renamed CI would never fire this)', () => {
   const ciName = CI.match(/^name:\s*(.+)$/m)?.[1]?.trim();
   assert.ok(ciName, 'ci.yml has a name');
-  assert.equal(CI_WORKFLOW, ciName, 'the script waits for the same workflow the trigger names');
+  assert.equal(CI_WORKFLOW, ciName, `${CI_WORKFLOW_FILE}, whose runs the script reads, is the workflow the trigger names`);
   assert.match(WF_CODE, new RegExp(`workflows:\\s*\\[\\s*["']${ciName}["']\\s*\\]`));
   assert.match(WF_CODE, /^ {2}workflow_run:\n {4}workflows:.*\n {4}types:\s*\[\s*completed\s*\]/m);
 });
@@ -443,11 +488,11 @@ test('workflow: the sweep runs on a schedule and by hand, with no pull_request t
   assert.match(WF_CODE, /^concurrency:\n {2}group: draft-on-red\n {2}cancel-in-progress: false$/m, 'one run at a time');
 });
 
-test('workflow: the only write permission is pull-requests: write', () => {
+test('workflow: the only write permission is pull-requests: write (actions: read is for the CI run list)', () => {
   const block = WF_CODE.match(/^permissions:\n((?: {2}.+\n)+)/m)?.[1];
   assert.ok(block, 'top-level permissions block');
   const perms = Object.fromEntries(block.trim().split('\n').map((l) => l.trim().split(/:\s*/)));
-  assert.deepEqual(perms, { contents: 'read', checks: 'read', statuses: 'read', 'pull-requests': 'write' });
+  assert.deepEqual(perms, { actions: 'read', contents: 'read', checks: 'read', statuses: 'read', 'pull-requests': 'write' });
   assert.doesNotMatch(WF_CODE, /^ +permissions:/m, 'no job widens permissions');
   assert.doesNotMatch(WF_CODE, /write-all|: write\b(?<!pull-requests: write)/);
 });
