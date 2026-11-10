@@ -46,6 +46,19 @@ export const LINEAR_REF_RE = new RegExp(
   'i',
 );
 
+/**
+ * The example printed when the check fails. AGENTS.md quotes it, and a test
+ * compares the two byte for byte, so the instructions agents read cannot drift
+ * from what this check prints. Change it here only.
+ */
+export const COMMIT_EXAMPLE_LINES = Object.freeze([
+  'feat(ci): describe the change (UNI-2658)',
+  '',
+  'What cannot happen after this merge: ...',
+  '',
+  'Gate: <the gauntlet that actually ran>.',
+]);
+
 /** A body line that is the nexus-conventions gate line, with content after it. */
 export const GATE_LINE_RE = /^\s*(?:\*\*)?Gate:(?:\*\*)?\s+\S/m;
 
@@ -298,11 +311,7 @@ export function main({
   console.error('a Linear ref on the subject and a Gate: line in the body:\n');
   for (const v of violations) console.error(formatViolation(v));
   console.error('\nExample:');
-  console.error('  feat(ci): describe the change (UNI-2658)');
-  console.error('');
-  console.error('  What cannot happen after this merge: ...');
-  console.error('');
-  console.error('  Gate: <the gauntlet that actually ran>.');
+  for (const line of COMMIT_EXAMPLE_LINES) console.error(line ? `  ${line}` : '');
   return 1;
 }
 

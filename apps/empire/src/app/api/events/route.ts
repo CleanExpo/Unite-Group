@@ -15,8 +15,6 @@
  * status route and the connection-spine health panel.
  */
 
-import { timingSafeEqual } from 'crypto';
-
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -25,15 +23,11 @@ import {
   synthexEventSchema,
   toAgentActionInsert,
 } from '@/lib/integrations/synthex-events';
+// The shared constant-time compare (same checks as the local helper it replaces).
+// Using it also lets scripts/check-route-inventory.ts see the protection.
+import { timingSafeTokenMatch } from '@/lib/security/safe-compare';
 
 export const dynamic = 'force-dynamic';
-
-function keysMatch(provided: string, expected: string): boolean {
-  const a = Buffer.from(provided);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(a, b);
-}
 
 export async function GET() {
   return NextResponse.json({
@@ -53,7 +47,7 @@ export async function POST(request: NextRequest) {
   }
 
   const providedKey = request.headers.get('x-api-key') ?? '';
-  if (!providedKey || !keysMatch(providedKey, expectedKey)) {
+  if (!timingSafeTokenMatch(providedKey, expectedKey)) {
     return NextResponse.json({ error: 'unauthorised' }, { status: 401 });
   }
 

@@ -64,21 +64,44 @@ describe('DailyCrmDigestPanel', () => {
     expect(html).toContain('data-source-mode="seed"');
   });
 
-  it('allows CommandCenterShell to render the digest in the side rail from dailyDigestInitial', () => {
+  // CommandCenterShell loads this panel with next/dynamic and ssr: false, so a server
+  // render shows only its loading skeleton. This test was written against a server
+  // render and had never run in CI (no apps/empire job until 05/11/2026). The two tests
+  // below keep its purpose: the shell passes dailyDigestInitial to the panel.
+  const digestInitial = {
+    sourceLiveAt: '2026-05-26T08:35:00.000Z',
+    summary: { leadCount: 7 },
+    operatorPriorities: ['Follow up with Oceanic'],
+  };
+
+  it('CommandCenterShell server render shows the digest loading skeleton, not the client-only panel', () => {
     const html = renderToStaticMarkup(
-      <CommandCenterShell
-        locale="en"
-        dailyDigestInitial={{
-          sourceLiveAt: '2026-05-26T08:35:00.000Z',
-          summary: { leadCount: 7 },
-          operatorPriorities: ['Follow up with Oceanic'],
-        }}
-      />,
+      <CommandCenterShell locale="en" dailyDigestInitial={digestInitial} />,
     );
 
-    expect(html).toContain('Daily CRM Digest');
-    expect(html).toContain('Follow up with Oceanic');
-    expect(html).toContain('7');
-    expect(html).toContain('data-source-mode="live"');
+    expect(html).toContain('command-center-side-rail');
+    expect(html).not.toContain('Daily CRM Digest');
+  });
+
+  it('CommandCenterShell passes dailyDigestInitial to the digest panel in the side rail', () => {
+    let html = '';
+    jest.isolateModules(() => {
+      // Replace the lazy loader with the real panel, for this test only. The shell has
+      // exactly one dynamic() call, the digest panel.
+      jest.doMock('next/dynamic', () => ({
+        __esModule: true,
+        default: () => jest.requireActual('../DailyCrmDigestPanel').DailyCrmDigestPanel,
+      }));
+      // Renderer from the same isolated module set, so it shares one React with the shell.
+      const { renderToStaticMarkup: render } = require('react-dom/server');
+      const { CommandCenterShell: EagerShell } = require('../../CommandCenterShell');
+      html = render(<EagerShell locale="en" dailyDigestInitial={digestInitial} />);
+    });
+
+    const rail = html.slice(html.indexOf('command-center-side-rail'));
+    expect(rail).toContain('Daily CRM Digest');
+    expect(rail).toContain('Follow up with Oceanic');
+    expect(rail).toContain('7');
+    expect(rail).toContain('data-source-mode="live"');
   });
 });

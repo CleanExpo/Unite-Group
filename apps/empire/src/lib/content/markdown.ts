@@ -10,7 +10,7 @@ import rehypeStringify from 'rehype-stringify';
 import remarkGfm from 'remark-gfm';
 import rehypePrism from 'rehype-prism-plus';
 import rehypeSlug from 'rehype-slug';
-import rehypeAutolinkHeadings from 'rehype-autolink-headings';
+import rehypeAutolinkHeadings, { type Options as AutolinkOptions } from 'rehype-autolink-headings';
 import { toString as mdastToString } from 'mdast-util-to-string';
 import { visit } from 'unist-util-visit';
 import readingTime from 'reading-time';
@@ -62,6 +62,35 @@ function extractHeadings() {
 }
 
 /**
+ * Heading anchor options. Typed as the plugin's own Options: passed inline, the
+ * plugin's `[boolean] | [options]` overload lost the literal types ('element',
+ * 'text') and tsc rejected the call. ariaHidden is the string 'true' because hast
+ * Properties type it as a string; the boolean `true` serialised as a bare
+ * `aria-hidden`, whose empty value screen readers treat as not hidden.
+ */
+const AUTOLINK_OPTIONS: AutolinkOptions = {
+  behavior: 'append',
+  properties: {
+    className: ['anchor'],
+    ariaHidden: 'true',
+    tabIndex: -1,
+  },
+  content: {
+    type: 'element',
+    tagName: 'span',
+    properties: {
+      className: ['anchor-icon'],
+    },
+    children: [
+      {
+        type: 'text',
+        value: '#',
+      },
+    ],
+  },
+};
+
+/**
  * Parse markdown content to HTML
  * @param markdown The markdown content to parse
  * @returns Parsed HTML content
@@ -74,27 +103,7 @@ export async function parseMarkdown(markdown: string): Promise<string> {
     .use(remarkGfm)
     .use(remarkRehype)
     .use(rehypeSlug)
-    .use(rehypeAutolinkHeadings, {
-      behavior: 'append',
-      properties: {
-        className: ['anchor'],
-        ariaHidden: true,
-        tabIndex: -1,
-      },
-      content: {
-        type: 'element',
-        tagName: 'span',
-        properties: {
-          className: ['anchor-icon'],
-        },
-        children: [
-          {
-            type: 'text',
-            value: '#',
-          },
-        ],
-      },
-    })
+    .use(rehypeAutolinkHeadings, AUTOLINK_OPTIONS)
     .use(rehypePrism)
     .use(rehypeStringify)
     .process(markdown);
