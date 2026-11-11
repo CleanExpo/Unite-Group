@@ -68,7 +68,7 @@ describe('llms.txt (AC-7)', () => {
     for (const t of CARD_TIERS) expect(llms).not.toContain(`$${t.priceAud}`)
     expect(llms).not.toContain('249')
     expect(llms).not.toContain('449')
-    expect(llms).toContain('Current card prices are shown at https://unite-group.in/cards/order')
+    expect(llms).toContain('Card prices are shown on the order page while online ordering is open: https://unite-group.in/cards/order')
     expect(llms.match(/synthex/gi) ?? []).toHaveLength(0)
     expect(llms).not.toMatch(/unite-group\.com\.au/)
   })
