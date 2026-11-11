@@ -60,11 +60,15 @@ describe('robots (AC-7)', () => {
 })
 
 describe('llms.txt (AC-7)', () => {
-  it('mentions the card offer and its terms, never /grow, with prices from CARD_TIERS, and never the internal agency', () => {
+  it('mentions the card offer and its terms, never /grow, states no card price (the order page shows it), and never the internal agency', () => {
     expect(llms).not.toContain('/grow')
     expect(llms).toContain('/cards/terms')
     expect(llms).toMatch(/video business card/i)
-    for (const t of CARD_TIERS) expect(llms).toContain(`$${t.priceAud} AUD`)
+    // UNI-3035: pages show a card price only when a payment link is live, so a static file must not state one.
+    for (const t of CARD_TIERS) expect(llms).not.toContain(`$${t.priceAud}`)
+    expect(llms).not.toContain('249')
+    expect(llms).not.toContain('449')
+    expect(llms).toContain('Card prices are shown on the order page while online ordering is open: https://unite-group.in/cards/order')
     expect(llms.match(/synthex/gi) ?? []).toHaveLength(0)
     expect(llms).not.toMatch(/unite-group\.com\.au/)
   })

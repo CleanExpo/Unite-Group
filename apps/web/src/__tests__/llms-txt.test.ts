@@ -23,4 +23,10 @@ describe('public/llms.txt', () => {
     expect(howToBuy).toContain('https://unite-group.in/cards/order')
     expect(llms).not.toContain('199')
   })
+
+  it('states no card price and points to the order page, which shows prices only when a payment link is live (UNI-3035)', () => {
+    expect(llms).not.toContain('249')
+    expect(llms).not.toContain('449')
+    expect(llms).toContain('/cards/order')
+  })
 })
