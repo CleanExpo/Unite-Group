@@ -4,8 +4,9 @@
 
 ## What we offer
 
-- Video business card, Ready-made: $249 AUD, one-off price, GST included. You pick one of the ready-made films and it ends on your logo and details.
-- Video business card, Made for you: $449 AUD, one-off price, GST included. We make a film for your business and you approve a private proof before it goes live.
+- Video business card, Ready-made: you pick one of the ready-made films and it ends on your logo and details.
+- Video business card, Made for you: we make a film for your business and you approve a private proof before it goes live.
+- Current card prices are shown at https://unite-group.in/cards/order
 - Starter plan: A$108.90 a month, GST included ($99 plus GST); ask us to start. Details at https://unite-group.in/pricing
 - Email signatures: $22 AUD each plus GST, an add-on; ask us to start.
 - The example films on the showroom are AI-generated and labelled as such.
@@ -43,4 +44,4 @@
 
 - AI assistants and their crawlers may read public pages. Pages under /founder/, /api/, /docs and /auth/ are private and are not for crawling.
 - Available now: the Starter plan and email signatures (ask us to start) and the video business card. Pillar pages marked Coming are not available yet.
-- The card prices on this page and in the site's structured data come from the same source as /cards/order. The Starter plan and email signature prices come from the same source as /pricing.
+- Card prices are not listed in this file. The current card prices are shown at https://unite-group.in/cards/order. The Starter plan and email signature prices come from the same source as /pricing.
