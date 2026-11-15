@@ -152,13 +152,19 @@ export function runReview({ report, classification, currentContent, priorSnapsho
       pagePath: `docs/vendor-intelligence/${vendorSlug(entry.vendor)}.md`,
     }
 
-    if (entry.change === 'unchanged') {
-      items.push(base)
-      continue
-    }
-
     const currentText = current.get(entry.id)
     const priorText = prior.get(entry.id)
+
+    // The watcher's fingerprint baseline and the committed snapshots are separate records. "unchanged" only
+    // means unchanged since the fingerprint baseline, so a source whose snapshot differs is still reviewed.
+    let snapshotDiffers = false
+    if (entry.change === 'unchanged') {
+      if (typeof currentText !== 'string' || typeof priorText !== 'string' || currentText === priorText) {
+        items.push(base)
+        continue
+      }
+      snapshotDiffers = true
+    }
     base.priorSha256 = typeof priorText === 'string' ? sha256(priorText) : null
 
     if (entry.change === 'first_seen') {
@@ -190,6 +196,7 @@ export function runReview({ report, classification, currentContent, priorSnapsho
 
     base.classification = 'material_change'
     base.reasons.push('normalised_content')
+    if (snapshotDiffers) base.reasons.push('snapshot_differs_from_fingerprint')
     const diff = lineDiff(priorText, currentText)
     base.proposedMarkdown = proposedMarkdown(base, diff, surface)
     items.push(base)

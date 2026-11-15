@@ -181,3 +181,34 @@ test('the review CLI writes only proposals and never overwrites the baseline or 
   assert.equal(await readFile(snapshotPath, 'utf8'), snapshotContent)
   assert.ok(stdout === undefined || true)
 })
+
+test('a fingerprint-unchanged source is still reviewed against its committed snapshot', () => {
+  const differs = okSource({ id: 'a.differs', change: 'unchanged' })
+  const noise = okSource({ id: 'b.noise', vendor: 'Hermes', change: 'unchanged' })
+  const same = okSource({ id: 'c.same', change: 'unchanged' })
+  const noSnapshot = okSource({ id: 'd.nosnapshot', change: 'unchanged' })
+  const review = runReview({
+    report: report([differs, noise, same, noSnapshot]),
+    classification,
+    currentContent: new Map([
+      [differs.id, 'Model gpt-x retires on 1 December'],
+      [noise.id, 'Hermes v1.2.0\n1500 stars\nupdated 5 minutes ago'],
+      [same.id, 'identical text'],
+      [noSnapshot.id, 'text with no snapshot'],
+    ]),
+    priorSnapshots: new Map([
+      [differs.id, 'Model gpt-x is available'],
+      [noise.id, 'Hermes v1.2.0\n1200 stars\nupdated 3 hours ago'],
+      [same.id, 'identical text'],
+    ]),
+    now: '2026-11-16T00:00:00.000Z',
+  })
+  const byId = Object.fromEntries(review.items.map((item) => [item.id, item]))
+  assert.equal(byId['a.differs'].classification, 'material_change')
+  assert.ok(byId['a.differs'].reasons.includes('snapshot_differs_from_fingerprint'))
+  assert.match(byId['a.differs'].proposedMarkdown, /retires on 1 December/)
+  assert.equal(byId['b.noise'].classification, 'volatile_noise')
+  assert.equal(byId['c.same'].classification, 'unchanged')
+  assert.equal(byId['d.nosnapshot'].classification, 'unchanged')
+  assert.equal(review.summary.materialChanges, 1)
+})
