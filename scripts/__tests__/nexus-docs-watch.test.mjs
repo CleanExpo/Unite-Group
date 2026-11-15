@@ -836,3 +836,30 @@ test('a source maxBytes override is part of the baseline registry fingerprint', 
     /fingerprint/i,
   )
 })
+
+test('content capture sends no conditional headers and refuses a 304', async () => {
+  const input = registry([source()])
+  const report = buildReport([successfulResult()], null, '2026-07-12T00:00:00.000Z', false)
+  const baseline = watcherModule.buildFingerprintBaseline(report, input)
+  let headers
+
+  const captured = await fetchOfficialSource(source(), input.defaults, {
+    baseline: baseline.sources[0],
+    captureContent: true,
+    resolveHost: publicResolver,
+    fetchImpl: async (_url, options) => {
+      headers = options.headers
+      return new Response('Release 2', { headers: { 'content-type': 'text/plain' } })
+    },
+  })
+  assert.equal(headers['if-none-match'], undefined)
+  assert.equal(headers['if-modified-since'], undefined)
+  assert.equal(captured.normalised, 'Release 2')
+
+  await assert.rejects(fetchOfficialSource(source(), input.defaults, {
+    baseline: baseline.sources[0],
+    captureContent: true,
+    resolveHost: publicResolver,
+    fetchImpl: async () => new Response(null, { status: 304 }),
+  }), /304/)
+})

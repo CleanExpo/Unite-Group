@@ -155,31 +155,19 @@ export function runReview({ report, classification, currentContent, priorSnapsho
     const currentText = current.get(entry.id)
     const priorText = prior.get(entry.id)
 
-    // The watcher's fingerprint baseline and the committed snapshots are separate records. "unchanged" only
-    // means unchanged since the fingerprint baseline, so a source whose snapshot differs is still reviewed.
-    let snapshotDiffers = false
-    if (entry.change === 'unchanged') {
-      if (typeof currentText !== 'string' || typeof priorText !== 'string' || currentText === priorText) {
-        items.push(base)
-        continue
-      }
-      snapshotDiffers = true
-    }
     base.priorSha256 = typeof priorText === 'string' ? sha256(priorText) : null
 
-    if (entry.change === 'first_seen') {
+    // The classification comes from the committed snapshot alone. The watcher's fingerprint baseline is a separate
+    // record, so entry.change never decides it: without both texts nothing can be called unchanged.
+    if (entry.change === 'first_seen') base.reasons.push('first_seen')
+    if (typeof currentText !== 'string' || typeof priorText !== 'string') {
       base.classification = 'material_change'
-      base.reasons.push('first_seen')
+      base.reasons.push(typeof currentText !== 'string' ? 'missing_current_content' : 'missing_snapshot')
       base.proposedMarkdown = proposedMarkdown(base, null, surface)
       items.push(base)
       continue
     }
-
-    // change === 'changed'
-    if (typeof currentText !== 'string' || typeof priorText !== 'string') {
-      base.classification = 'material_change'
-      base.reasons.push('missing_snapshot')
-      base.proposedMarkdown = proposedMarkdown(base, null, surface)
+    if (currentText === priorText) {
       items.push(base)
       continue
     }
@@ -196,7 +184,6 @@ export function runReview({ report, classification, currentContent, priorSnapsho
 
     base.classification = 'material_change'
     base.reasons.push('normalised_content')
-    if (snapshotDiffers) base.reasons.push('snapshot_differs_from_fingerprint')
     const diff = lineDiff(priorText, currentText)
     base.proposedMarkdown = proposedMarkdown(base, diff, surface)
     items.push(base)
@@ -214,6 +201,7 @@ export function runReview({ report, classification, currentContent, priorSnapsho
       unchanged: count((item) => item.classification === 'unchanged'),
       firstSeen: count((item) => item.reasons.includes('first_seen')),
       missingSnapshots: count((item) => item.reasons.includes('missing_snapshot')),
+      missingCurrentContent: count((item) => item.reasons.includes('missing_current_content')),
     },
     items,
   }

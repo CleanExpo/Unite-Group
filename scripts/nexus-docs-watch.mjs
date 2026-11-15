@@ -852,7 +852,9 @@ export async function fetchOfficialSource(source, defaults, options = {}) {
         response = await requestImpl({
           url: currentUrl,
           approvedAddresses,
-          headers: baselineHeaders(options.baseline, currentUrl),
+          // Content capture feeds the snapshot review, which needs the full current text, so it never asks
+          // "changed since the baseline?" and never accepts a body-less 304.
+          headers: baselineHeaders(options.captureContent ? null : options.baseline, currentUrl),
           signal: controller.signal,
         })
       } catch (error) {
@@ -878,6 +880,9 @@ export async function fetchOfficialSource(source, defaults, options = {}) {
       }
 
       if (response.status === 304) {
+        if (options.captureContent) {
+          throw new WatchError('http_status', `Source ${source.id} answered 304 to an unconditional content capture`)
+        }
         return baselineReuse(source, options.baseline, response, currentUrl)
       }
       if (response.status !== 200) {
