@@ -787,3 +787,52 @@ test('pull-request CI enforces watcher tests on the supported Node 24 runtime', 
   assert.match(job, /actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1/)
   assert.match(job, /actions\/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1/)
 })
+
+test('a source maxBytes override lifts the byte cap for that source only', async () => {
+  const defaults = { ...registry([source()]).defaults, maxBytes: 16 }
+  const body = 'x'.repeat(40)
+  const respond = async () => new Response(body, { headers: { 'content-type': 'text/plain' } })
+
+  const result = await fetchOfficialSource(source({ maxBytes: 64 }), defaults, {
+    resolveHost: publicResolver,
+    fetchImpl: respond,
+  })
+  assert.equal(result.outcome, 'ok')
+  assert.equal(result.bytes, 40)
+
+  await assert.rejects(
+    fetchOfficialSource(source(), defaults, { resolveHost: publicResolver, fetchImpl: respond }),
+    /size|large|bytes/i,
+  )
+  await assert.rejects(
+    fetchOfficialSource(source({ maxBytes: 32 }), defaults, { resolveHost: publicResolver, fetchImpl: respond }),
+    /exceeds 32 bytes/,
+  )
+})
+
+test('a source maxBytes override must be a positive integer within the 16 MiB source ceiling', () => {
+  for (const maxBytes of [0, -1, 1.5, '64', (16 * 1024 * 1024) + 1]) {
+    assert.throws(
+      () => validateRegistry(registry([source({ maxBytes })])),
+      /maxBytes/,
+      `maxBytes ${String(maxBytes)} must be refused`,
+    )
+  }
+  assert.doesNotThrow(() => validateRegistry(registry([source({ maxBytes: 16 * 1024 * 1024 })])))
+})
+
+test('a source maxBytes override is part of the baseline registry fingerprint', () => {
+  const entry = source({ maxBytes: 64 })
+  const report = { generatedAt: '2026-11-15T00:00:00.000Z', sources: [successfulResult(entry, { bytes: 40 })] }
+  const baseline = watcherModule.buildFingerprintBaseline(report, registry([entry]))
+
+  assert.doesNotThrow(() => watcherModule.validateBaseline(baseline, registry([entry])))
+  assert.throws(
+    () => watcherModule.validateBaseline(baseline, registry([source({ maxBytes: 128 })])),
+    /fingerprint/i,
+  )
+  assert.throws(
+    () => watcherModule.validateBaseline(baseline, registry([source()])),
+    /fingerprint/i,
+  )
+})

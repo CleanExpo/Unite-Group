@@ -26,6 +26,9 @@ const NETWORK_CEILINGS = Object.freeze({
   maxRedirects: 5,
   concurrency: 8,
 })
+// One source may need more room than the shared default (the Codex changelog is one page of about 5 MB).
+// A per-source maxBytes is still bounded, by this separate ceiling.
+const SOURCE_MAX_BYTES_CEILING = 16 * 1024 * 1024
 const BLOCKED_IPV4 = new BlockList()
 for (const [network, prefix] of [
   ['0.0.0.0', 8],
@@ -190,6 +193,19 @@ function validateSource(source) {
   if (typeof source.critical !== 'boolean' || typeof source.gateOnChange !== 'boolean') {
     throw new WatchError('invalid_config', `Source ${source.id} requires boolean gate fields`)
   }
+  if (
+    source.maxBytes !== undefined &&
+    (!Number.isInteger(source.maxBytes) || source.maxBytes <= 0 || source.maxBytes > SOURCE_MAX_BYTES_CEILING)
+  ) {
+    throw new WatchError(
+      'invalid_config',
+      `Source ${source.id} maxBytes must be a positive integer no larger than ${SOURCE_MAX_BYTES_CEILING}`,
+    )
+  }
+}
+
+function sourceMaxBytes(source, defaults) {
+  return source.maxBytes ?? defaults.maxBytes
 }
 
 function validateNetworkDefaults(defaults) {
@@ -559,6 +575,8 @@ function registryFingerprint(registry) {
         allowedHosts: source.allowedHosts.map(normaliseHostname).sort(),
         critical: source.critical,
         gateOnChange: source.gateOnChange,
+        // Added only when set, so sources without an override keep their existing fingerprint shape.
+        ...(source.maxBytes === undefined ? {} : { maxBytes: source.maxBytes }),
       }))
       .sort((left, right) => left.id.localeCompare(right.id)),
   }
@@ -631,7 +649,7 @@ function validateBaselineSourceEntry(entry, source, defaults) {
   ) {
     throw new WatchError('invalid_baseline', `Baseline source ${source.id} has an invalid content type`)
   }
-  if (!Number.isInteger(entry.bytes) || entry.bytes < 0 || entry.bytes > defaults.maxBytes) {
+  if (!Number.isInteger(entry.bytes) || entry.bytes < 0 || entry.bytes > sourceMaxBytes(source, defaults)) {
     throw new WatchError('invalid_baseline', `Baseline source ${source.id} has an invalid byte count`)
   }
   for (const field of ['rawSha256', 'normalisedSha256']) {
@@ -875,7 +893,7 @@ export async function fetchOfficialSource(source, defaults, options = {}) {
         throw new WatchError('content_type', `Unsupported Content-Type: ${contentType}`)
       }
 
-      const body = await readBoundedBody(response, defaults.maxBytes)
+      const body = await readBoundedBody(response, sourceMaxBytes(source, defaults))
       let rawText
       try {
         rawText = new TextDecoder('utf-8', { fatal: true }).decode(body)
