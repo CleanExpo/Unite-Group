@@ -152,28 +152,22 @@ export function runReview({ report, classification, currentContent, priorSnapsho
       pagePath: `docs/vendor-intelligence/${vendorSlug(entry.vendor)}.md`,
     }
 
-    if (entry.change === 'unchanged') {
-      items.push(base)
-      continue
-    }
-
     const currentText = current.get(entry.id)
     const priorText = prior.get(entry.id)
+
     base.priorSha256 = typeof priorText === 'string' ? sha256(priorText) : null
 
-    if (entry.change === 'first_seen') {
+    // The classification comes from the committed snapshot alone. The watcher's fingerprint baseline is a separate
+    // record, so entry.change never decides it: without both texts nothing can be called unchanged.
+    if (entry.change === 'first_seen') base.reasons.push('first_seen')
+    if (typeof currentText !== 'string' || typeof priorText !== 'string') {
       base.classification = 'material_change'
-      base.reasons.push('first_seen')
+      base.reasons.push(typeof currentText !== 'string' ? 'missing_current_content' : 'missing_snapshot')
       base.proposedMarkdown = proposedMarkdown(base, null, surface)
       items.push(base)
       continue
     }
-
-    // change === 'changed'
-    if (typeof currentText !== 'string' || typeof priorText !== 'string') {
-      base.classification = 'material_change'
-      base.reasons.push('missing_snapshot')
-      base.proposedMarkdown = proposedMarkdown(base, null, surface)
+    if (currentText === priorText) {
       items.push(base)
       continue
     }
@@ -207,6 +201,7 @@ export function runReview({ report, classification, currentContent, priorSnapsho
       unchanged: count((item) => item.classification === 'unchanged'),
       firstSeen: count((item) => item.reasons.includes('first_seen')),
       missingSnapshots: count((item) => item.reasons.includes('missing_snapshot')),
+      missingCurrentContent: count((item) => item.reasons.includes('missing_current_content')),
     },
     items,
   }
