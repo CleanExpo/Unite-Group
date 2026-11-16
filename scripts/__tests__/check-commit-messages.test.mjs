@@ -549,6 +549,11 @@ test('the CI job fetches history and runs both the tests and the checker', () =>
     'CI must execute the mutation controls, not only the checker',
   );
   assert.match(job, /check-commit-messages\.mjs/, 'CI must run the checker against the PR range');
+  assert.match(
+    withoutComments,
+    /^\s*- run: node --test [^\n]*nexus-docs-proposal-commit\.test\.mjs/m,
+    'CI must run the docs-automation bot commit through the checker (UNI-3431)',
+  );
   assert.doesNotMatch(job, /\bcontinue-on-error:\s*true\b/, 'the job must be able to fail the workflow');
   assert.doesNotMatch(job, /^ {4}if:/m, 'a gated job is not a gate');
 });
@@ -571,6 +576,11 @@ test('package.json exposes check:commit-messages as tests-then-checker', () => {
     /node --test scripts\/__tests__\/check-commit-messages\.test\.mjs/,
   );
   assert.match(scripts['check:commit-messages'], /node scripts\/check-commit-messages\.mjs/);
+  assert.match(
+    scripts['check:commit-messages'],
+    /^node --test [^&]*scripts\/__tests__\/nexus-docs-proposal-commit\.test\.mjs/,
+    'preflight must also run the docs-automation bot commit test (UNI-3431)',
+  );
 });
 
 // AGENTS.md is what cloud agents read; #1371 (Cursor) and #1372 shipped red commit

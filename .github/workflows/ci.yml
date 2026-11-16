@@ -102,7 +102,8 @@ jobs:
       - name: Fetch the comparison base with enough history for merge-base
         run: git fetch --no-tags origin main
 
-      - run: node --test scripts/__tests__/check-commit-messages.test.mjs
+      # The second file runs the docs-automation bot's real commit lines through the checker (UNI-3431).
+      - run: node --test scripts/__tests__/check-commit-messages.test.mjs scripts/__tests__/nexus-docs-proposal-commit.test.mjs
 
       # Every PR targets main (repo rule), so the PR range is origin/main..HEAD on any branch push.
       # On main itself the range is empty, which passes; a missing base still fails closed.
