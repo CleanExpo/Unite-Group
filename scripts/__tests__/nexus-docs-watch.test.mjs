@@ -863,3 +863,16 @@ test('content capture sends no conditional headers and refuses a 304', async () 
     fetchImpl: async () => new Response(null, { status: 304 }),
   }), /304/)
 })
+
+test('the weekly evidence job goes red only when a source fails, not on routine page changes', async () => {
+  const workflow = await readFile(
+    new URL('../../.github/workflows/nexus-official-docs-weekly.yml', import.meta.url),
+    'utf8',
+  )
+  // Changed pages are reviewed by the automation workflow's snapshot proposal; this job only fingerprints and
+  // records them. --gate-material would turn every routine page change into a red run (exit 3).
+  assert.doesNotMatch(workflow, /--gate-material/)
+  for (const code of ['0', '1', '2']) {
+    assert.match(workflow, new RegExp(`#\\s*exit ${code}\\b`), `weekly workflow documents exit ${code}`)
+  }
+})
