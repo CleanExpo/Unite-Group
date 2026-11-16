@@ -1233,6 +1233,12 @@ export async function runWatcher(options) {
     ? buildFingerprintBaseline(report, options.registry)
     : null
   const baselineCandidateJson = baselineCandidate ? renderJson(baselineCandidate) : null
+  // The page text is written before the report, so a report on disk means every write finished: the automation
+  // workflow relies on that to tell failed pages apart from a crash.
+  let contentWrittenTo = null
+  if (captureContent) {
+    contentWrittenTo = await writeContentSnapshots(root, options.contentDir, results)
+  }
   let writtenTo = null
   if (options.outputDir) {
     writtenTo = await writeReports(
@@ -1242,10 +1248,6 @@ export async function runWatcher(options) {
       markdown,
       baselineCandidateJson,
     )
-  }
-  let contentWrittenTo = null
-  if (captureContent) {
-    contentWrittenTo = await writeContentSnapshots(root, options.contentDir, results)
   }
   return {
     report,

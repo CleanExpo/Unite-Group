@@ -719,6 +719,29 @@ test('--write-content persists normalised snapshots while the report stays body-
   assert.equal(result.report.sources[0].normalisedSha256, sha256('Release 1'))
 })
 
+// The automation workflow reads "report.json exists" as "the watcher finished every write". So the report is the
+// last thing written: a run that dies while writing the page text must leave no report behind.
+test('report.json is written only after the page text, so a failed content write leaves no report', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'nexus-doc-watch-order-'))
+  await writeFile(path.join(root, 'content'), 'a file where the content directory should be\n')
+  const fetchImpl = async () => new Response('<main>Release 1</main>', {
+    headers: { 'content-type': 'text/html' },
+  })
+
+  await assert.rejects(runWatcher({
+    registry: registry([source()]),
+    root,
+    outputDir: 'out',
+    contentDir: 'content',
+    now: '2026-07-12T00:00:00.000Z',
+    fetchImpl,
+    resolveHost: publicResolver,
+  }))
+
+  const written = await readdir(path.join(root, 'out')).catch(() => [])
+  assert.ok(!written.includes('report.json'), `no report after a failed content write (found: ${written.join(', ')})`)
+})
+
 test('root scripts and the weekly workflow stay read-only and artifact-only', async () => {
   const packageJson = JSON.parse(await readFile(
     new URL('../../package.json', import.meta.url),
@@ -784,6 +807,13 @@ test('pull-request CI enforces watcher tests on the supported Node 24 runtime', 
   assert.match(job, /node-version:\s*\['24'\]/)
   assert.doesNotMatch(job, /node-version:\s*\[[^\]]*'22'/)
   assert.match(job, /npm run verify:docs-watch/)
+  // The review and automation-workflow tests run on every pull request too, not only inside the weekly job.
+  assert.match(job, /npm run verify:docs-review/)
+  const packageJson = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8'))
+  assert.equal(
+    packageJson.scripts['verify:docs-review'],
+    'node --test scripts/__tests__/nexus-docs-review.test.mjs scripts/__tests__/nexus-docs-automation.test.mjs',
+  )
   assert.match(job, /actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1/)
   assert.match(job, /actions\/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1/)
 })
