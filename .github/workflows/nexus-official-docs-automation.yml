@@ -114,7 +114,25 @@ jobs:
           fi
 
           material="${{ steps.review.outputs.material }}"
-          git commit -m "chore(nexus-docs): propose vendor-intelligence updates (${material} material)"
+          # The repo's commit-messages CI job needs a Linear ref on the subject and a
+          # Gate: line in the body. UNI-3431 is the standing ticket for these proposals.
+          # The Gate: paragraph names only what ran here; no review is claimed.
+          # scripts/__tests__/nexus-docs-proposal-commit.test.mjs runs these exact lines.
+          git commit -F - <<COMMIT_MSG
+          chore(nexus-docs): propose vendor-intelligence updates (${material} material) (UNI-3431)
+
+          Refreshes docs/vendor-intelligence/.snapshots and
+          docs/vendor-intelligence/REVIEW.md from this week's official-docs run.
+
+          What cannot happen after this merge: the committed vendor-intelligence
+          snapshots lag the official documentation this run fetched and classified.
+
+          Gate: automated only. nexus-docs-watch fetched and fingerprinted the
+          official sources, and nexus-docs-review classified ${material} material
+          change(s) against the committed snapshots. No human or model review has
+          run on this commit; a human reviews this pull request before merge.
+          Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+          COMMIT_MSG
           git push --force-with-lease origin "${AUTOMATION_BRANCH}"
 
           # Dedup: reuse an existing open PR for this branch instead of opening another.
