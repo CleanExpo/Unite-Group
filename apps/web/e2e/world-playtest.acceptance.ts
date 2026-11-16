@@ -38,7 +38,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 375, height: 900
     await expect(simulation.getByText('Fictional playtest · not saved')).toBeVisible()
     // Real negative control: the exact disabled-view checker must reject an
     // already-rendered authenticated game, even though its HTTP status is 200.
-    await expect(expectWorldPreviewDenied(page, response?.status(), 250)).rejects.toThrow(/Page Not Found/)
+    await expect(expectWorldPreviewDenied(page, response?.status(), 250)).rejects.toThrow(/page not found/i)
     const start = simulation.getByRole('button', { name: 'Start fictional playtest' })
     await start.focus()
     await start.press('Enter')
