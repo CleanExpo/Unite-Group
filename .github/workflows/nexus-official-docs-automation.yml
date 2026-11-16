@@ -47,13 +47,37 @@ jobs:
           npm run verify:docs-review
 
       - name: Read-only collection of official-source evidence and content
+        id: collect
         run: |
+          # The watcher exits 0 when every source was fetched, 1 when a non-critical source failed and 2 when a
+          # critical source failed. Failed pages must not stop the proposal for the pages that were fetched, so this
+          # step keeps going on those, and the last step turns the run red. Anything else stops the run here: no
+          # report from this run, an exit above 2, or an exit the report does not give (a crash). The watcher writes
+          # report.json last, so a report on disk means it finished.
+          # scripts/__tests__/nexus-docs-automation.test.mjs runs this block.
+          rm -f "${WATCH_DIR}/report.json"
+          set +e
           node scripts/nexus-docs-watch.mjs \
             --root . \
             --config config/nexus-official-sources.json \
             --baseline config/nexus-official-sources.baseline.json \
             --write "${WATCH_DIR}" \
             --write-content "${CONTENT_DIR}"
+          code=$?
+          set -e
+          if [ ! -f "${WATCH_DIR}/report.json" ]; then
+            echo "::error::The watcher exited ${code} without writing this run's report."
+            exit 1
+          fi
+          reported=$(node -p "require('./${WATCH_DIR}/report.json').gates.exitCode")
+          if [ "${code}" != "${reported}" ] || [ "${code}" -gt 2 ]; then
+            echo "::error::The watcher exited ${code}, but its report gives ${reported}."
+            exit 1
+          fi
+          failed_count=$(node -p "require('./${WATCH_DIR}/report.json').gates.monitorFailures.length")
+          failed_ids=$(node -p "require('./${WATCH_DIR}/report.json').gates.monitorFailures.join(' ')")
+          echo "failed_count=${failed_count}" >> "$GITHUB_OUTPUT"
+          echo "failed_ids=${failed_ids}" >> "$GITHUB_OUTPUT"
 
       - name: Deterministic review (no network, no baseline overwrite)
         id: review
@@ -170,6 +194,21 @@ jobs:
             --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
             --data-urlencode "text=${text}" \
             --data-urlencode "disable_web_page_preview=true" > /dev/null
+
+      - name: Turn the run red when an official source could not be fetched
+        env:
+          FAILED_COUNT: ${{ steps.collect.outputs.failed_count }}
+          FAILED_IDS: ${{ steps.collect.outputs.failed_ids }}
+        run: |
+          # Runs after the proposal for the fetched pages, so a failed page never blocks it. A red run here also
+          # sends the failure alert below. An empty count means the collection step did not report: stay red.
+          # scripts/__tests__/nexus-docs-automation.test.mjs runs this block.
+          if [ "${FAILED_COUNT}" = "0" ]; then
+            echo "Every official source was fetched."
+            exit 0
+          fi
+          echo "::error::${FAILED_COUNT:-An unknown number of} official source(s) could not be fetched: ${FAILED_IDS:-unknown}. They are listed in the review; their snapshots were left unchanged."
+          exit 1
 
       - name: Notify Telegram on failure
         if: failure()

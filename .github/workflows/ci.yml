@@ -346,6 +346,7 @@ jobs:
 
       - name: Test bounded watcher and committed baseline
         run: npm run verify:docs-watch
+      - run: npm run verify:docs-review
 
   dependency-audit:
     name: Active lockfiles — high-severity dependency audit

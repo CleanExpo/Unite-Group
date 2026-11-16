@@ -136,8 +136,26 @@ export function runReview({ report, classification, currentContent, priorSnapsho
 
   const items = []
   for (const entry of [...report.sources].sort((a, b) => a.id.localeCompare(b.id))) {
-    if (entry.outcome !== 'ok') continue
     const surface = surfaces[entry.id] ?? null
+    // A page that failed to fetch has no current text to classify. It is listed, so a reviewer sees it was not
+    // checked this run; it is never a material change, and its committed snapshot is left as it is.
+    if (entry.outcome !== 'ok') {
+      items.push({
+        id: entry.id,
+        vendor: entry.vendor,
+        url: entry.finalUrl ?? entry.url,
+        change: null,
+        currentSha256: null,
+        priorSha256: null,
+        surface,
+        reasons: [entry.errorCode ?? `outcome_${entry.outcome}`],
+        error: entry.error ?? null,
+        classification: 'fetch_failed',
+        proposedMarkdown: null,
+        pagePath: `docs/vendor-intelligence/${vendorSlug(entry.vendor)}.md`,
+      })
+      continue
+    }
     const base = {
       id: entry.id,
       vendor: entry.vendor,
@@ -202,6 +220,7 @@ export function runReview({ report, classification, currentContent, priorSnapsho
       firstSeen: count((item) => item.reasons.includes('first_seen')),
       missingSnapshots: count((item) => item.reasons.includes('missing_snapshot')),
       missingCurrentContent: count((item) => item.reasons.includes('missing_current_content')),
+      fetchFailed: count((item) => item.classification === 'fetch_failed'),
     },
     items,
   }
@@ -218,7 +237,7 @@ export function renderReviewMarkdown(review) {
     '',
     `Generated: ${review.generatedAt}`,
     '',
-    `Summary: ${review.summary.total} sources reviewed; ${review.summary.materialChanges} material; ${review.summary.volatileNoise} volatile noise; ${review.summary.unchanged} unchanged.`,
+    `Summary: ${review.summary.total} sources reviewed; ${review.summary.materialChanges} material; ${review.summary.volatileNoise} volatile noise; ${review.summary.unchanged} unchanged; ${review.summary.fetchFailed ?? 0} not fetched.`,
     '',
     '## Material changes',
     '',
@@ -236,6 +255,12 @@ export function renderReviewMarkdown(review) {
     lines.push('_None._', '')
   } else {
     for (const item of noise) lines.push(`- \`${item.id}\` — ${item.url}`)
+    lines.push('')
+  }
+  const notFetched = review.items.filter((item) => item.classification === 'fetch_failed')
+  if (notFetched.length > 0) {
+    lines.push('## Sources not fetched (not reviewed this run; snapshots unchanged)', '')
+    for (const item of notFetched) lines.push(`- \`${item.id}\` — ${item.reasons[0]}: ${item.error ?? 'no detail'}`)
     lines.push('')
   }
   return lines.join('\n')

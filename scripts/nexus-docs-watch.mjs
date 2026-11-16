@@ -1143,10 +1143,7 @@ async function writeContentSnapshots(root, contentDir, results) {
 async function writeReports(root, outputDir, json, markdown, baselineCandidateJson) {
   const safeDirectory = assertPathInsideRoot(root, outputDir)
   await mkdir(safeDirectory, { recursive: true })
-  const writes = [
-    atomicWrite(path.join(safeDirectory, 'report.json'), json),
-    atomicWrite(path.join(safeDirectory, 'report.md'), markdown),
-  ]
+  const writes = [atomicWrite(path.join(safeDirectory, 'report.md'), markdown)]
   if (baselineCandidateJson) {
     writes.push(atomicWrite(
       path.join(safeDirectory, 'baseline.candidate.json'),
@@ -1154,6 +1151,8 @@ async function writeReports(root, outputDir, json, markdown, baselineCandidateJs
     ))
   }
   await Promise.all(writes)
+  // report.json is the completion marker: it is written alone, after every other output has succeeded.
+  await atomicWrite(path.join(safeDirectory, 'report.json'), json)
   return safeDirectory
 }
 
@@ -1233,6 +1232,12 @@ export async function runWatcher(options) {
     ? buildFingerprintBaseline(report, options.registry)
     : null
   const baselineCandidateJson = baselineCandidate ? renderJson(baselineCandidate) : null
+  // The page text is written before the report, so a report on disk means every write finished: the automation
+  // workflow relies on that to tell failed pages apart from a crash.
+  let contentWrittenTo = null
+  if (captureContent) {
+    contentWrittenTo = await writeContentSnapshots(root, options.contentDir, results)
+  }
   let writtenTo = null
   if (options.outputDir) {
     writtenTo = await writeReports(
@@ -1242,10 +1247,6 @@ export async function runWatcher(options) {
       markdown,
       baselineCandidateJson,
     )
-  }
-  let contentWrittenTo = null
-  if (captureContent) {
-    contentWrittenTo = await writeContentSnapshots(root, options.contentDir, results)
   }
   return {
     report,
