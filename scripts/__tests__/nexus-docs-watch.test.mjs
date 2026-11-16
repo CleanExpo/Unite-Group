@@ -946,13 +946,14 @@ test('the weekly evidence job goes red only when a source fails, not on routine 
   const critical = source({ id: 'example.critical', url: 'https://docs.example.com/critical', critical: true, gateOnChange: true })
   const input = registry([normal, critical])
   const page = (body, status = 200) => async () => new Response(body, { status, headers: { 'content-type': 'text/plain' } })
-  const serve = (bodies) => async (url) => (bodies[String(url)] ?? page('Release 1'))()
-  const first = await runWatcher({ registry: input, root, now: '2026-11-16T00:00:00.000Z', fetchImpl: serve({}), resolveHost: publicResolver })
+  // requestImpl stands in for requestPinnedHttps, the production transport; runCli accepts no other transport.
+  const serve = (bodies) => async ({ url }) => (bodies[String(url)] ?? page('Release 1'))()
+  const first = await runWatcher({ registry: input, root, now: '2026-11-16T00:00:00.000Z', requestImpl: serve({}), resolveHost: publicResolver })
   await mkdir(path.join(root, 'config'), { recursive: true })
   await writeFile(path.join(root, 'config', 'nexus-official-sources.json'), renderJson(input))
   await writeFile(path.join(root, 'config', 'nexus-official-sources.baseline.json'), first.baselineCandidateJson)
 
-  const run = (bodies) => watcherModule.runCli(words, { cwd: root, now: '2026-11-16T00:00:00.000Z', fetchImpl: serve(bodies), resolveHost: publicResolver })
+  const run = (bodies) => watcherModule.runCli(words, { cwd: root, now: '2026-11-16T00:00:00.000Z', requestImpl: serve(bodies), resolveHost: publicResolver })
   const changed = await run({ [normal.url]: page('Release 2'), [critical.url]: page('Release 2') })
   assert.deepEqual(changed.report.sources.map((s) => s.change), ['changed', 'changed'])
   assert.equal(changed.exitCode, 0, 'changed gated pages do not turn the weekly job red')

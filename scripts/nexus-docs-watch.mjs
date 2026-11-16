@@ -1331,8 +1331,10 @@ async function readJsonInsideRoot(root, candidate, label) {
   }
 }
 
-// The whole command-line path, so tests run exactly what the CLI runs. `io` only supplies the working directory and
-// network stand-ins; it cannot change how arguments are read or how the exit code is chosen.
+// The whole command-line path, so tests run exactly what the CLI runs. `io` only supplies the working directory, a
+// clock, and stand-ins for the lowest network layer (requestImpl replaces requestPinnedHttps, resolveHost replaces
+// DNS); the production transport selection is otherwise unchanged. It cannot change how arguments are read or how the
+// exit code is chosen.
 export async function runCli(argv, io = {}) {
   const args = parseArgs(argv)
   if (args.help) {
@@ -1353,7 +1355,6 @@ export async function runCli(argv, io = {}) {
     onlyIds: args.onlyIds,
     gateMaterial: args.gateMaterial,
     now: io.now,
-    fetchImpl: io.fetchImpl,
     requestImpl: io.requestImpl,
     resolveHost: io.resolveHost,
   })
