@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { chmod, copyFile, link, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { delimiter, dirname, join, resolve } from 'node:path'
@@ -7,7 +9,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const RUNNER = join(ROOT, 'scripts', 'audit-active-lockfiles.mjs')
-const EXPECTED_LOCKS = [
+const STATIC_LOCKS = [
   'apps/autopilot-runner/package-lock.json',
   'apps/empire/package-lock.json',
   'apps/mission-control-local/package-lock.json',
@@ -18,7 +20,28 @@ const EXPECTED_LOCKS = [
   'packages/pi-ceo-operator-mcp/package-lock.json',
   'packages/spine/packages/spine/package-lock.json',
   'packages/unite-control-module/package-lock.json',
+  'scripts/website/template/astro/package-lock.json',
 ]
+
+// Each client site in sites/<slug> carries its own lockfile. The expected list derives those from
+// the tracked site package.json files that declare dependencies, so a new client site never needs a
+// hand edit here, while a lockfile with no matching site, or a site missing its lockfile, still fails.
+function expectedSiteLocks(trackedFiles, readJson) {
+  return trackedFiles
+    .filter((file) => /^sites\/[^/]+\/package\.json$/.test(file))
+    .filter((file) => {
+      const pkg = readJson(file)
+      return Object.keys({ ...pkg.dependencies, ...pkg.devDependencies }).length > 0
+    })
+    .map((file) => `${dirname(file)}/package-lock.json`)
+}
+
+const TRACKED_SITE_FILES = execFileSync('git', ['ls-files', '-z', '--', 'sites'], { cwd: ROOT, encoding: 'utf8' })
+  .split('\0').filter(Boolean)
+const EXPECTED_LOCKS = [
+  ...STATIC_LOCKS,
+  ...expectedSiteLocks(TRACKED_SITE_FILES, (file) => JSON.parse(readFileSync(join(ROOT, file), 'utf8'))),
+].sort()
 const EXPECTED_ENTRIES = EXPECTED_LOCKS.map((lockfile) => ({
   manager: lockfile.endsWith('pnpm-lock.yaml') ? 'pnpm' : 'npm',
   workspace: dirname(lockfile),
@@ -89,6 +112,20 @@ async function installStubScanner(t, bin, source) {
   }
   return { nodeExecutable }
 }
+
+test('client site lockfiles are expected exactly for tracked sites that declare dependencies', () => {
+  const packages = {
+    'sites/cafe/package.json': { dependencies: { astro: '7.4.12' } },
+    'sites/tools-only/package.json': { devDependencies: { vitest: '1.0.0' } },
+    'sites/static-python/package.json': { scripts: { build: 'python3 build.py' } },
+    'sites/cafe/src/pages/package.json': { dependencies: { nested: '1.0.0' } },
+  }
+  const tracked = [...Object.keys(packages), 'sites/cafe/package-lock.json', 'sites/orphan/package-lock.json']
+  assert.deepEqual(expectedSiteLocks(tracked, (file) => packages[file]), [
+    'sites/cafe/package-lock.json',
+    'sites/tools-only/package-lock.json',
+  ])
+})
 
 test('dependency audit discovers every tracked JavaScript lock instead of relying on a static allowlist', async () => {
   const { discoverTrackedLockfiles } = await loadRunner()
