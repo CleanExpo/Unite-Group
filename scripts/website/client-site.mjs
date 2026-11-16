@@ -24,7 +24,7 @@ export const USAGE = `Usage: node scripts/website/client-site.mjs <command> [opt
   wp-export <slug> --url https://old-site.example [--allow-empty]
   redirects <slug>                     write the WordPress redirect map into sites/<slug>/vercel.json
   ingest <slug>                        list images waiting in incoming/
-  ingest <slug> --select a.jpg,b.png --approved-by "Name"
+  ingest <slug> --select a.jpg,b.png --approved-by "client owner"
   note <slug> --done "..." --next "..."
   status <slug> | status --all [--max-change-hours 24] [--retention-days 90]
   email <slug> --kind change-preview|change-live|handover --summary "..." [--url https://...]

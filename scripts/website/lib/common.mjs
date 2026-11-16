@@ -182,10 +182,18 @@ export function auDateTime(now) {
   return `${parts.day}/${parts.month}/${parts.year} ${parts.hour}:${parts.minute}`;
 }
 
-// The public manifest is committed to a public repo, so the approver is a role or a reference into
-// the private name log, never an email address or a phone number.
-export function personalContactIn(value) {
-  return typeof value === 'string' && (value.includes('@') || /\d[\d\s-]{6,}\d/.test(value));
+// The public manifest is committed to a public repo, so the approver is one of these roles and
+// nothing else. An allow-list, because a deny-list for email addresses and phone numbers was
+// beaten twice (8-digit phone forms, then a fullwidth @). Which person held the role stays in the
+// client's private records, never in the repo.
+export const APPROVER_ROLES = Object.freeze(['client owner', 'client manager', 'client staff', 'operator']);
+
+// Returns the canonical role, or null when the value is not exactly one of APPROVER_ROLES after
+// Unicode compatibility folding, trimming, collapsing spaces and lower-casing.
+export function approverRole(value) {
+  if (typeof value !== 'string') return null;
+  const folded = value.normalize('NFKC').trim().replace(/\s+/g, ' ').toLowerCase();
+  return APPROVER_ROLES.includes(folded) ? folded : null;
 }
 
 export function freeName(dir, base, ext) {

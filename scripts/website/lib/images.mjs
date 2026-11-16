@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync,
 import { extname, join, relative, sep } from 'node:path';
 
 import {
-  INCOMING_RESERVED, MAX_ASSET_BYTES, ToolError, freeName, isoDate, personalContactIn, requireWorkspace, writeFileAtomic, writeJsonAtomic,
+  INCOMING_RESERVED, MAX_ASSET_BYTES, ToolError, APPROVER_ROLES, approverRole, freeName, isoDate, requireWorkspace, writeFileAtomic, writeJsonAtomic,
 } from './common.mjs';
 
 const JPEG = new Set(['.jpg', '.jpeg']);
@@ -130,6 +130,7 @@ export function readManifest(path) {
   if (!existsSync(path)) return { schema: 1, assets: [] };
   const m = JSON.parse(readFileSync(path, 'utf8'));
   if (!Array.isArray(m.assets)) throw new ToolError(`${path} has no assets list`);
+  if (m.assets.some((a) => !a || typeof a !== 'object' || Array.isArray(a))) throw new ToolError(`${path} has an asset entry that is not an object`);
   return m;
 }
 
@@ -142,8 +143,9 @@ export function ingest(ctx, { slug, select = null, approvedBy = null, now = new 
   const candidates = listIncomingImages(incoming);
   if (!select || select.length === 0) return { listed: candidates, ingested: [], skipped: [] };
   if (!approvedBy || !approvedBy.trim()) throw new ToolError('name who approved these images for publication with --approved-by', 2);
-  if (personalContactIn(approvedBy)) {
-    throw new ToolError('--approved-by is published in the public manifest: give a role (e.g. "client owner") or a reference into the private name log, never an email address or phone number', 2);
+  const role = approverRole(approvedBy);
+  if (!role) {
+    throw new ToolError(`--approved-by is published in the public manifest, so it must be one of: ${APPROVER_ROLES.join(', ')} (never a name, email address or phone number)`, 2);
   }
 
   // Validate every selected file before writing anything.
@@ -187,7 +189,7 @@ export function ingest(ctx, { slug, select = null, approvedBy = null, now = new 
     if (known.has(p.hash)) continue;
     known.add(p.hash);
     manifest.assets.push({
-      id: p.file, sha256: p.hash, source: 'client-supplied', approved_by: approvedBy.trim(), approved_at: day, credit: '', alt: '',
+      id: p.file, sha256: p.hash, source: 'client-supplied', approved_by: role, approved_at: day, credit: '', alt: '',
     });
     ingested.push({ from: p.rel, file: p.file });
   }
@@ -207,12 +209,59 @@ export function ingest(ctx, { slug, select = null, approvedBy = null, now = new 
   return { listed: candidates, ingested, skipped };
 }
 
-// Problems with committed client assets: unlisted files, hash drift, metadata, oversize.
+// The manifest is published, so every key and every value shape is allow-listed. credit and alt stay
+// free text (a photographer credit and a description are published on purpose) and are a named limit:
+// they are reviewed in the pull request like any page copy.
+export const MANIFEST_TOP_KEYS = Object.freeze(['schema', 'assets']);
+export const MANIFEST_ENTRY_KEYS = Object.freeze(['id', 'sha256', 'source', 'approved_by', 'approved_at', 'credit', 'alt']);
+const MANIFEST_ID = /^img-[0-9a-f]{12}\.(jpg|png)$/;
+// The day this tool first ingested anything; an earlier approved_at was not written by it.
+const FIRST_INGEST_DAY = '2026-11-16';
+
+function auditManifestShape(manifest) {
+  const problems = [];
+  for (const k of Object.keys(manifest)) {
+    if (!MANIFEST_TOP_KEYS.includes(k)) problems.push(`[asset] manifest has a field not in the fixed set: ${k}`);
+  }
+  if (manifest.schema !== 1) problems.push('[asset] manifest schema must be 1');
+  manifest.assets.forEach((a, i) => {
+    const label = `manifest entry ${typeof a.id === 'string' && MANIFEST_ID.test(a.id) ? a.id : `#${i + 1}`}`;
+    for (const k of Object.keys(a)) {
+      if (!MANIFEST_ENTRY_KEYS.includes(k)) problems.push(`[asset] ${label} has a field not in the fixed set: ${k}`);
+    }
+    for (const k of MANIFEST_ENTRY_KEYS) {
+      if (!(k in a)) problems.push(`[asset] ${label} is missing field: ${k}`);
+    }
+    const shaOk = typeof a.sha256 === 'string' && /^[0-9a-f]{64}$/.test(a.sha256);
+    if (typeof a.id !== 'string' || !MANIFEST_ID.test(a.id)) problems.push(`[asset] ${label}: id must be img-<12 hex>.jpg or .png`);
+    else if (shaOk && a.id.slice(4, 16) !== a.sha256.slice(0, 12)) problems.push(`[asset] ${label}: id must be img- plus the first 12 characters of its sha256`);
+    if (!shaOk) problems.push(`[asset] ${label}: sha256 must be 64 lower-case hex characters`);
+    if (a.source !== 'client-supplied') problems.push(`[asset] ${label}: source must be client-supplied`);
+    if (typeof a.approved_at !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(a.approved_at)) {
+      problems.push(`[asset] ${label}: approved_at must be a YYYY-MM-DD date`);
+    } else {
+      const d = new Date(`${a.approved_at}T00:00:00Z`);
+      if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== a.approved_at) problems.push(`[asset] ${label}: approved_at must be a real YYYY-MM-DD date`);
+      else if (a.approved_at < FIRST_INGEST_DAY || d.getTime() > Date.now() + 86400000) problems.push(`[asset] ${label}: approved_at must fall between ${FIRST_INGEST_DAY} and today`);
+    }
+    if (typeof a.credit !== 'string' || typeof a.alt !== 'string') problems.push(`[asset] ${label}: credit and alt must be text`);
+  });
+  return problems;
+}
+
+// Problems with committed client assets: unlisted files, hash drift, metadata, oversize, and any
+// manifest key or value outside the fixed shape.
 export function auditClientAssets(sitesDir, slug) {
   const problems = [];
   const assetDir = join(sitesDir, slug, 'src', 'assets', 'client');
   if (!existsSync(assetDir)) return problems;
-  const manifest = readManifest(manifestPath(sitesDir, slug));
+  const mPath = manifestPath(sitesDir, slug);
+  const manifest = readManifest(mPath);
+  // The repo publishes bytes, not the parsed object: JSON.parse drops all but the last of a
+  // duplicated key, so anything the parser did not keep must fail here.
+  if (existsSync(mPath) && !readFileSync(mPath).equals(Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`, 'utf8'))) {
+    problems.push('[asset] manifest.json is not exactly what the tool writes (a duplicated key, extra text or hand formatting); restore it from git or re-run ingest');
+  }
   const byId = new Map(manifest.assets.map((a) => [a.id, a]));
   for (const entry of readdirSync(assetDir, { withFileTypes: true })) {
     if (!entry.isFile() || entry.name === 'manifest.json') continue;
@@ -227,9 +276,11 @@ export function auditClientAssets(sitesDir, slug) {
     for (const m of findMetadata(buf, extname(entry.name))) problems.push(`[asset] ${entry.name} still carries metadata: ${m}`);
     if (statSync(full).size > MAX_ASSET_BYTES) problems.push(`[asset] ${entry.name} is over 1 MB`);
   }
+  problems.push(...auditManifestShape(manifest));
   for (const a of manifest.assets) {
+    if (typeof a.id !== 'string' || !MANIFEST_ID.test(a.id)) continue;
     if (!existsSync(join(assetDir, a.id))) problems.push(`[asset] manifest lists ${a.id} but the file is missing`);
-    if (personalContactIn(a.approved_by)) problems.push(`[asset] manifest entry ${a.id} has an email address or phone number in approved_by`);
+    if (!APPROVER_ROLES.includes(a.approved_by)) problems.push(`[asset] manifest entry ${a.id}: approved_by is not one of the fixed roles (${APPROVER_ROLES.join(', ')})`);
   }
   return problems;
 }

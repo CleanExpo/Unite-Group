@@ -257,7 +257,9 @@ test('wp-export records media WordPress hides from anonymous readers as visible-
 
 test('wp-export still stops on a short post list, a list longer than its total, or an item listed twice', async () => {
   const cases = [
-    [{ 'posts:1': () => wpResponse([], { total: 1 }) }, /posts: received 0 of 1/],
+    // A non-empty short list, so only the exact-count rule can stop it (independent review, acb94f0f2:
+    // a 0-of-1 case was also caught by the zero-listed rule, so it could not prove the exact count).
+    [{ 'posts:1': () => wpResponse([{ id: 1000, slug: 'news-0', link: 'https://old.example/2019/05/news-0/' }], { total: 2 }) }, /posts: received 1 of 2/],
     [{ 'media:1': () => wpResponse([{ id: 1 }, { id: 2 }], { total: 1 }) }, /media: received 2 of 1/],
     [{ 'media:1': () => wpResponse([{ id: 1 }, { id: 1 }], { total: 2 }) }, /media: 1 item\(s\) came back twice/],
   ];
@@ -386,9 +388,9 @@ test('ingest lists without copying, then copies only approved images, stripped a
     assert.deepEqual(listed.listed, ['jane-smith-house.jpg', 'not-approved.jpg']);
     assert.ok(!existsSync(join(site, 'src', 'assets', 'client')));
     assert.throws(() => ingest(ctx, { slug: 'sample-cafe', select: ['jane-smith-house.jpg'], now: NOW }), /--approved-by/);
-    assert.throws(() => ingest(ctx, { slug: 'sample-cafe', select: ['reference/competitor.png'], approvedBy: 'Phill', now: NOW }), /never published/);
+    assert.throws(() => ingest(ctx, { slug: 'sample-cafe', select: ['reference/competitor.png'], approvedBy: 'operator', now: NOW }), /never published/);
 
-    const r = ingest(ctx, { slug: 'sample-cafe', select: ['jane-smith-house.jpg'], approvedBy: 'Phill', now: NOW });
+    const r = ingest(ctx, { slug: 'sample-cafe', select: ['jane-smith-house.jpg'], approvedBy: 'operator', now: NOW });
     assert.equal(r.ingested.length, 1);
     const assetDir = join(site, 'src', 'assets', 'client');
     const file = r.ingested[0].file;
@@ -412,11 +414,11 @@ test('two different photos with the same name become two assets; the same photo 
     const { workspace, site } = scaffold(ctx);
     const incoming = join(workspace, 'incoming');
     writeFileSync(join(incoming, 'IMG_0001.jpg'), jpegWithExif(0x11));
-    ingest(ctx, { slug: 'sample-cafe', select: ['IMG_0001.jpg'], approvedBy: 'Phill', now: NOW });
+    ingest(ctx, { slug: 'sample-cafe', select: ['IMG_0001.jpg'], approvedBy: 'operator', now: NOW });
     writeFileSync(join(incoming, 'IMG_0001.jpg'), jpegWithExif(0x44));
-    ingest(ctx, { slug: 'sample-cafe', select: ['IMG_0001.jpg'], approvedBy: 'Phill', now: NOW });
+    ingest(ctx, { slug: 'sample-cafe', select: ['IMG_0001.jpg'], approvedBy: 'operator', now: NOW });
     writeFileSync(join(incoming, 'IMG_0001.jpg'), jpegWithExif(0x44));
-    const again = ingest(ctx, { slug: 'sample-cafe', select: ['IMG_0001.jpg'], approvedBy: 'Phill', now: NOW });
+    const again = ingest(ctx, { slug: 'sample-cafe', select: ['IMG_0001.jpg'], approvedBy: 'operator', now: NOW });
     assert.deepEqual(again.skipped, ['IMG_0001.jpg']);
     const manifest = JSON.parse(readFileSync(join(site, 'src', 'assets', 'client', 'manifest.json'), 'utf8'));
     assert.equal(manifest.assets.length, 2);
@@ -434,8 +436,8 @@ test('ingest refuses formats it cannot inspect and images over 1 MB', () => {
     writeFileSync(join(incoming, 'photo.heic'), Buffer.from('heic'));
     const big = Buffer.concat([jpegWithExif().subarray(0, 30), Buffer.alloc(1024 * 1024 + 10, 0x55), Buffer.from([0xff, 0xd9])]);
     writeFileSync(join(incoming, 'big.jpg'), big);
-    assert.throws(() => ingest(ctx, { slug: 'sample-cafe', select: ['photo.heic'], approvedBy: 'Phill' }), /export it as JPEG or PNG/);
-    assert.throws(() => ingest(ctx, { slug: 'sample-cafe', select: ['big.jpg'], approvedBy: 'Phill' }), /under 1 MB/);
+    assert.throws(() => ingest(ctx, { slug: 'sample-cafe', select: ['photo.heic'], approvedBy: 'operator' }), /export it as JPEG or PNG/);
+    assert.throws(() => ingest(ctx, { slug: 'sample-cafe', select: ['big.jpg'], approvedBy: 'operator' }), /under 1 MB/);
     assert.ok(existsSync(join(incoming, 'big.jpg')));
   } finally {
     cleanup();
@@ -662,22 +664,108 @@ test('the system probe reads diskutil and refuses to guess on other systems', ()
   assert.equal(systemEncryptionProbe('/x', { platform: 'linux' }).encrypted, null);
 });
 
-test('the approver is a role, never an email address or phone number, and check catches a hand-edited manifest', () => {
+// Independent review of acb94f0f2 got 'jane＠example.com' (fullwidth @) past a deny-list into the
+// public manifest. The approver is now one of a fixed set of roles, so no free text about a person
+// can reach the public repo however it is spelled.
+const NOT_A_ROLE = [
+  'jane@example.com', 'jane＠example.com', 'jane﹫example.com', 'jane [at] example [dot] com',
+  'jane at example dot com', '0412 345 678', '０４１２ 345 678', 'Jane Smith', 'Phill',
+];
+
+test('the approver must be one of the fixed roles, so no email, phone or name in any spelling reaches the manifest', () => {
   const { ctx, cleanup } = sandbox();
   try {
     const { workspace, site } = scaffold(ctx);
     writeFileSync(join(workspace, 'incoming', 'shopfront.jpg'), jpegWithExif());
-    for (const who of ['jane@example.com', '0412 345 678']) {
-      assert.throws(() => ingest(ctx, { slug: 'sample-cafe', select: ['shopfront.jpg'], approvedBy: who, now: NOW }), /never an email address or phone number/);
+    for (const who of NOT_A_ROLE) {
+      assert.throws(() => ingest(ctx, { slug: 'sample-cafe', select: ['shopfront.jpg'], approvedBy: who, now: NOW }), /must be one of: client owner, client manager, client staff, operator/, who);
     }
     assert.ok(!existsSync(join(site, 'src', 'assets', 'client', 'manifest.json')));
-    ingest(ctx, { slug: 'sample-cafe', select: ['shopfront.jpg'], approvedBy: 'client owner', now: NOW });
+    ingest(ctx, { slug: 'sample-cafe', select: ['shopfront.jpg'], approvedBy: ' Client Owner ', now: NOW });
     const path = join(site, 'src', 'assets', 'client', 'manifest.json');
     const manifest = JSON.parse(readFileSync(path, 'utf8'));
     assert.equal(manifest.assets[0].approved_by, 'client owner');
-    manifest.assets[0].approved_by = 'jane@example.com';
-    writeFileSync(path, JSON.stringify(manifest));
-    assert.match(checkProject(ctx, { slug: 'sample-cafe' }).problems.join('\n'), /email address or phone number in approved_by/);
+    assert.deepEqual(checkProject(ctx, { slug: 'sample-cafe' }).problems, []);
+    for (const who of NOT_A_ROLE) {
+      manifest.assets[0].approved_by = who;
+      writeFileSync(path, JSON.stringify(manifest));
+      assert.match(checkProject(ctx, { slug: 'sample-cafe' }).problems.join('\n'), /approved_by is not one of the fixed roles/, who);
+    }
+  } finally {
+    cleanup();
+  }
+});
+
+// Bench chair, same day: checking approved_by alone left the rest of the entry open, so a hand edit
+// could add a contact field. The whole manifest is now an allow-list of keys and value shapes.
+test('check fails on any manifest key outside the fixed set, a source other than client-supplied, or a malformed id, hash or date', () => {
+  const { ctx, cleanup } = sandbox();
+  try {
+    const { workspace, site } = scaffold(ctx);
+    writeFileSync(join(workspace, 'incoming', 'shopfront.jpg'), jpegWithExif());
+    ingest(ctx, { slug: 'sample-cafe', select: ['shopfront.jpg'], approvedBy: 'client owner', now: NOW });
+    const path = join(site, 'src', 'assets', 'client', 'manifest.json');
+    const good = readFileSync(path, 'utf8');
+    assert.deepEqual(checkProject(ctx, { slug: 'sample-cafe' }).problems, []);
+    const cases = [
+      [(m) => { m.assets[0].approver_contact = 'jane＠example.com'; }, /has a field not in the fixed set: approver_contact/],
+      [(m) => { m.owner_email = 'jane@example.com'; }, /manifest has a field not in the fixed set: owner_email/],
+      [(m) => { m.assets[0].source = 'jane@example.com'; }, /source must be client-supplied/],
+      [(m) => { m.assets[0].approved_at = '16/11/2026 Jane'; }, /approved_at must be a YYYY-MM-DD date/],
+      [(m) => { m.assets[0].sha256 = '0412345678'; }, /sha256 must be 64 lower-case hex characters/],
+      [(m) => { delete m.assets[0].credit; }, /is missing field: credit/],
+      [(m) => { m.assets[0].id = 'jane-smith-0412345678.jpg'; }, /id must be img-<12 hex>\.jpg or \.png/],
+    ];
+    for (const [plant, expected] of cases) {
+      const m = JSON.parse(good);
+      plant(m);
+      writeFileSync(path, JSON.stringify(m));
+      assert.match(checkProject(ctx, { slug: 'sample-cafe' }).problems.join('\n'), expected, String(expected));
+    }
+    writeFileSync(path, JSON.stringify({ schema: 1, assets: [null] }));
+    assert.throws(() => checkProject(ctx, { slug: 'sample-cafe' }), /asset entry that is not an object/);
+  } finally {
+    cleanup();
+  }
+});
+
+// Bench chair round 2: the repo publishes the file's bytes, and JSON.parse keeps only the last of a
+// duplicated key, so a decoy can hide behind a valid value (a merge conflict resolved by keeping
+// both sides does exactly this). check now compares the bytes with the tool's own serialisation,
+// and every value is from a fixed set or derived from the image itself.
+test('check compares the published manifest byte for byte, ties each id to its hash and needs a real date', () => {
+  const { ctx, cleanup } = sandbox();
+  try {
+    const { workspace, site } = scaffold(ctx);
+    writeFileSync(join(workspace, 'incoming', 'shopfront.jpg'), jpegWithExif());
+    ingest(ctx, { slug: 'sample-cafe', select: ['shopfront.jpg'], approvedBy: 'client owner', now: NOW });
+    const path = join(site, 'src', 'assets', 'client', 'manifest.json');
+    const good = readFileSync(path, 'utf8');
+    const entry = JSON.stringify(JSON.parse(good).assets[0]);
+    const problemsFor = (text) => {
+      writeFileSync(path, text);
+      return checkProject(ctx, { slug: 'sample-cafe' }).problems.join('\n');
+    };
+    assert.equal(problemsFor(good), '');
+    const duplicateEntryKey = good.replace('"approved_by": "client owner"', '"approved_by": "jane＠example.com",\n      "approved_by": "client owner"');
+    assert.notEqual(duplicateEntryKey, good);
+    assert.match(problemsFor(duplicateEntryKey), /manifest\.json is not exactly what the tool writes/);
+    assert.match(problemsFor(`{"schema":1,"assets":[{"note":"Jane 0412 345 678"}],"assets":[${entry}]}`), /manifest\.json is not exactly what the tool writes/);
+    const m = JSON.parse(good);
+    const realId = m.assets[0].id;
+    m.assets[0].id = `img-041234567800${realId.slice(-4)}`;
+    assert.match(problemsFor(`${JSON.stringify(m, null, 2)}\n`), /id must be img- plus the first 12 characters of its sha256/);
+    m.assets[0].id = realId;
+    m.assets[0].approved_at = '0412-34-56';
+    assert.match(problemsFor(`${JSON.stringify(m, null, 2)}\n`), /approved_at must be a real YYYY-MM-DD date/);
+    m.assets[0].approved_at = '0412-03-05';
+    assert.match(problemsFor(`${JSON.stringify(m, null, 2)}\n`), /approved_at must fall between 2026-11-16 and today/);
+    m.assets[0].approved_at = '2099-01-01';
+    assert.match(problemsFor(`${JSON.stringify(m, null, 2)}\n`), /approved_at must fall between 2026-11-16 and today/);
+    // Invalid UTF-8 decodes to U+FFFD on both sides of a text comparison, so the bytes are compared.
+    const bad = Buffer.concat([Buffer.from(good.slice(0, good.indexOf('"alt": ""') + 8)), Buffer.from([0xff]), Buffer.from(good.slice(good.indexOf('"alt": ""') + 8))]);
+    writeFileSync(path, bad);
+    assert.match(checkProject(ctx, { slug: 'sample-cafe' }).problems.join('\n'), /manifest\.json is not exactly what the tool writes/);
   } finally {
     cleanup();
   }

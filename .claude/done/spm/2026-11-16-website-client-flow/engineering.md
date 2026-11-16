@@ -27,7 +27,7 @@ cross_domain:
 
 # Engineering requirements: client website-build flow
 
-Bench of seven, two rounds. Round 1 raised 18 blocking findings; amendment R1 resolved 16. Round 2 named one sentence for each of the other two, and amendment R2 adopted both. The chair's round-2 report is the ruling of record; this file binds it to the amended spec by hash. The exact-count rule for media was later split out after a real export, under the gate's two-round limit: see `../2026-11-16-wp-export-media-visibility/`, which supersedes the media part of flow item (2) only.
+Bench of seven, two rounds. Round 1 raised 18 blocking findings; amendment R1 resolved 16. Round 2 named one sentence for each of the other two, and amendment R2 adopted both. The chair's round-2 report is the ruling of record; this file binds it to the amended spec by hash. The exact-count rule for media was later split out after a real export, under the gate's two-round limit: see `../2026-11-16-wp-export-media-visibility/`, which supersedes the media part of flow item (2) only. The `approved_by` deny-list was later replaced, after the independent review beat it with a fullwidth `@`, by a fixed list of roles and a public manifest checked byte for byte against a fixed shape: see `../2026-11-16-client-manifest-fixed-shape/`, which supersedes flow item (11) and its R2 stress case only.
 
 ## Asset identity and weight
 

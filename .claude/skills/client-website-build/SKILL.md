@@ -65,9 +65,12 @@ Exit codes: 0 ok, 1 failed or problems found, 2 usage error, 3 status needs atte
    Then `redirects` writes the old addresses into `sites/<slug>/vercel.json`. Over 2,048 entries
    it refuses; use Vercel Bulk Redirects.
 3. **Photos.** Clients send photos into `incoming/`. `ingest` with no selection only lists them.
-   Choose with `--select`; `--approved-by` takes a role ("client owner") or a reference into the
-   private name log, never an email address or phone number. The tool strips location and camera
-   data, names each file by its content hash and caps it at 1 MB.
+   Choose with `--select`; `--approved-by` must be one of four roles: `client owner`,
+   `client manager`, `client staff` or `operator`. It goes into the public manifest, so a name, email
+   address or phone number is refused in any spelling; keep who held the role in the client's
+   private records. The tool strips location and camera data, names each file by its content hash
+   and caps it at 1 MB. `check` holds the public manifest to a fixed set of keys and value shapes;
+   `credit` and `alt` are the only free text in it, so read them in the pull request like page copy.
 4. **Build loop.** `npm run dev`, then look at every page in a real browser at desktop (1440 wide),
    tablet (768) and phone (390), section by section. Fix what you see, not what the code says.
    Then `npm run build`, `npm run check:site` (no `TODO(client)` left, internal links resolve, one
