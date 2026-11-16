@@ -32,13 +32,18 @@ jobs:
 
       - name: Capture read-only official-source evidence
         # The artifact includes a candidate baseline; replacing the committed baseline requires review.
+        # Changed pages are recorded in the artifact and reviewed by nexus-official-docs-automation.yml, which
+        # compares them with the committed snapshots and proposes a PR. So this job does not gate on material
+        # changes and goes red only when a source cannot be fetched (UNI-3418):
+        #   exit 0  every source fetched (changed pages included)
+        #   exit 1  a non-critical source failed
+        #   exit 2  a critical source failed
         run: |
           node scripts/nexus-docs-watch.mjs \
             --root . \
             --config config/nexus-official-sources.json \
             --baseline config/nexus-official-sources.baseline.json \
-            --write .artifacts/nexus-official-docs \
-            --gate-material
+            --write .artifacts/nexus-official-docs
 
       - name: Upload deterministic evidence
         if: always()
