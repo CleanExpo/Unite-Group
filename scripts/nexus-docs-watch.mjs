@@ -1274,7 +1274,7 @@ function usage() {
   ].join('\n')
 }
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const parsed = {
     root: '.',
     config: 'config/nexus-official-sources.json',

@@ -870,8 +870,63 @@ test('the weekly evidence job goes red only when a source fails, not on routine 
     'utf8',
   )
   // Changed pages are reviewed by the automation workflow's snapshot proposal; this job only fingerprints and
-  // records them. --gate-material would turn every routine page change into a red run (exit 3).
-  assert.doesNotMatch(workflow, /--gate-material/)
+  // records them. The material gate would turn every routine page change into a red run (exit 3).
+  //
+  // The check is an allow-list, not a search for the flag's spelling: the job may run exactly two commands, nothing
+  // may change their environment or shell, every word of the watcher command must be literal, and the watcher's own
+  // parser must read those words with the material gate off. A shell-built flag such as --gate"${X:--material}"
+  // therefore fails on its first character, whatever it expands to.
+  const lines = workflow.split(/\r?\n/)
+  const runs = []
+  for (let index = 0; index < lines.length; index += 1) {
+    const match = lines[index].match(/^(\s*)(?:- )?run:\s*(.*)$/)
+    if (!match) continue
+    const keyIndent = match[1].length + (lines[index].trimStart().startsWith('- ') ? 2 : 0)
+    if (!/^[|>][-+]?$/.test(match[2])) {
+      runs.push(match[2].trim())
+      continue
+    }
+    const block = []
+    while (index + 1 < lines.length && (lines[index + 1].trim() === '' || lines[index + 1].search(/\S/) > keyIndent)) {
+      block.push(lines[index + 1].trim())
+      index += 1
+    }
+    runs.push(block.join('\n').trim())
+  }
+  const runKeys = workflow.match(/(^|[\s{,'"-])run['"]?\s*:/gm) ?? []
+  assert.equal(runKeys.length, runs.length, 'every run key is read by this check')
+
+  const watcherCommand = runs.find((run) => run.includes('nexus-docs-watch.mjs'))
+  assert.ok(watcherCommand, 'the weekly workflow runs the watcher')
+  assert.deepEqual(
+    runs.map((run) => (run === watcherCommand ? 'WATCHER' : run)),
+    ['npm run verify:docs-watch', 'WATCHER'],
+    'the weekly job runs exactly the test step and one watcher command',
+  )
+  assert.doesNotMatch(workflow, /^\s*(?:env|shell|defaults)\s*:/m, 'nothing changes the environment or shell')
+  assert.doesNotMatch(watcherCommand, /\$\{\{/, 'the watcher command has no workflow expressions')
+
+  const words = watcherCommand.replace(/\\\n/g, ' ').split(/\s+/).filter(Boolean)
+  for (const word of words) {
+    assert.match(word, /^[A-Za-z0-9_./:,=-]+$/, `watcher command word is literal: ${word}`)
+  }
+  assert.deepEqual(words.slice(0, 2), ['node', 'scripts/nexus-docs-watch.mjs'])
+  const parsed = watcherModule.parseArgs(words.slice(2))
+  assert.equal(parsed.gateMaterial, false, 'the watcher parses the weekly arguments with the material gate off')
+  assert.equal(parsed.outputDir, '.artifacts/nexus-official-docs', 'the weekly job still writes its evidence')
+
+  // With the gate off, a changed gated page exits 0; a failed source still exits 1 or 2.
+  const gated = source({ gateOnChange: true })
+  const before = buildReport([successfulResult(gated)], null, '2026-11-16T00:00:00.000Z', false)
+  const baseline = watcherModule.buildFingerprintBaseline(before, registry([gated]))
+  const changedPage = [{ ...successfulResult(gated), rawSha256: sha256('Release 2'), normalisedSha256: sha256('Release 2') }]
+  const changedReport = buildReport(changedPage, baseline, '2026-11-16T00:00:00.000Z', parsed.gateMaterial)
+  assert.equal(changedReport.sources[0].change, 'changed')
+  assert.equal(changedReport.gates.exitCode, 0)
+  const failed = { id: gated.id, vendor: gated.vendor, url: gated.url, outcome: 'failed', errorCode: 'http_status' }
+  assert.equal(buildReport([{ ...failed, critical: false }], baseline, '2026-11-16T00:00:00.000Z', false).gates.exitCode, 1)
+  assert.equal(buildReport([{ ...failed, critical: true }], baseline, '2026-11-16T00:00:00.000Z', false).gates.exitCode, 2)
+
   for (const code of ['0', '1', '2']) {
     assert.match(workflow, new RegExp(`#\\s*exit ${code}\\b`), `weekly workflow documents exit ${code}`)
   }
