@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdtemp, readFile, readdir } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
@@ -864,70 +864,103 @@ test('content capture sends no conditional headers and refuses a 304', async () 
   }), /304/)
 })
 
+// The approved weekly evidence workflow, byte for byte. Any edit to the workflow (a flag, an env, a shell, an `if:`,
+// `continue-on-error:`, another step) fails the test below until this text is changed in the same reviewed diff.
+// Changed pages are reviewed by nexus-official-docs-automation.yml against the committed snapshots, so this job runs
+// the watcher without the material gate and goes red only when a source cannot be fetched (UNI-3418).
+const APPROVED_WEEKLY_WORKFLOW = [
+  'name: Nexus official-docs weekly evidence',
+  '',
+  'on:',
+  '  schedule:',
+  '    # 02:17 Sunday Australia/Brisbane (AEST, UTC+10; no daylight saving).',
+  '    - cron: \'17 16 * * 6\'',
+  '  workflow_dispatch:',
+  '',
+  'permissions:',
+  '  contents: read',
+  '',
+  'concurrency:',
+  '  group: nexus-official-docs-weekly',
+  '  cancel-in-progress: false',
+  '',
+  'jobs:',
+  '  evidence:',
+  '    name: Fetch and fingerprint official documentation',
+  '    runs-on: ubuntu-latest',
+  '    timeout-minutes: 10',
+  '    steps:',
+  '      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1',
+  '        with:',
+  '          persist-credentials: false',
+  '',
+  '      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0',
+  '        with:',
+  '          node-version: \'24\'',
+  '',
+  '      - name: Test the watcher without external source requests',
+  '        run: npm run verify:docs-watch',
+  '',
+  '      - name: Capture read-only official-source evidence',
+  '        # The artifact includes a candidate baseline; replacing the committed baseline requires review.',
+  '        # Changed pages are recorded in the artifact and reviewed by nexus-official-docs-automation.yml, which',
+  '        # compares them with the committed snapshots and proposes a PR. So this job does not gate on material',
+  '        # changes and goes red only when a source cannot be fetched (UNI-3418):',
+  '        #   exit 0  every source fetched (changed pages included)',
+  '        #   exit 1  a non-critical source failed',
+  '        #   exit 2  a critical source failed',
+  '        run: |',
+  '          node scripts/nexus-docs-watch.mjs \\',
+  '            --root . \\',
+  '            --config config/nexus-official-sources.json \\',
+  '            --baseline config/nexus-official-sources.baseline.json \\',
+  '            --write .artifacts/nexus-official-docs',
+  '',
+  '      - name: Upload deterministic evidence',
+  '        if: always()',
+  '        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2',
+  '        with:',
+  '          name: nexus-official-docs-${{ github.run_id }}',
+  '          path: .artifacts/nexus-official-docs/',
+  '          if-no-files-found: warn',
+  '          retention-days: 30',
+  '',
+].join('\n')
+
 test('the weekly evidence job goes red only when a source fails, not on routine page changes', async () => {
   const workflow = await readFile(
     new URL('../../.github/workflows/nexus-official-docs-weekly.yml', import.meta.url),
     'utf8',
   )
-  // Changed pages are reviewed by the automation workflow's snapshot proposal; this job only fingerprints and
-  // records them. The material gate would turn every routine page change into a red run (exit 3).
-  //
-  // The check is an allow-list, not a search for the flag's spelling: the job may run exactly two commands, nothing
-  // may change their environment or shell, every word of the watcher command must be literal, and the watcher's own
-  // parser must read those words with the material gate off. A shell-built flag such as --gate"${X:--material}"
-  // therefore fails on its first character, whatever it expands to.
-  const lines = workflow.split(/\r?\n/)
-  const runs = []
-  for (let index = 0; index < lines.length; index += 1) {
-    const match = lines[index].match(/^(\s*)(?:- )?run:\s*(.*)$/)
-    if (!match) continue
-    const keyIndent = match[1].length + (lines[index].trimStart().startsWith('- ') ? 2 : 0)
-    if (!/^[|>][-+]?$/.test(match[2])) {
-      runs.push(match[2].trim())
-      continue
-    }
-    const block = []
-    while (index + 1 < lines.length && (lines[index + 1].trim() === '' || lines[index + 1].search(/\S/) > keyIndent)) {
-      block.push(lines[index + 1].trim())
-      index += 1
-    }
-    runs.push(block.join('\n').trim())
-  }
-  const runKeys = workflow.match(/(^|[\s{,'"-])run['"]?\s*:/gm) ?? []
-  assert.equal(runKeys.length, runs.length, 'every run key is read by this check')
+  assert.equal(workflow, APPROVED_WEEKLY_WORKFLOW, 'the weekly workflow matches the approved text byte for byte')
 
-  const watcherCommand = runs.find((run) => run.includes('nexus-docs-watch.mjs'))
-  assert.ok(watcherCommand, 'the weekly workflow runs the watcher')
+  // The watcher words come from the approved text, which is literal: no expressions, quotes or shell expansion.
+  const command = APPROVED_WEEKLY_WORKFLOW.split('node scripts/nexus-docs-watch.mjs')[1].split('\n\n')[0]
+  const words = command.replace(/\\\n/g, ' ').split(/\s+/).filter(Boolean)
+  for (const word of words) assert.match(word, /^[A-Za-z0-9_./:,=-]+$/, `literal watcher word: ${word}`)
+
+  // Run the real command-line path (runCli, which main() only prints) with those words, in a temporary root whose
+  // config and baseline sit at the paths the workflow names. Two gated sources: one normal, one critical.
+  const root = await mkdtemp(path.join(os.tmpdir(), 'nexus-doc-watch-weekly-'))
+  const normal = source({ id: 'example.normal', gateOnChange: true })
+  const critical = source({ id: 'example.critical', url: 'https://docs.example.com/critical', critical: true, gateOnChange: true })
+  const input = registry([normal, critical])
+  const page = (body, status = 200) => async () => new Response(body, { status, headers: { 'content-type': 'text/plain' } })
+  const serve = (bodies) => async (url) => (bodies[String(url)] ?? page('Release 1'))()
+  const first = await runWatcher({ registry: input, root, now: '2026-11-16T00:00:00.000Z', fetchImpl: serve({}), resolveHost: publicResolver })
+  await mkdir(path.join(root, 'config'), { recursive: true })
+  await writeFile(path.join(root, 'config', 'nexus-official-sources.json'), renderJson(input))
+  await writeFile(path.join(root, 'config', 'nexus-official-sources.baseline.json'), first.baselineCandidateJson)
+
+  const run = (bodies) => watcherModule.runCli(words, { cwd: root, now: '2026-11-16T00:00:00.000Z', fetchImpl: serve(bodies), resolveHost: publicResolver })
+  const changed = await run({ [normal.url]: page('Release 2'), [critical.url]: page('Release 2') })
+  assert.deepEqual(changed.report.sources.map((s) => s.change), ['changed', 'changed'])
+  assert.equal(changed.exitCode, 0, 'changed gated pages do not turn the weekly job red')
   assert.deepEqual(
-    runs.map((run) => (run === watcherCommand ? 'WATCHER' : run)),
-    ['npm run verify:docs-watch', 'WATCHER'],
-    'the weekly job runs exactly the test step and one watcher command',
+    (await readdir(path.join(root, '.artifacts', 'nexus-official-docs'))).sort(),
+    ['baseline.candidate.json', 'report.json', 'report.md'],
+    'the weekly job still writes its evidence',
   )
-  assert.doesNotMatch(workflow, /^\s*(?:env|shell|defaults)\s*:/m, 'nothing changes the environment or shell')
-  assert.doesNotMatch(watcherCommand, /\$\{\{/, 'the watcher command has no workflow expressions')
-
-  const words = watcherCommand.replace(/\\\n/g, ' ').split(/\s+/).filter(Boolean)
-  for (const word of words) {
-    assert.match(word, /^[A-Za-z0-9_./:,=-]+$/, `watcher command word is literal: ${word}`)
-  }
-  assert.deepEqual(words.slice(0, 2), ['node', 'scripts/nexus-docs-watch.mjs'])
-  const parsed = watcherModule.parseArgs(words.slice(2))
-  assert.equal(parsed.gateMaterial, false, 'the watcher parses the weekly arguments with the material gate off')
-  assert.equal(parsed.outputDir, '.artifacts/nexus-official-docs', 'the weekly job still writes its evidence')
-
-  // With the gate off, a changed gated page exits 0; a failed source still exits 1 or 2.
-  const gated = source({ gateOnChange: true })
-  const before = buildReport([successfulResult(gated)], null, '2026-11-16T00:00:00.000Z', false)
-  const baseline = watcherModule.buildFingerprintBaseline(before, registry([gated]))
-  const changedPage = [{ ...successfulResult(gated), rawSha256: sha256('Release 2'), normalisedSha256: sha256('Release 2') }]
-  const changedReport = buildReport(changedPage, baseline, '2026-11-16T00:00:00.000Z', parsed.gateMaterial)
-  assert.equal(changedReport.sources[0].change, 'changed')
-  assert.equal(changedReport.gates.exitCode, 0)
-  const failed = { id: gated.id, vendor: gated.vendor, url: gated.url, outcome: 'failed', errorCode: 'http_status' }
-  assert.equal(buildReport([{ ...failed, critical: false }], baseline, '2026-11-16T00:00:00.000Z', false).gates.exitCode, 1)
-  assert.equal(buildReport([{ ...failed, critical: true }], baseline, '2026-11-16T00:00:00.000Z', false).gates.exitCode, 2)
-
-  for (const code of ['0', '1', '2']) {
-    assert.match(workflow, new RegExp(`#\\s*exit ${code}\\b`), `weekly workflow documents exit ${code}`)
-  }
+  assert.equal((await run({ [normal.url]: page('down', 503) })).exitCode, 1, 'a failed normal source exits 1')
+  assert.equal((await run({ [critical.url]: page('down', 503) })).exitCode, 2, 'a failed critical source exits 2')
 })

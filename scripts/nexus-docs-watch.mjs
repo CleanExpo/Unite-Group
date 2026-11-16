@@ -1331,14 +1331,15 @@ async function readJsonInsideRoot(root, candidate, label) {
   }
 }
 
-async function main() {
-  const args = parseArgs(process.argv.slice(2))
+// The whole command-line path, so tests run exactly what the CLI runs. `io` only supplies the working directory and
+// network stand-ins; it cannot change how arguments are read or how the exit code is chosen.
+export async function runCli(argv, io = {}) {
+  const args = parseArgs(argv)
   if (args.help) {
-    process.stdout.write(`${usage()}\n`)
-    return
+    return { exitCode: 0, stdout: `${usage()}\n`, stderr: '', report: null }
   }
 
-  const root = realpathSync(path.resolve(args.root))
+  const root = realpathSync(path.resolve(io.cwd ?? process.cwd(), args.root))
   const registry = await readJsonInsideRoot(root, args.config, 'registry')
   const baseline = args.baseline
     ? await readJsonInsideRoot(root, args.baseline, 'baseline')
@@ -1351,11 +1352,25 @@ async function main() {
     contentDir: args.contentDir,
     onlyIds: args.onlyIds,
     gateMaterial: args.gateMaterial,
+    now: io.now,
+    fetchImpl: io.fetchImpl,
+    requestImpl: io.requestImpl,
+    resolveHost: io.resolveHost,
   })
 
-  process.stdout.write(result.json)
-  process.stderr.write(result.markdown)
-  process.exitCode = result.report.gates.exitCode
+  return {
+    exitCode: result.report.gates.exitCode,
+    stdout: result.json,
+    stderr: result.markdown,
+    report: result.report,
+  }
+}
+
+async function main() {
+  const result = await runCli(process.argv.slice(2))
+  process.stdout.write(result.stdout)
+  process.stderr.write(result.stderr)
+  process.exitCode = result.exitCode
 }
 
 const invokedPath = process.argv[1] ? pathToFileURL(path.resolve(process.argv[1])).href : null
