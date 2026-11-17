@@ -2,6 +2,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 import { createWorld, reduceWorld, SCHEMA_VERSION, type WorldState } from '../scenario'
 import { WorldService } from '../service/world-service'
@@ -134,16 +135,43 @@ describe('world.schema.json matches the reducer it describes', () => {
       .filter(f => /\.tsx?$/.test(f) && !/\.test\.tsx?$/.test(f) && !f.endsWith('.d.ts'))
     const written = new Set<string>()
     const unknownForms: string[] = []
-    // Forms that carry no literal of their own (types and pass-through). Any other form fails, so a new way of writing a
-    // code is seen rather than skipped.
+    // Review round 7: a text pattern let 'a' + '-b' through. The TypeScript parser reads each `code` property instead,
+    // and only whole string literals (or a union of them, in a type) count. Three pass-through forms carry no literal of
+    // their own. Every other form fails: a concatenation, a template, a variable, a shorthand `{ code }`, a computed
+    // name, or an assignment such as `x.code = ...`.
     const passThrough = new Set(['string', 'string | null', 'result.ok ? null : result.code'])
-    for (const f of files) {
-      const text = readFileSync(join(root, f), 'utf8')
-      for (const m of text.matchAll(/\bcode\??:\s*('[^']*'(?:\s*\|\s*'[^']*')*|[^,;}\n]+)/g)) {
-        const value = m[1].trim()
-        if (value.startsWith("'")) for (const l of value.matchAll(/'([^']*)'/g)) written.add(l[1])
-        else if (!passThrough.has(value)) unknownForms.push(`${f}: code: ${value}`)
+    const literals = (node: ts.Node): string[] | null => {
+      if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return [node.text]
+      if (ts.isLiteralTypeNode(node) && ts.isStringLiteral(node.literal)) return [node.literal.text]
+      if (ts.isUnionTypeNode(node)) {
+        const parts = node.types.map(literals)
+        return parts.every(p => p !== null) ? (parts as string[][]).flat() : null
       }
+      return null
+    }
+    const isCodeName = (name: ts.Node): boolean =>
+      ((ts.isIdentifier(name) || ts.isStringLiteral(name)) && name.text === 'code') ||
+      (ts.isComputedPropertyName(name) && ts.isStringLiteralLike(name.expression) && name.expression.text === 'code')
+    for (const f of files) {
+      const source = ts.createSourceFile(f, readFileSync(join(root, f), 'utf8'), ts.ScriptTarget.Latest, true,
+        f.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS)
+      const check = (where: ts.Node, value: ts.Node | undefined) => {
+        const found = value ? literals(value) : null
+        if (found) for (const c of found) written.add(c)
+        else if (!value || !passThrough.has(value.getText(source))) unknownForms.push(`${f}: ${where.getText(source)}`)
+      }
+      const visit = (node: ts.Node): void => {
+        if (ts.isShorthandPropertyAssignment(node) && node.name.text === 'code') unknownForms.push(`${f}: shorthand code`)
+        else if (ts.isComputedPropertyName(node) && !ts.isStringLiteralLike(node.expression)) unknownForms.push(`${f}: computed name ${node.getText(source)}`)
+        else if (ts.isPropertyAssignment(node) && isCodeName(node.name)) check(node, node.initializer)
+        else if (ts.isPropertySignature(node) && isCodeName(node.name)) check(node, node.type)
+        else if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+          ((ts.isPropertyAccessExpression(node.left) && node.left.name.text === 'code') ||
+           (ts.isElementAccessExpression(node.left) && ts.isStringLiteralLike(node.left.argumentExpression) && node.left.argumentExpression.text === 'code')))
+          check(node, node.right)
+        ts.forEachChild(node, visit)
+      }
+      visit(source)
     }
     // Positive control: the scan reached the HTTP server and the service.
     expect(written).toContain('method-not-allowed')
