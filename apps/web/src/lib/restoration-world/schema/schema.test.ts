@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
@@ -122,8 +122,37 @@ describe('world.schema.json matches the reducer it describes', () => {
     // Every service-level code the service can return, each produced here: a refusal, and an allowed read of a person who
     // does not exist (GET /people/<id>/record answers it as 404).
     const notFound = service.readRecord('o', 'no-such-person')
-    expect(defs.ServiceCode.enum).toEqual([unknown.ok ? '' : unknown.code, notFound.ok ? '' : notFound.code])
+    for (const r of [unknown, notFound]) expect(defs.ServiceCode.enum).toContain(r.ok ? '' : r.code)
     expect(defs.DenialReason.enum).toEqual([unknown, missing, notPermitted].map(r => (r as { reason: string }).reason))
+  })
+
+  it('every code written in the world source is in ResultCode or ServiceCode, and ServiceCode lists only written codes', () => {
+    // Review round 6: two HTTP codes were missing because the test above samples only what WorldService returns. This
+    // reads the source instead, so a code written anywhere in the world code fails here until the schema lists it.
+    const root = join(dirname(fileURLToPath(import.meta.url)), '..')
+    const files = (readdirSync(root, { recursive: true }) as string[])
+      .filter(f => /\.tsx?$/.test(f) && !/\.test\.tsx?$/.test(f) && !f.endsWith('.d.ts'))
+    const written = new Set<string>()
+    const unknownForms: string[] = []
+    // Forms that carry no literal of their own (types and pass-through). Any other form fails, so a new way of writing a
+    // code is seen rather than skipped.
+    const passThrough = new Set(['string', 'string | null', 'result.ok ? null : result.code'])
+    for (const f of files) {
+      const text = readFileSync(join(root, f), 'utf8')
+      for (const m of text.matchAll(/\bcode\??:\s*('[^']*'(?:\s*\|\s*'[^']*')*|[^,;}\n]+)/g)) {
+        const value = m[1].trim()
+        if (value.startsWith("'")) for (const l of value.matchAll(/'([^']*)'/g)) written.add(l[1])
+        else if (!passThrough.has(value)) unknownForms.push(`${f}: code: ${value}`)
+      }
+    }
+    // Positive control: the scan reached the HTTP server and the service.
+    expect(written).toContain('method-not-allowed')
+    expect(written).toContain('permission-denied')
+    expect(unknownForms).toEqual([])
+    const result = new Set(defs.ResultCode.enum as string[])
+    const service = defs.ServiceCode.enum as string[]
+    expect([...written].filter(c => !result.has(c) && !service.includes(c)).sort()).toEqual([])
+    expect(service.filter(c => !written.has(c) || result.has(c))).toEqual([])
   })
 
   it('every address refusal reason the reducer returns is in the AddressReason enum, and each is reachable', () => {
