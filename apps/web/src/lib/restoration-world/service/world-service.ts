@@ -281,7 +281,9 @@ export class WorldService {
       code: result.ok ? null : result.code,
       reason: !result.ok && 'reason' in result ? result.reason : null,
       status,
-      state: deepFreeze(structuredClone(result.state)),
+      // World states are deep-frozen (deepFreeze in scenario.ts), so the attempt keeps the state itself, not a copy.
+      // A copy per attempt made memory grow with the square of the command count (review of 7e97638b6).
+      state: deepFreeze(result.state),
     }
     this.attemptLog.push(Object.freeze(entry))
   }

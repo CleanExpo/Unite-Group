@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   classifyFleet,
   classifyMissions,
@@ -96,14 +96,18 @@ export function MissionControlNext({ tab }: { tab: MissionControlNextTab }) {
   const [pendingId, setPendingId] = useState<string | null>(null)
   const [outcome, setOutcome] = useState<{ taskId: string; result: WriteOutcome } | null>(null)
 
+  // Each refresh takes a number; only the newest may write. Switching tabs restarts the effect, so an older refresh
+  // can finish after a newer one and must not put its older reads back on screen.
+  const generation = useRef(0)
   const refresh = useCallback(async () => {
+    const mine = ++generation.current
     const [missions, queue, fleet, revenue] = await Promise.all([
       read('/api/command-centre/missions'),
       read('/api/command-centre/queue'),
       read('/api/command-centre/mesh-fleet'),
       read('/api/command-centre/revenue'),
     ])
-    setReads({ missions, queue, fleet, revenue })
+    if (mine === generation.current) setReads({ missions, queue, fleet, revenue })
   }, [])
 
   useEffect(() => {
@@ -114,7 +118,10 @@ export function MissionControlNext({ tab }: { tab: MissionControlNextTab }) {
     const id = setInterval(() => {
       if (document.visibilityState === 'visible') void refresh()
     }, POLL_MS)
-    return () => clearInterval(id)
+    return () => {
+      clearInterval(id)
+      generation.current++
+    }
   }, [refresh, tab])
 
   const nav = (

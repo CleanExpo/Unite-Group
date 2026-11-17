@@ -381,4 +381,14 @@ describe('A2 house models', () => {
     expect(() => checkLibrary(swap({ roofForm: 'flat' }))).toThrow('T1 roof pitch does not match its form')
     expect(() => checkLibrary(swap({ storeys: 0 }))).toThrow('T1 storeys must be a whole number from 1')
   })
+
+  it('A2 a floor rule agrees with the model: slab-only scenarios use slab models, raised-only scenarios raised ones', () => {
+    for (const x of SCENARIOS.filter(s => s.houseRule === 'Needs a concrete slab on the ground.')) {
+      expect(x.houses.map(id => house(id).model.floorHeightM)).toEqual(x.houses.map(() => 0))
+    }
+    expect(SCENARIOS.find(x => x.id === 'W8')?.houses).not.toContain('T2')
+    const set = (id: string, floorHeightM: number) => HOUSE_TYPES.map(h => (h.id === id ? { ...h, model: { ...h.model, floorHeightM } } : h))
+    expect(() => checkLibrary(set('T1', 0.4))).toThrow('W8 needs a slab, but T1 is built raised')
+    expect(() => checkLibrary(set('T3', 0))).toThrow(/needs a raised house, but T3 is built on a slab/)
+  })
 })

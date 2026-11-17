@@ -8,7 +8,7 @@
     "Choice": { "enum": ["seek-support", "rush-response"] },
     "CommandType": { "enum": ["decide", "reflect", "complete", "create-business", "enter-claim", "call-category", "decide-claim", "complete-claim", "start-job", "call-stops", "call-water", "call-decision", "finish-job", "add-person", "change-roles", "post-vacancy", "hire-candidate"] },
     "ResultCode": { "enum": ["invalid-command", "id-conflict", "stale-revision", "invalid-stage", "invalid-address", "category-not-called", "category-already-called", "house-not-suited", "stops-not-called", "stops-already-called", "water-not-called", "water-already-called", "decision-already-called", "decisions-open", "person-unknown", "person-already-added", "vacancy-already-open", "vacancy-not-open", "no-candidates"] },
-    "ServiceCode": { "enum": ["permission-denied"] },
+    "ServiceCode": { "enum": ["permission-denied", "not-found"] },
     "DenialReason": { "enum": ["unknown-actor", "missing-role", "not-permitted"] },
     "Role": { "enum": ["owner", "senior-technician", "administrator"] },
     "StaffRole": { "enum": ["senior-technician", "administrator"] },

@@ -21,6 +21,28 @@ it('keeps live World unavailable while the separate local playtest runs', async 
   expect(fetchSpy).not.toHaveBeenCalled()
 })
 
+it('an older refresh that finishes late cannot overwrite newer reads after a tab switch', async () => {
+  const held: Array<() => void> = []
+  const reply = (n: number) => ({
+    ok: true, status: 200,
+    json: async () => ({ source: 'supabase', missions: Array.from({ length: n }, (_, i) => ({ id: `m${i}`, title: `Mission ${i}`, status: 'done', updatedAt: '2026-11-17T00:00:00Z' })) }),
+  })
+  let calls = 0
+  vi.stubGlobal('fetch', vi.fn(() => {
+    calls++
+    // Refresh A (Home) is held open; refresh B (Missions, after passing through World) answers at once.
+    if (calls <= 4) return new Promise(resolve => { held.push(() => resolve(reply(5))) })
+    return Promise.resolve(reply(2))
+  }))
+  const view = render(<MissionControlNext tab="home" />)
+  await act(async () => { view.rerender(<MissionControlNext tab="world" />) })
+  await act(async () => { view.rerender(<MissionControlNext tab="missions" />) })
+  expect((await screen.findAllByText('2 missions')).length).toBeGreaterThan(0)
+  await act(async () => { held.forEach(release => release()) })
+  expect(screen.getAllByText('2 missions').length).toBeGreaterThan(0)
+  expect(screen.queryByText('5 missions')).toBeNull()
+})
+
 it('restores other-tab polling and stops it again when returning to World or unmounting', async () => {
   vi.useFakeTimers()
   vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible')

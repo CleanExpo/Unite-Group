@@ -179,7 +179,9 @@ export interface LibraryScenario {
 const ALL: readonly HouseTypeId[] = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10']
 const LOW: readonly HouseTypeId[] = ALL.filter(h => h !== 'T10')
 const STRATA: readonly HouseTypeId[] = ['T6', 'T10']
-const SLAB: readonly HouseTypeId[] = ['T1', 'T2', 'T6']
+// T2 is not here: its catalogue floor is "timber subfloor on piers, or slab", and the model the client builds is the
+// raised subfloor (floorHeightM 0.4), so a slab-only scenario would be played on a house with no slab.
+const SLAB: readonly HouseTypeId[] = ['T1', 'T6']
 const RAISED: readonly HouseTypeId[] = ['T3', 'T4', 'T9']
 const DETACHED: readonly HouseTypeId[] = ['T1', 'T2', 'T3', 'T4', 'T5', 'T8', 'T9']
 const PRE_1990: readonly HouseTypeId[] = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9']
@@ -942,6 +944,12 @@ export function checkLibrary(houses: readonly HouseType[] = HOUSE_TYPES,
     if ((x.houses.length < 10) !== (x.houseRule !== null)) problems.push(`${x.id} house rule does not match its house list`)
     if (x.stops.length === 0) problems.push(`${x.id} has no stops`)
     if (x.water && x.water.categories.length === 0) problems.push(`${x.id} water call accepts no Category`)
+    // A floor rule must agree with the model the client builds, not only with the house's description.
+    for (const id of x.houses) {
+      const floor = houses.find(h => h.id === id)?.model.floorHeightM
+      if (x.houseRule === RULE.slab && floor !== 0) problems.push(`${x.id} needs a slab, but ${id} is built raised`)
+      if (x.houseRule === RULE.raised && floor === 0) problems.push(`${x.id} needs a raised house, but ${id} is built on a slab`)
+    }
   }
   for (const [id, list] of Object.entries(decisions)) {
     if (!ids.includes(id as ScenarioId)) problems.push(`decisions for unknown scenario ${id}`)

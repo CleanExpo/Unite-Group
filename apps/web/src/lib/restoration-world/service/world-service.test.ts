@@ -172,6 +172,19 @@ describe('permission checks (service-owned) with audit on denial', () => {
     expect(service.attempts[0].state.business?.address.region).toBe('QLD')
   })
 
+  it('an attempt keeps the frozen state itself, not a copy, so attempts do not each hold a full history', () => {
+    const service = new WorldService('test')
+    const create = { id: 'b', expectedRevision: 0, type: 'create-business', name: 'Fictional Restorers',
+      address: { line1: '12 Fictional Rd', suburb: 'Fortitude Valley', region: 'QLD', postcode: '4006', country: 'AU' } }
+    service.handle(create, ME)
+    expect(service.attempts[0].state).toBe(service.current)
+    service.handle(create, ME)
+    service.handle({ id: 'x', expectedRevision: 0, type: 'reflect' }, ME)
+    expect(service.attempts.map(a => a.outcome)).toEqual(['accepted', 'replayed', 'rejected'])
+    for (const a of service.attempts) expect(a.state).toBe(service.current)
+    expect(service.attempts[0].state.history).toBe(service.attempts[2].state.history)
+  })
+
   it('L1 NEG-1: an inherited object-property name is not an Australian region: refused, logged, nothing committed (review L1 round 1, finding 1)', () => {
     const service = new WorldService('test')
     for (const [i, region] of ['toString', 'constructor', '__proto__', 'valueOf'].entries()) {

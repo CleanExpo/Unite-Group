@@ -119,7 +119,10 @@ describe('world.schema.json matches the reducer it describes', () => {
     const address = { line1: '12 Fictional Rd', suburb: 'Fortitude Valley', region: 'QLD', postcode: '4006', country: 'AU' }
     expect(service.handle({ id: 'b', expectedRevision: 0, type: 'create-business', name: 'Fictional Restorers', address }, 'o').ok).toBe(true)
     const notPermitted = service.handle({ id: 'p', expectedRevision: 1, type: 'add-person', personId: 'riley-okafor', roles: ['administrator'] }, 'local-test-identity')
-    expect(defs.ServiceCode.enum).toEqual([unknown.ok ? '' : unknown.code])
+    // Every service-level code the service can return, each produced here: a refusal, and an allowed read of a person who
+    // does not exist (GET /people/<id>/record answers it as 404).
+    const notFound = service.readRecord('o', 'no-such-person')
+    expect(defs.ServiceCode.enum).toEqual([unknown.ok ? '' : unknown.code, notFound.ok ? '' : notFound.code])
     expect(defs.DenialReason.enum).toEqual([unknown, missing, notPermitted].map(r => (r as { reason: string }).reason))
   })
 
