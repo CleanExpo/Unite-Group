@@ -351,6 +351,14 @@ describe('A3 decisions', () => {
   it('UNI-3457 the library refuses a second Category judgement, a disagreeing one, and time-decided water with no evidence', () => {
     const good = DECISIONS.W1![0]
     expect(() => checkLibrary(HOUSE_TYPES, { W1: [{ ...good, prompt: 'Which Category is it?' }] })).toThrow('asks the Category again')
+    // Codex round 1 probe: other wording, bare number options. Any unreviewed line that mentions the Category is refused.
+    expect(() => checkLibrary(HOUSE_TYPES, { W1: [{ ...good, prompt: 'What Category is the water?',
+      options: [{ id: '1', label: '1' }, { id: '2', label: '2' }], right: '1' }] })).toThrow('asks the Category again')
+    expect(() => checkLibrary(HOUSE_TYPES, { W1: [{ ...good, prompt: 'Is this cat 2?' }] })).toThrow('asks the Category again')
+    // A reviewed line changed by one word is no longer reviewed.
+    expect(() => checkLibrary(HOUSE_TYPES, { W1: [{ ...good, prompt: good.prompt.replace('What happens', 'Which Category, and what happens') }] })).toThrow('asks the Category again')
+    // W1's "3 or 4" air movers mentions no Category and stays allowed.
+    expect(() => checkLibrary(HOUSE_TYPES, { W1: [DECISIONS.W1![1]] })).not.toThrow()
     expect(() => checkLibrary(HOUSE_TYPES, { W1: [{ ...good, prompt: 'The water is Category 2. What now?' }] })).toThrow('names Category 2')
     expect(() => checkLibrary(HOUSE_TYPES, { W8: [{ ...good, why: 'Class 2 drying.' }] })).toThrow('names Class 2')
     // A wrong option may name a wrong Category; a job with no water call has no second judgement.

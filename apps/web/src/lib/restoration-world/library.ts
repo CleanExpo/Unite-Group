@@ -964,6 +964,22 @@ export const LIBRARY: Library = Object.freeze({
   stops: Object.freeze(SAFETY_STOPS.map(id => Object.freeze({ id, label: STOP_LABELS[id].label }))),
 })
 
+/**
+ * UNI-3457: in a job with a water call, the water call is the one Category judgement. These are the only prompt and option
+ * lines in such a job that may mention the Category, each read and found to state it (or the idea of it), never to ask
+ * the player to judge it again. A new or reworded line is refused by checkLibrary until it is reviewed and added here.
+ * Limit: a question that asks the Category without the word (for example "How dirty is the water?") is not caught here;
+ * the answer key test and review cover that.
+ */
+const CATEGORY_LINES_REVIEWED: ReadonlySet<string> = new Set([
+  'The hall carpet and underlay are wet with Category 1 water. What happens to them?',
+  'There is insulation inside the wet wall, and the water is Category 2. What happens to it?',
+  'A drying chamber for each area, each with its own Category and Class',
+  'What do you check before you call the sprinkler water Category 1?',
+  'Particleboard skirting and wall insulation are wet with Category 2 water.',
+  'Plasterboard soaked by Category 3 floodwater.',
+])
+
 /** Load-time checks on the data: refuses to start if a row is broken. Tests pass a changed house list or decision table. */
 export function checkLibrary(houses: readonly HouseType[] = HOUSE_TYPES,
   decisions: Readonly<Partial<Record<string, readonly ScenarioDecision[]>>> = DECISIONS): void {
@@ -1012,7 +1028,11 @@ export function checkLibrary(houses: readonly HouseType[] = HOUSE_TYPES,
         for (const m of words.matchAll(/\bclass\s*([1-4])\b/gi)) {
           if (!water.classes || !water.classes.includes(Number(m[1]) as WaterClass)) problems.push(`${id}/${x.id} names Class ${m[1]}, which the water call does not accept`)
         }
-        if (/\bwhich category\b/i.test(x.prompt) || x.options.some(o => /\b(?:cat|category)\s*[1-3]\b/i.test(o.label))) problems.push(`${id}/${x.id} asks the Category again`)
+        // Any prompt or option that mentions the Category must be one of the exact lines reviewed as not asking it again.
+        // An exact allow-list, not a phrase match: two phrase rules missed rewordings ("What Category is the water?").
+        for (const line of [x.prompt, ...x.options.map(o => o.label)]) {
+          if (/\b(?:cat|category)\b/i.test(line) && !CATEGORY_LINES_REVIEWED.has(line)) problems.push(`${id}/${x.id} asks the Category again: "${line}" is not a reviewed line`)
+        }
       }
     }
   }
