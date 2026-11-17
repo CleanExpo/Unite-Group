@@ -43,6 +43,31 @@ it('an older refresh that finishes late cannot overwrite newer reads after a tab
   expect(screen.queryByText('5 missions')).toBeNull()
 })
 
+it('a refresh that outlasts the poll interval still shows its reads when nothing newer has finished', async () => {
+  vi.useFakeTimers()
+  vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible')
+  const held: Array<{ n: number; release: () => void }> = []
+  const reply = (n: number) => ({
+    ok: true, status: 200,
+    json: async () => ({ source: 'supabase', missions: Array.from({ length: n }, (_, i) => ({ id: `m${i}`, title: `Mission ${i}`, status: 'done', updatedAt: '2026-11-17T00:00:00Z' })) }),
+  })
+  let calls = 0
+  // Every read is slow: refresh A (first 4 reads, 3 missions) and the poll's refresh B (next 4, 4 missions) both stay open.
+  vi.stubGlobal('fetch', vi.fn(() => {
+    const n = ++calls <= 4 ? 3 : 4
+    return new Promise(resolve => { held.push({ n, release: () => resolve(reply(n)) }) })
+  }))
+  render(<MissionControlNext tab="missions" />)
+  await act(async () => { await vi.advanceTimersByTimeAsync(30_000) })
+  expect(held).toHaveLength(8)
+  await act(async () => { held.filter(h => h.n === 3).forEach(h => h.release()); await vi.advanceTimersByTimeAsync(0) })
+  expect(screen.getAllByText('3 missions').length).toBeGreaterThan(0)
+  // B then finishes and, being newer, replaces A.
+  await act(async () => { held.filter(h => h.n === 4).forEach(h => h.release()); await vi.advanceTimersByTimeAsync(0) })
+  expect(screen.getAllByText('4 missions').length).toBeGreaterThan(0)
+  expect(screen.queryByText('3 missions')).toBeNull()
+})
+
 it('restores other-tab polling and stops it again when returning to World or unmounting', async () => {
   vi.useFakeTimers()
   vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible')
