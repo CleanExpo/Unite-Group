@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "restoration-world/world.schema.json",
-  "title": "Restoration World wire contract (schemaVersion 8, capacity-pressure-v1)",
+  "title": "Restoration World wire contract (schemaVersion 9, capacity-pressure-v1)",
   "description": "Defined once. GDScript types are generated from this file. Rules are not described here; they live in scenario.ts.",
   "$defs": {
     "Stage": { "enum": ["briefing", "consequence", "reflected", "complete"] },
     "Choice": { "enum": ["seek-support", "rush-response"] },
-    "CommandType": { "enum": ["decide", "reflect", "complete", "create-business", "enter-claim", "call-category", "decide-claim", "complete-claim", "start-job", "call-stops", "call-water", "call-decision", "finish-job", "add-person", "change-roles", "post-vacancy", "hire-candidate"] },
-    "ResultCode": { "enum": ["invalid-command", "id-conflict", "stale-revision", "invalid-stage", "invalid-address", "category-not-called", "category-already-called", "house-not-suited", "stops-not-called", "stops-already-called", "water-not-called", "water-already-called", "decision-already-called", "decisions-open", "person-unknown", "person-already-added", "vacancy-already-open", "vacancy-not-open", "no-candidates"] },
+    "CommandType": { "enum": ["decide", "reflect", "complete", "create-business", "enter-claim", "call-category", "decide-claim", "complete-claim", "start-job", "call-stops", "call-water", "call-decision", "call-step", "call-cause", "finish-job", "add-person", "change-roles", "post-vacancy", "hire-candidate"] },
+    "ResultCode": { "enum": ["invalid-command", "id-conflict", "stale-revision", "invalid-stage", "invalid-address", "category-not-called", "category-already-called", "house-not-suited", "stops-not-called", "stops-already-called", "water-not-called", "water-already-called", "decision-already-called", "decisions-open", "person-unknown", "person-already-added", "vacancy-already-open", "vacancy-not-open", "no-candidates", "step-already-called", "cause-already-called", "steps-not-done", "cause-not-called"] },
     "ServiceCode": { "enum": ["permission-denied", "not-found", "method-not-allowed", "privileged-refused", "internal-error"] },
     "DenialReason": { "enum": ["unknown-actor", "missing-role", "not-permitted"] },
     "Role": { "enum": ["owner", "senior-technician", "administrator"] },
@@ -195,6 +195,29 @@
         {
           "type": "object",
           "additionalProperties": false,
+          "required": ["id", "expectedRevision", "type", "stepId", "optionId"],
+          "properties": {
+            "id": { "$ref": "#/$defs/CommandId" },
+            "expectedRevision": { "type": "integer", "minimum": 0 },
+            "type": { "const": "call-step" },
+            "stepId": { "type": "string" },
+            "optionId": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "expectedRevision", "type", "causeId"],
+          "properties": {
+            "id": { "$ref": "#/$defs/CommandId" },
+            "expectedRevision": { "type": "integer", "minimum": 0 },
+            "type": { "const": "call-cause" },
+            "causeId": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
           "required": ["id", "expectedRevision", "type", "personId", "roles"],
           "properties": {
             "id": { "$ref": "#/$defs/CommandId" },
@@ -346,7 +369,7 @@
     "LibraryJob": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["scenarioId", "houseType", "title", "family", "stage", "briefing", "needsWaterCall", "callsClass", "stopsCall", "waterCall", "decisions", "keyDecisions", "evidenceLevel"],
+      "required": ["scenarioId", "houseType", "title", "family", "stage", "briefing", "needsWaterCall", "callsClass", "stopsCall", "waterCall", "decisions", "keyDecisions", "evidenceLevel", "investigation"],
       "properties": {
         "scenarioId": { "$ref": "#/$defs/ScenarioId" },
         "houseType": { "$ref": "#/$defs/HouseTypeId" },
@@ -360,7 +383,70 @@
         "waterCall": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/WaterCall" }] },
         "decisions": { "type": "array", "items": { "$ref": "#/$defs/JobDecision" } },
         "keyDecisions": { "type": ["string", "null"] },
-        "evidenceLevel": { "const": "indicative" }
+        "evidenceLevel": { "const": "indicative" },
+        "investigation": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/JobInvestigation" }] }
+      }
+    },
+    "InvestigationCause": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label"],
+      "properties": { "id": { "type": "string" }, "label": { "type": "string" } }
+    },
+    "InvestigationOption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label"],
+      "properties": { "id": { "type": "string" }, "label": { "type": "string" } }
+    },
+    "StepCall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["optionId", "finding", "rulesOut", "points", "unsafe", "why", "source"],
+      "properties": {
+        "optionId": { "type": "string" },
+        "finding": { "type": "string" },
+        "rulesOut": { "type": "array", "items": { "type": "string" } },
+        "points": { "type": "integer" },
+        "unsafe": { "type": "boolean" },
+        "why": { "type": "string" },
+        "source": { "type": "string" }
+      }
+    },
+    "InvestigationStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "prompt", "options", "call"],
+      "properties": {
+        "id": { "type": "string" },
+        "prompt": { "type": "string" },
+        "options": { "type": "array", "items": { "$ref": "#/$defs/InvestigationOption" } },
+        "call": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/StepCall" }] }
+      }
+    },
+    "CauseCall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["causeId", "correct", "acceptedCauses", "stillOpen", "why"],
+      "properties": {
+        "causeId": { "type": "string" },
+        "correct": { "type": "boolean" },
+        "acceptedCauses": { "type": "array", "items": { "type": "string" } },
+        "stillOpen": { "type": "array", "items": { "type": "string" } },
+        "why": { "type": "string" }
+      }
+    },
+    "JobInvestigation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["causes", "open", "steps", "causeCall", "score", "simulated"],
+      "properties": {
+        "causes": { "type": "array", "items": { "$ref": "#/$defs/InvestigationCause" } },
+        "open": { "type": "array", "items": { "type": "string" } },
+        "steps": { "type": "array", "items": { "$ref": "#/$defs/InvestigationStep" } },
+        "causeCall": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/CauseCall" }] },
+        "score": { "type": ["integer", "null"] },
+        "simulated": { "const": true }
       }
     },
     "Claim": {
@@ -608,7 +694,7 @@
       "additionalProperties": false,
       "required": ["schemaVersion", "scenarioVersion", "source", "role", "stage", "revision", "warehouse", "consequence", "progression", "professionalEvidence", "business", "person", "homeBase", "claim", "job", "history"],
       "properties": {
-        "schemaVersion": { "const": 8 },
+        "schemaVersion": { "const": 9 },
         "scenarioVersion": { "const": "capacity-pressure-v1" },
         "source": { "const": "simulation" },
         "role": { "const": "technician" },
