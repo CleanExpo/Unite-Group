@@ -365,7 +365,7 @@ describe('HTTP transport', () => {
     expect(health.mode).toBe('live')
     expect(typeof health.schemaVersion).toBe('number')
     expect(health.schemaVersion).toBe(SCHEMA_VERSION)
-    expect(health.schemaVersion).toBe(7)
+    expect(health.schemaVersion).toBe(8)
   })
 
   it('/health reports the version of the state the service is serving', async () => {

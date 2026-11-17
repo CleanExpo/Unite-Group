@@ -168,6 +168,9 @@ export interface LibraryScenario {
   /** Rooms and materials, or the hazard, from the catalogue: shown in the briefing. */
   readonly site: string
   readonly keyDecisions: string
+  /** What the technician finds on arrival that the water call depends on (how long the water sat, its smell); null when the
+   * title and site already say it. Required where the catalogue's Category comes from time (checkLibrary). */
+  readonly arrival: string | null
   /** The scenario's own stops; the house adds asbestos and lead (stopsFor). */
   readonly stops: readonly SafetyStop[]
   readonly water: WaterAnswer | null
@@ -200,14 +203,22 @@ function w(categories: LibraryCategory[], classes: WaterClass[] | null, catalogu
 
 function s(id: ScenarioId, family: ScenarioFamily, title: string, site: string, keyDecisions: string, stops: SafetyStop[],
   water: WaterAnswer | null = null, houses: readonly HouseTypeId[] = ALL, houseRule: string | null = null): LibraryScenario {
-  return { id, family, title, site, keyDecisions, stops, water, houses, houseRule }
+  return { id, family, title, site, keyDecisions, arrival: ARRIVAL[id] ?? null, stops, water, houses, houseRule }
+}
+
+/** UNI-3457: the evidence for a water call that time decides, given in the briefing so the call can be made from it. */
+const ARRIVAL: Readonly<Partial<Record<ScenarioId, string>>> = {
+  W3: 'Nobody was home for three days. The water under the sink is still warm from the house and smells musty.',
+  W4: 'The owner first saw the stain on the wall about two weeks ago. The wall cavity smells musty.',
+  WM1: 'The leak ran inside the wall for weeks before anyone found it.',
+  WM2: 'Nobody was in the house for 72 hours or more, and the water smells.',
 }
 
 /** Every catalogue scenario, in catalogue order. */
 export const SCENARIOS: readonly LibraryScenario[] = [
   s('W1', 'water', 'Washing machine hose burst', 'Laundry and hall; plasterboard, vinyl, carpet', 'Isolate water, extract, set equipment, move contents', ['ELEC', 'TRADE'], w([1], [2], 'Cat 1, Class 2')),
   s('W2', 'water', 'Hot water system or tempering valve leak', 'Laundry or garage, cupboard, adjoining walls', 'Shut off supply; scald risk; wall cavity drying', ['ELEC', 'TRADE'], w([1], [2], 'Cat 1, Class 2')),
-  s('W3', 'water', 'Flexi hose under a sink burst while the owners were away', 'Kitchen cabinetry, floor, adjoining rooms', 'Remove cabinetry or dry in place; hidden wet under cabinets', ['ELEC', 'TRADE'], w([1], [2, 3], 'Cat 1, Class 2 to 3')),
+  s('W3', 'water', 'Flexi hose under a sink burst while the owners were away', 'Kitchen cabinetry, floor, adjoining rooms', 'Remove cabinetry or dry in place; hidden wet under cabinets', ['ELEC', 'TRADE'], w([2], [2, 3], 'Cat 1 aged to Cat 2, Class 2 to 3')),
   s('W4', 'water', 'Concealed pipe leak in a wall', 'Wall cavity and floor; plasterboard', 'Find the source; cavity drying or removal; time since it started', ['ELEC', 'TRADE'], w([2], [2], 'Cat 1 aged to Cat 2, Class 2')),
   s('W5', 'water', 'Shower waterproofing failure', 'Bathroom and adjoining rooms; tile, screed, timber floor', 'Moisture mapping; tile lift; the cause is a building defect', ['TRADE'], w([2], [2, 3], 'Cat 2, Class 2 to 3')),
   s('W6', 'water', 'Roof leak after a storm or failed flashing', 'Ceiling, insulation, roof void; plasterboard', 'Ceiling collapse risk; insulation removal; make safe', ['STRUC', 'ELEC'], w([1, 2], [2], 'Cat 1 to 2, Class 2'), LOW, RULE.low),
@@ -298,9 +309,12 @@ export const DECISIONS: Readonly<Partial<Record<ScenarioId, readonly ScenarioDec
       'S500:2021 16.2.2, 12.5.6'),
   ],
   W3: [
-    d('category', 'The water sat for three days while the owners were away, and it smells. How do you treat it?',
-      [['cat-1', 'As Category 1, because it came from a supply line'], ['cat-2', 'As Category 2']],
-      'cat-2', 'Time and warmth make clean water worse. A smell is a sign that it has gone bad.', 'S500:2021 Category definitions'),
+    // UNI-3457: the Category is judged once, by the water call, from the arrival evidence. This decision replaced a second
+    // Category question that disagreed with it.
+    d('hidden', 'The floor in front of the cabinets reads dry at the surface. What do you check before you set the drying plan?',
+      [['under', 'Take off the kick boards and take readings under the cabinets'], ['surface', 'Nothing more; the surface readings are enough']],
+      'under', 'Start at the source and follow the water outward until you find dry material, including the hidden spaces it ran into under the cabinets.',
+      'S500:2021 10.6.3'),
     d('cabinets', 'The particleboard cabinet bases and kick boards are wet. What happens to them?',
       [['dry', 'Dry them in place'], ['remove', 'Remove and replace them']],
       'remove', 'After Category 2 water, particleboard and MDF are removed and replaced.', 'S500:2021 16.2.2.1'),
@@ -378,10 +392,11 @@ export const DECISIONS: Readonly<Partial<Record<ScenarioId, readonly ScenarioDec
       'S500:2021 16.2.2.1'),
   ],
   WM2: [
-    d('category-time', 'Clean supply water sat three warm days and smells. How do you treat it?',
-      [['contaminated-category-2', 'As contaminated, Category 2 or 3'], ['category-1-came', 'Category 1, it came from a clean pipe'], ['test-first-work', 'Test first and work as Category 1 meanwhile']],
-      'contaminated-category-2', 'Category gets worse with time and warmth; an odour shows clean water has gone bad.',
-      'S500:2021 Category definitions'),
+    // UNI-3457: the water call is the one Category judgement; this replaced a second Category question.
+    d('debris', 'Bagged wet contents and debris must pass through the clean hallway.',
+      [['double-bag', 'Double-bag it'], ['one-bag', 'One bag'], ['carry-unbagged-quick', 'Carry it unbagged, it is quick']],
+      'double-bag', 'Double-bag contaminated debris that passes through clean areas.',
+      'S500:2021 12.3'),
     d('order', 'In what order do you work?',
       [['dry-first-then', 'Dry first, then clean'], ['both-once', 'Both at once'], ['remove-clean-contaminated', 'Remove and clean contaminated material first, then dry']],
       'remove-clean-contaminated', 'With contamination present, remediate before drying.',
@@ -718,10 +733,11 @@ export const DECISIONS: Readonly<Partial<Record<ScenarioId, readonly ScenarioDec
       'S500:2021 12.3, 12.3.5'),
   ],
   SW2: [
-    d('category', 'Water came back from beyond the toilet trap. Which Category?',
-      [['1', '1'], ['3', '3'], ['2', '2']],
-      '3', 'Backflow from beyond a trap is Category 3.',
-      'S500:2021 Category definitions'),
+    // UNI-3457: the water call is the one Category judgement; this replaced a second Category question.
+    d('air', 'How is the air set while you remove the wet porous materials?',
+      [['fast-air-movers', 'Fast air movers to dry it quickly'], ['open-windows-doors', 'Open the windows and doors'], ['negative-pressure-slow', 'Negative pressure, slow air over contaminated surfaces']],
+      'negative-pressure-slow', 'Keep it at negative pressure and keep air slow while remediating.',
+      'S500:2021 12.3, 12.3.5'),
     d('debris', 'Bagged contaminated waste must pass through the clean hallway.',
       [['double-bag', 'Double-bag it'], ['one-bag', 'One bag'], ['carry-unbagged-quick', 'Carry it unbagged, it is quick']],
       'double-bag', 'Double-bag contaminated debris that passes through clean areas.',
@@ -748,10 +764,11 @@ export const DECISIONS: Readonly<Partial<Record<ScenarioId, readonly ScenarioDec
       'S500:2021 16.2.2.2, 16.2.1'),
   ],
   ST4: [
-    d('category', 'Sea water from the surge came in. Which Category?',
-      [['1', '1'], ['2', '2'], ['3', '3']],
-      '3', 'Sea water is Category 3.',
-      'S500:2021 Category definitions'),
+    // UNI-3457: the water call is the one Category judgement; this replaced a second Category question.
+    d('power', 'Salt water reached the power points and the appliances. What happens before anyone works inside?',
+      [['switch-power-run', 'Switch the power on to run equipment'], ['wear-rubber-gloves', 'Wear rubber gloves'], ['power-stays-off', 'Power stays off until a qualified electrician checks it']],
+      'power-stays-off', 'Wet electrical systems stay off until a qualified person checks them.',
+      'S500:2021 16.3.15, 12.2.4'),
     d('carpet', 'Carpet and underlay are soaked with surge water.',
       [['dry-them-place', 'Dry them in place'], ['remove-both-then', 'Remove both, then assess the floor below'], ['clean-carpet-discard', 'Clean the carpet, discard the underlay']],
       'remove-both-then', 'After Category 3, carpet and underlay both come out.',
@@ -813,8 +830,8 @@ export interface LibraryJob {
   readonly waterCall: WaterCall | null
   /** A3: the scenario's decisions, in order; empty where none are written yet. */
   readonly decisions: readonly JobDecision[]
-  /** What the full job decides, as the catalogue lists it; shown in the debrief. */
-  readonly keyDecisions: string
+  /** What the full job decides, as the catalogue lists it: null on site, set in the debrief (UNI-3457). */
+  readonly keyDecisions: string | null
   readonly evidenceLevel: 'indicative'
 }
 
@@ -846,15 +863,37 @@ export function newLibraryJob(scenario: LibraryScenario, house: HouseType): Libr
       `Affected: ${scenario.site}.`,
       `The house: ${house.name}, built ${house.era}. Storeys: ${house.storeys}.`,
       `Floor: ${house.floor}. Walls: ${house.walls}. Linings: ${house.lining}. Roof: ${house.roof}.`,
+      ...(scenario.arrival ? [`On arrival: ${scenario.arrival}`] : []),
     ],
     needsWaterCall: scenario.water !== null,
     callsClass: scenario.water?.classes != null,
     stopsCall: null,
     waterCall: null,
-    decisions: (DECISIONS[scenario.id] ?? []).map(x => ({ id: x.id, prompt: x.prompt, options: x.options, call: null })),
-    keyDecisions: scenario.keyDecisions,
+    decisions: [],
+    keyDecisions: null,
     evidenceLevel: 'indicative',
   }
+}
+
+/**
+ * UNI-3457: the one rule for what a job shows. A decision's prompt and options appear only after the stops and the water
+ * call, one at a time in order, each after the one before it is called; keyDecisions appears only in the debrief. So no
+ * text in the job can answer a call not yet made. The reducer applies this to every job it returns.
+ */
+export function revealJob(job: LibraryJob): LibraryJob {
+  const scenario = scenarioById(job.scenarioId)
+  if (!scenario) return job
+  const calls = new Map(job.decisions.map(x => [x.id, x.call]))
+  const ready = job.stopsCall !== null && (!job.needsWaterCall || job.waterCall !== null)
+  const decisions: JobDecision[] = []
+  if (ready) {
+    for (const x of DECISIONS[scenario.id] ?? []) {
+      const call = calls.get(x.id) ?? null
+      decisions.push({ id: x.id, prompt: x.prompt, options: x.options, call })
+      if (call === null) break
+    }
+  }
+  return { ...job, decisions, keyDecisions: job.stage === 'complete' ? scenario.keyDecisions : null }
 }
 
 export function judgeStops(scenario: LibraryScenario, house: HouseType, called: readonly SafetyStop[]): StopsCall {
@@ -944,6 +983,8 @@ export function checkLibrary(houses: readonly HouseType[] = HOUSE_TYPES,
     if ((x.houses.length < 10) !== (x.houseRule !== null)) problems.push(`${x.id} house rule does not match its house list`)
     if (x.stops.length === 0) problems.push(`${x.id} has no stops`)
     if (x.water && x.water.categories.length === 0) problems.push(`${x.id} water call accepts no Category`)
+    // UNI-3457: a Category that time decides needs its evidence in the briefing.
+    if (x.water && /\baged\b|by time/i.test(x.water.catalogue) && !x.arrival?.trim()) problems.push(`${x.id} water Category comes from time but the job gives no arrival evidence`)
     // A floor rule must agree with the model the client builds, not only with the house's description.
     for (const id of x.houses) {
       const floor = houses.find(h => h.id === id)?.model.floorHeightM
@@ -959,6 +1000,20 @@ export function checkLibrary(houses: readonly HouseType[] = HOUSE_TYPES,
       if (options.length < 2 || new Set(options).size !== options.length) problems.push(`${id}/${x.id} needs two or more distinct options`)
       if (!options.includes(x.right)) problems.push(`${id}/${x.id} right option is not one of its options`)
       if (!x.why.trim() || !x.source.trim()) problems.push(`${id}/${x.id} has no reason or no source`)
+      // UNI-3457: the water call owns the Category and Class. A decision may name only ones that call accepts, and never asks
+      // the Category again, so the two judgements cannot disagree.
+      // A job with no water call has no other judgement to disagree with.
+      const water = SCENARIOS.find(y => y.id === id)?.water ?? null
+      if (water) {
+        const words = [x.prompt, x.why, x.options.find(o => o.id === x.right)?.label ?? ''].join(' ')
+        for (const m of words.matchAll(/\b(?:cat|category)\s*([1-3])\b/gi)) {
+          if (!water.categories.includes(Number(m[1]) as LibraryCategory)) problems.push(`${id}/${x.id} names Category ${m[1]}, which the water call does not accept`)
+        }
+        for (const m of words.matchAll(/\bclass\s*([1-4])\b/gi)) {
+          if (!water.classes || !water.classes.includes(Number(m[1]) as WaterClass)) problems.push(`${id}/${x.id} names Class ${m[1]}, which the water call does not accept`)
+        }
+        if (/\bwhich category\b/i.test(x.prompt) || x.options.some(o => /\b(?:cat|category)\s*[1-3]\b/i.test(o.label))) problems.push(`${id}/${x.id} asks the Category again`)
+      }
     }
   }
   if (problems.length > 0) throw new Error('A1 scenario library refused: ' + problems.join('; '))

@@ -224,6 +224,9 @@ describe('one owner for the freeze rule and one audit log (review of 42eae88e)',
     const job = new WorldService('test')
     expect(send(job, OWNER, { id: 'b', type: 'create-business', name: 'Fictional Restorers', address }).ok).toBe(true)
     expect(send(job, OWNER, { id: 's', type: 'start-job', scenarioId: 'W1', houseType: 'T1' }).ok).toBe(true)
+    // UNI-3457: decisions show after the stops and the water call.
+    expect(send(job, OWNER, { id: 'c', type: 'call-stops', stops: ['ELEC', 'TRADE'] }).ok).toBe(true)
+    expect(send(job, OWNER, { id: 'w', type: 'call-water', category: 1, waterClass: 2 }).ok).toBe(true)
     expect(job.current.job?.decisions.length).toBeGreaterThan(0)
     for (const service of [l3, job]) {
       // service.events is a fresh copy of the log array; the events inside it are the stored ones.
