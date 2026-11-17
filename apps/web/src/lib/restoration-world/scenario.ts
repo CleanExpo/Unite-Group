@@ -21,7 +21,7 @@
  * no setup is today's claim, unchanged apart from three empty fields (founder default G1).
  */
 import {
-  DECISIONS, houseById, judgeDecision, judgeStops, judgeWater, LIBRARY, newLibraryJob, SAFETY_STOPS, scenarioById,
+  DECISIONS, houseById, judgeDecision, judgeStops, judgeWater, LIBRARY, newLibraryJob, revealJob, SAFETY_STOPS, scenarioById,
   type HouseTypeId, type Library, type LibraryCategory, type LibraryJob, type SafetyStop, type ScenarioId, type WaterClass,
 } from './library'
 import {
@@ -191,7 +191,7 @@ export interface HomeBase {
 }
 
 /** The wire schema version this code speaks. world.schema.json's const and title must agree (schema.test.ts). */
-export const SCHEMA_VERSION = 7 as const
+export const SCHEMA_VERSION = 8 as const
 
 export interface WorldState {
   readonly schemaVersion: typeof SCHEMA_VERSION
@@ -868,6 +868,8 @@ export function reduceWorld(state: WorldState, input: unknown): WorldResult {
     if (state.job.needsWaterCall && !state.job.waterCall) return { ok: false, code: 'water-not-called', state }
     const decision = DECISIONS[state.job.scenarioId]?.find(x => x.id === command.decisionId)
     if (!decision || !decision.options.some(o => o.id === command.optionId)) return { ok: false, code: 'invalid-command', state }
+    // UNI-3457: only the decision the job shows can be called (revealJob shows them one at a time, in order).
+    if (!state.job.decisions.some(x => x.id === decision.id)) return { ok: false, code: 'invalid-command', state }
     if (state.job.decisions.find(x => x.id === decision.id)?.call) return { ok: false, code: 'decision-already-called', state }
     const call = judgeDecision(decision, command.optionId)
     next = { ...state, job: { ...state.job, decisions: state.job.decisions.map(x => x.id === decision.id ? { ...x, call } : x) } }
@@ -914,6 +916,8 @@ export function reduceWorld(state: WorldState, input: unknown): WorldResult {
     replayed: false,
     state: freezeWorld({
       ...next,
+      // UNI-3457: every job the reducer returns passes through the one reveal rule.
+      job: next.job ? revealJob(next.job) : null,
       source: 'simulation',
       professionalEvidence: 'not-assessed',
       revision: state.revision + 1,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  checkLibrary, DECISIONS, HOUSE_TYPES, LIBRARY, SCENARIOS, stopsFor, type HouseModel, type HouseTypeId, type SafetyStop,
+  checkLibrary, DECISIONS, HOUSE_TYPES, LIBRARY, SCENARIOS, scenarioById, stopsFor, type HouseModel, type HouseTypeId, type SafetyStop,
 } from './library'
 import { createWorld, reduceWorld, type WorldState } from './scenario'
 
@@ -196,7 +196,7 @@ describe('A3 decisions', () => {
     const key: Record<string, string> = {
       'W1/carpet': 'dry-in-place | S500:2021 16.3.7; Appendix C (informative)', 'W1/air-movers': 'three-four | S500:2021 12.5.3',
       'W2/first-step': 'isolate | S500:2021 12.2.4, 12.2.5; AS/NZS 3500.4 temperatures (60 C stored, 50 C at fixtures) per Tas CBOS 2020; scald times: Moritz and Henriques 1947', 'W2/plasterboard': 'dry-monitor | S500:2021 16.2.2, 12.5.6',
-      'W3/category': 'cat-2 | S500:2021 Category definitions', 'W3/cabinets': 'remove | S500:2021 16.2.2.1',
+      'W3/hidden': 'under | S500:2021 10.6.3', 'W3/cabinets': 'remove | S500:2021 16.2.2.1',
       'W4/thermal': 'meter | S500:2021 10.6.8', 'W4/insulation': 'remove | S500:2021 16.2.2.1',
       'W5/repair': 'licensed-trade | S500:2021 1.2.3, 1.2.5', 'W5/moisture-map': 'source-out | S500:2021 10.6.3',
       'W6/ceiling': 'remove | S500:2021 16.2.2', 'W6/cellulose': 'remove | S500:2021 16.3.6',
@@ -206,7 +206,7 @@ describe('A3 decisions', () => {
       'W10/chambers': 'chambers | S500:2021 Class definitions', 'W10/sprinkler-category': 'public-supply | S500:2021 16.3.17',
       'WM1/mould-found': 'stop-contain-follow | S500:2021 8.6; S520 1.3, 9.3.3',
       'WM1/skirting': 'remove | S500:2021 16.2.2.1',
-      'WM2/category-time': 'contaminated-category-2 | S500:2021 Category definitions',
+      'WM2/debris': 'double-bag | S500:2021 12.3',
       'WM2/order': 'remove-clean-contaminated | S500:2021 1.2.3, 12.3',
       'WM3/insulation': 'remove-them | S500:2021 16.2.2',
       'WM3/bagging': 'cut-knife-bag | S500:2021 12.3',
@@ -274,13 +274,13 @@ describe('A3 decisions', () => {
       'AS2/positive': 'dry-without-disturbing | S500:2021 8.7',
       'SW1/carpet': 'remove-both-then | S500:2021 16.3.7, 16.2.2.2',
       'SW1/air': 'negative-pressure-slow | S500:2021 12.3, 12.3.5',
-      'SW2/category': '3 | S500:2021 Category definitions',
+      'SW2/air': 'negative-pressure-slow | S500:2021 12.3, 12.3.5',
       'SW2/debris': 'double-bag | S500:2021 12.3',
       'SW3/source': 'stop-source-licensed | S500:2021 12.2.5, 1.2.3, 1.2.5',
       'SW3/ppe': 'respirator-eye-protection | S500:2021 8.4, 8.13',
       'ST1/power': 'power-stays-off | S500:2021 16.3.15, 12.2.4',
       'ST1/wallboard': 'remove-dry-frame | S500:2021 16.2.2.2, 16.2.1',
-      'ST4/category': '3 | S500:2021 Category definitions',
+      'ST4/power': 'power-stays-off | S500:2021 16.3.15, 12.2.4',
       'ST4/carpet': 'remove-both-then | S500:2021 16.3.7',
     }
     const got: Record<string, string> = {}
@@ -288,10 +288,12 @@ describe('A3 decisions', () => {
     expect(got).toEqual(key)
   })
 
-  it('A3 a job shows each decision\'s prompt and options, and no answer until it is called', () => {
+  it('A3 a job shows the next decision\'s prompt and options, and no answer until it is called', () => {
     const job = w1Called().job
-    expect(job?.decisions.map(x => x.id)).toEqual(['carpet', 'air-movers'])
+    // UNI-3457: one decision at a time, in order; the next appears when this one is called.
+    expect(job?.decisions.map(x => x.id)).toEqual(['carpet'])
     expect(job?.decisions.every(x => x.call === null)).toBe(true)
+    expect(job?.keyDecisions).toBeNull()
     const text = JSON.stringify(job?.decisions)
     for (const answer of ['"right"', 'rightOptionId', '"why"', '"source"', 'S500']) expect(text).not.toContain(answer)
   })
@@ -304,7 +306,8 @@ describe('A3 decisions', () => {
     expect(call?.why).toContain('The right call: Lift, dry and relay them.')
     expect(call?.source).toBe('S500:2021 16.3.7; Appendix C (informative)')
     expect(code(wrong, { type: 'call-decision', decisionId: 'carpet', optionId: 'dry-in-place' })).toBe('decision-already-called')
-    const right = send(state, { type: 'call-decision', decisionId: 'air-movers', optionId: 'three-four' })
+    expect(wrong.job?.decisions.map(x => x.id)).toEqual(['carpet', 'air-movers'])
+    const right = send(wrong, { type: 'call-decision', decisionId: 'air-movers', optionId: 'three-four' })
     expect(right.job?.decisions.find(x => x.id === 'air-movers')?.call?.correct).toBe(true)
   })
 
@@ -315,10 +318,52 @@ describe('A3 decisions', () => {
     expect(code(state, { type: 'call-decision', decisionId: 'carpet', optionId: 'dry-in-place' })).toBe('water-not-called')
     state = send(state, { type: 'call-water', category: 1, waterClass: 2 })
     expect(code(state, { type: 'finish-job' })).toBe('decisions-open')
-    state = send(state, { type: 'call-decision', decisionId: 'air-movers', optionId: 'one' })
-    expect(code(state, { type: 'finish-job' })).toBe('decisions-open')
+    // UNI-3457: the second decision is not shown yet, so calling it is refused.
+    expect(code(state, { type: 'call-decision', decisionId: 'air-movers', optionId: 'one' })).toBe('invalid-command')
     state = send(state, { type: 'call-decision', decisionId: 'carpet', optionId: 'dry-in-place' })
-    expect(send(state, { type: 'finish-job' }).job?.stage).toBe('complete')
+    expect(code(state, { type: 'finish-job' })).toBe('decisions-open')
+    state = send(state, { type: 'call-decision', decisionId: 'air-movers', optionId: 'one' })
+    const done = send(state, { type: 'finish-job' }).job
+    expect(done?.stage).toBe('complete')
+    expect(done?.keyDecisions).toBe(scenarioById('W1')?.keyDecisions)
+  })
+
+  it('UNI-3457 no on-site job names a Category or Class before the water call, or keyDecisions before the debrief', () => {
+    for (const s of SCENARIOS) {
+      if (!s.water) continue
+      const state = send(withBusiness(), { type: 'start-job', scenarioId: s.id, houseType: s.houses[0] })
+      const before = send(state, { type: 'call-stops', stops: [] }).job
+      const text = JSON.stringify(before)
+      expect(text, s.id).not.toMatch(/\b(cat|category|class)\s*[1-4]\b/i)
+      expect(text, s.id).not.toContain(s.keyDecisions)
+      expect(before?.decisions, s.id).toEqual([])
+    }
+  })
+
+  it('UNI-3457 W3 is judged Category 2 once, by the water call, from the arrival evidence in its briefing', () => {
+    const w3 = scenarioById('W3')!
+    expect(w3.water?.categories).toEqual([2])
+    const job = send(withBusiness(), { type: 'start-job', scenarioId: 'W3', houseType: 'T1' }).job
+    expect(job?.briefing).toContain(`On arrival: ${w3.arrival}`)
+    expect((DECISIONS.W3 ?? []).map(x => x.id)).toEqual(['hidden', 'cabinets'])
+  })
+
+  it('UNI-3457 the library refuses a second Category judgement, a disagreeing one, and time-decided water with no evidence', () => {
+    const good = DECISIONS.W1![0]
+    expect(() => checkLibrary(HOUSE_TYPES, { W1: [{ ...good, prompt: 'Which Category is it?' }] })).toThrow('asks the Category again')
+    // Codex round 1 probe: other wording, bare number options. Any unreviewed line that mentions the Category is refused.
+    expect(() => checkLibrary(HOUSE_TYPES, { W1: [{ ...good, prompt: 'What Category is the water?',
+      options: [{ id: '1', label: '1' }, { id: '2', label: '2' }], right: '1' }] })).toThrow('asks the Category again')
+    expect(() => checkLibrary(HOUSE_TYPES, { W1: [{ ...good, prompt: 'Is this cat 2?' }] })).toThrow('asks the Category again')
+    // A reviewed line changed by one word is no longer reviewed.
+    expect(() => checkLibrary(HOUSE_TYPES, { W1: [{ ...good, prompt: good.prompt.replace('What happens', 'Which Category, and what happens') }] })).toThrow('asks the Category again')
+    // W1's "3 or 4" air movers mentions no Category and stays allowed.
+    expect(() => checkLibrary(HOUSE_TYPES, { W1: [DECISIONS.W1![1]] })).not.toThrow()
+    expect(() => checkLibrary(HOUSE_TYPES, { W1: [{ ...good, prompt: 'The water is Category 2. What now?' }] })).toThrow('names Category 2')
+    expect(() => checkLibrary(HOUSE_TYPES, { W8: [{ ...good, why: 'Class 2 drying.' }] })).toThrow('names Class 2')
+    // A wrong option may name a wrong Category; a job with no water call has no second judgement.
+    expect(() => checkLibrary(HOUSE_TYPES, { W1: [{ ...good, options: [...good.options, { id: 'x', label: 'Treat it as Category 3' }] }] })).toThrow('asks the Category again')
+    expect(() => checkLibrary(HOUSE_TYPES, { F4: [{ ...good, prompt: 'Which Category?' }] })).not.toThrow()
   })
 
   it('A3 an unknown decision or option, another job\'s decision, or an extra key is an invalid command', () => {
