@@ -5,6 +5,9 @@
  * section 3 and 4, copied to session-artifacts/2026-10-21-d2fd6200/house-library/scenario-catalogue.md) and the house
  * research (house-library/house-styles.md). Every value is indicative until checked against a named source.
  */
+import {
+  checkInvestigation, INVESTIGATIONS, newJobInvestigation, revealInvestigation, type Investigations, type JobInvestigation,
+} from './investigation'
 
 export type HouseTypeId = 'T1' | 'T2' | 'T3' | 'T4' | 'T5' | 'T6' | 'T7' | 'T8' | 'T9' | 'T10'
 export type ScenarioFamily =
@@ -833,6 +836,8 @@ export interface LibraryJob {
   /** What the full job decides, as the catalogue lists it: null on site, set in the debrief (UNI-3457). */
   readonly keyDecisions: string | null
   readonly evidenceLevel: 'indicative'
+  /** UNI-3411: the job's investigation, or null where the scenario has none (every scenario in production today). */
+  readonly investigation: JobInvestigation | null
 }
 
 export function scenarioById(id: string): LibraryScenario | undefined {
@@ -851,7 +856,8 @@ export function stopsFor(scenario: LibraryScenario, house: HouseType): readonly 
   return SAFETY_STOPS.filter(x => need.has(x))
 }
 
-export function newLibraryJob(scenario: LibraryScenario, house: HouseType): LibraryJob {
+export function newLibraryJob(scenario: LibraryScenario, house: HouseType, investigations: Investigations = INVESTIGATIONS): LibraryJob {
+  const investigation = investigations[scenario.id]
   return {
     scenarioId: scenario.id,
     houseType: house.id,
@@ -872,6 +878,7 @@ export function newLibraryJob(scenario: LibraryScenario, house: HouseType): Libr
     decisions: [],
     keyDecisions: null,
     evidenceLevel: 'indicative',
+    investigation: investigation ? newJobInvestigation(investigation) : null,
   }
 }
 
@@ -880,20 +887,24 @@ export function newLibraryJob(scenario: LibraryScenario, house: HouseType): Libr
  * call, one at a time in order, each after the one before it is called; keyDecisions appears only in the debrief. So no
  * text in the job can answer a call not yet made. The reducer applies this to every job it returns.
  */
-export function revealJob(job: LibraryJob): LibraryJob {
+export function revealJob(job: LibraryJob, investigations: Investigations = INVESTIGATIONS): LibraryJob {
   const scenario = scenarioById(job.scenarioId)
   if (!scenario) return job
   const calls = new Map(job.decisions.map(x => [x.id, x.call]))
   const ready = job.stopsCall !== null && (!job.needsWaterCall || job.waterCall !== null)
+  // UNI-3411: diagnosis before remediation. The investigation steps follow the stops and water call; the decisions
+  // follow the cause call.
+  const source = investigations[scenario.id]
+  const investigation = source && job.investigation ? revealInvestigation(source, job.investigation, ready) : null
   const decisions: JobDecision[] = []
-  if (ready) {
+  if (ready && (investigation === null || investigation.causeCall !== null)) {
     for (const x of DECISIONS[scenario.id] ?? []) {
       const call = calls.get(x.id) ?? null
       decisions.push({ id: x.id, prompt: x.prompt, options: x.options, call })
       if (call === null) break
     }
   }
-  return { ...job, decisions, keyDecisions: job.stage === 'complete' ? scenario.keyDecisions : null }
+  return { ...job, decisions, keyDecisions: job.stage === 'complete' ? scenario.keyDecisions : null, investigation }
 }
 
 export function judgeStops(scenario: LibraryScenario, house: HouseType, called: readonly SafetyStop[]): StopsCall {
@@ -982,7 +993,8 @@ const CATEGORY_LINES_REVIEWED: ReadonlySet<string> = new Set([
 
 /** Load-time checks on the data: refuses to start if a row is broken. Tests pass a changed house list or decision table. */
 export function checkLibrary(houses: readonly HouseType[] = HOUSE_TYPES,
-  decisions: Readonly<Partial<Record<string, readonly ScenarioDecision[]>>> = DECISIONS): void {
+  decisions: Readonly<Partial<Record<string, readonly ScenarioDecision[]>>> = DECISIONS,
+  investigations: Investigations = INVESTIGATIONS): void {
   const problems: string[] = []
   const ids = SCENARIOS.map(x => x.id)
   if (new Set(ids).size !== 49) problems.push(`${new Set(ids).size} distinct scenarios, expected 49`)
@@ -1035,6 +1047,11 @@ export function checkLibrary(houses: readonly HouseType[] = HOUSE_TYPES,
         }
       }
     }
+  }
+  // UNI-3411: every investigation belongs to a known scenario and passes the load rules.
+  for (const [id, x] of Object.entries(investigations)) {
+    if (!ids.includes(id as ScenarioId)) problems.push(`investigation for unknown scenario ${id}`)
+    if (x) problems.push(...checkInvestigation(id, x))
   }
   if (problems.length > 0) throw new Error('A1 scenario library refused: ' + problems.join('; '))
 }

@@ -249,6 +249,11 @@ export function startWorldServer(options: WorldServerOptions): Promise<RunningWo
       return send(res, 404, { ok: false, code: 'not-found' }, mode)
     } catch (error) {
       if (error instanceof PrivilegedControlRefused) return send(res, 403, { ok: false, code: 'privileged-refused' }, mode)
+      // UNI-3411: a 500 is logged. A command fault was already written and recorded by WorldService.handle; anything
+      // else (a read route, a test control) is written here.
+      if (!(req.method === 'POST' && path === '/command')) {
+        process.stderr.write(`restoration-world ${req.method} ${path} failed: ${error instanceof Error ? error.stack : String(error)}\n`)
+      }
       return send(res, 500, { ok: false, code: 'internal-error' }, mode)
     }
   })

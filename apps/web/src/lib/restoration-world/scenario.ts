@@ -24,6 +24,7 @@ import {
   DECISIONS, houseById, judgeDecision, judgeStops, judgeWater, LIBRARY, newLibraryJob, revealJob, SAFETY_STOPS, scenarioById,
   type HouseTypeId, type Library, type LibraryCategory, type LibraryJob, type SafetyStop, type ScenarioId, type WaterClass,
 } from './library'
+import { INVESTIGATIONS, judgeCause, judgeStep, stepCalls, type Investigations } from './investigation'
 import {
   candidateById, CANDIDATES, parseStaffRoles, PLAYER_ID, PLAYER_NAME, staffById,
   type PersonEntry, type StaffRole, type Vacancy,
@@ -83,6 +84,8 @@ export type WorldCommand = Readonly<
     | { type: 'call-stops'; stops: readonly SafetyStop[] }
     | { type: 'call-water'; category: LibraryCategory; waterClass: WaterClass | null }
     | { type: 'call-decision'; decisionId: string; optionId: string }
+    | { type: 'call-step'; stepId: string; optionId: string }
+    | { type: 'call-cause'; causeId: string }
     | { type: 'finish-job' }
     | { type: 'add-person'; personId: string; roles: readonly StaffRole[] }
     | { type: 'change-roles'; personId: string; roles: readonly StaffRole[] }
@@ -191,7 +194,7 @@ export interface HomeBase {
 }
 
 /** The wire schema version this code speaks. world.schema.json's const and title must agree (schema.test.ts). */
-export const SCHEMA_VERSION = 8 as const
+export const SCHEMA_VERSION = 9 as const
 
 export interface WorldState {
   readonly schemaVersion: typeof SCHEMA_VERSION
@@ -221,7 +224,8 @@ export type WorldResult =
   | { ok: false; code: 'invalid-command' | 'id-conflict' | 'stale-revision' | 'invalid-stage' | 'category-not-called' | 'category-already-called'
       | 'house-not-suited' | 'stops-not-called' | 'stops-already-called' | 'water-not-called' | 'water-already-called'
       | 'decision-already-called' | 'decisions-open' | 'person-unknown' | 'person-already-added' | 'vacancy-already-open'
-      | 'vacancy-not-open' | 'no-candidates'; state: WorldState }
+      | 'vacancy-not-open' | 'no-candidates' | 'step-already-called' | 'cause-already-called' | 'steps-not-done'
+      | 'cause-not-called'; state: WorldState }
   | { ok: false; code: 'invalid-address'; reason: AddressReason; state: WorldState }
 
 /** Australian states and territories with their time zones (zone names; the client shows the name, not an offset). */
@@ -693,6 +697,14 @@ function parseCommand(value: unknown): WorldCommand | null {
       typeof command.decisionId === 'string' && typeof command.optionId === 'string') {
     return { ...common, type: 'call-decision', decisionId: command.decisionId, optionId: command.optionId }
   }
+  // UNI-3411: ids only. Whether they name a shown step, its option, or a listed cause is checked in the reducer.
+  if (command.type === 'call-step' && keys === 'expectedRevision,id,optionId,stepId,type' &&
+      typeof command.stepId === 'string' && typeof command.optionId === 'string') {
+    return { ...common, type: 'call-step', stepId: command.stepId, optionId: command.optionId }
+  }
+  if (command.type === 'call-cause' && keys === 'causeId,expectedRevision,id,type' && typeof command.causeId === 'string') {
+    return { ...common, type: 'call-cause', causeId: command.causeId }
+  }
   if (keys === 'expectedRevision,id,type' && command.type === 'finish-job') return { ...common, type: 'finish-job' }
   // L3: ids and role names only. Whether the person or candidate exists is a rule, checked in the reducer. A command that
   // also carries a name or any other detail is invalid: the client never sends a person's details.
@@ -723,7 +735,7 @@ function sameCommand(a: WorldCommand, b: WorldCommand): boolean {
 }
 
 /** State is produced in-process by this module, not deserialised from a client. */
-export function reduceWorld(state: WorldState, input: unknown): WorldResult {
+export function reduceWorld(state: WorldState, input: unknown, investigations: Investigations = INVESTIGATIONS): WorldResult {
   const command = parseCommand(input)
   if (!command) return { ok: false, code: 'invalid-command', state }
   const previous = state.history.find(event => event.id === command.id)
@@ -846,7 +858,7 @@ export function reduceWorld(state: WorldState, input: unknown): WorldResult {
     const house = houseById(command.houseType)
     if (!scenario || !house) return { ok: false, code: 'invalid-command', state }
     if (!scenario.houses.includes(house.id)) return { ok: false, code: 'house-not-suited', state }
-    next = { ...state, job: newLibraryJob(scenario, house) }
+    next = { ...state, job: newLibraryJob(scenario, house, investigations) }
   } else if (command.type === 'call-stops' && state.job?.stage === 'on-site') {
     if (state.job.stopsCall) return { ok: false, code: 'stops-already-called', state }
     const scenario = scenarioById(state.job.scenarioId)
@@ -866,6 +878,7 @@ export function reduceWorld(state: WorldState, input: unknown): WorldResult {
     // A3: the job's decisions come after the safety stops and the water call, in any order, each once.
     if (!state.job.stopsCall) return { ok: false, code: 'stops-not-called', state }
     if (state.job.needsWaterCall && !state.job.waterCall) return { ok: false, code: 'water-not-called', state }
+    if (state.job.investigation && !state.job.investigation.causeCall) return { ok: false, code: 'cause-not-called', state }
     const decision = DECISIONS[state.job.scenarioId]?.find(x => x.id === command.decisionId)
     if (!decision || !decision.options.some(o => o.id === command.optionId)) return { ok: false, code: 'invalid-command', state }
     // UNI-3457: only the decision the job shows can be called (revealJob shows them one at a time, in order).
@@ -873,6 +886,30 @@ export function reduceWorld(state: WorldState, input: unknown): WorldResult {
     if (state.job.decisions.find(x => x.id === decision.id)?.call) return { ok: false, code: 'decision-already-called', state }
     const call = judgeDecision(decision, command.optionId)
     next = { ...state, job: { ...state.job, decisions: state.job.decisions.map(x => x.id === decision.id ? { ...x, call } : x) } }
+  } else if ((command.type === 'call-step' || command.type === 'call-cause') && state.job?.stage === 'on-site') {
+    // UNI-3411: a job with no investigation has nothing to call.
+    const source = investigations[state.job.scenarioId]
+    const shown = state.job.investigation
+    if (!source || !shown) return { ok: false, code: 'invalid-command', state }
+    if (!state.job.stopsCall) return { ok: false, code: 'stops-not-called', state }
+    if (state.job.needsWaterCall && !state.job.waterCall) return { ok: false, code: 'water-not-called', state }
+    const calls = stepCalls(shown)
+    if (command.type === 'call-step') {
+      const step = source.steps.find(x => x.id === command.stepId)
+      const option = step?.options.find(o => o.id === command.optionId)
+      if (!step || !option) return { ok: false, code: 'invalid-command', state }
+      // Only the step the job shows can be called (revealInvestigation shows them one at a time, in order).
+      const view = shown.steps.find(x => x.id === step.id)
+      if (!view) return { ok: false, code: 'invalid-command', state }
+      if (view.call) return { ok: false, code: 'step-already-called', state }
+      const call = judgeStep(option)
+      next = { ...state, job: { ...state.job, investigation: { ...shown, steps: shown.steps.map(x => x.id === step.id ? { ...x, call } : x) } } }
+    } else {
+      if (!source.causes.some(c => c.id === command.causeId)) return { ok: false, code: 'invalid-command', state }
+      if (shown.causeCall) return { ok: false, code: 'cause-already-called', state }
+      if (calls.length < source.steps.length) return { ok: false, code: 'steps-not-done', state }
+      next = { ...state, job: { ...state.job, investigation: { ...shown, causeCall: judgeCause(source, shown.open, command.causeId) } } }
+    }
   } else if (command.type === 'add-person' && state.business) {
     const staff = staffById(command.personId)
     if (!staff) return { ok: false, code: 'person-unknown', state }
@@ -906,6 +943,7 @@ export function reduceWorld(state: WorldState, input: unknown): WorldResult {
   } else if (command.type === 'finish-job' && state.job?.stage === 'on-site') {
     if (!state.job.stopsCall) return { ok: false, code: 'stops-not-called', state }
     if (state.job.needsWaterCall && !state.job.waterCall) return { ok: false, code: 'water-not-called', state }
+    if (state.job.investigation && !state.job.investigation.causeCall) return { ok: false, code: 'cause-not-called', state }
     if (state.job.decisions.some(x => !x.call)) return { ok: false, code: 'decisions-open', state }
     next = { ...state, job: { ...state.job, stage: 'complete' } }
   } else {
@@ -917,7 +955,7 @@ export function reduceWorld(state: WorldState, input: unknown): WorldResult {
     state: freezeWorld({
       ...next,
       // UNI-3457: every job the reducer returns passes through the one reveal rule.
-      job: next.job ? revealJob(next.job) : null,
+      job: next.job ? revealJob(next.job, investigations) : null,
       source: 'simulation',
       professionalEvidence: 'not-assessed',
       revision: state.revision + 1,
@@ -942,19 +980,19 @@ function withPeople(state: WorldState, people: readonly PersonEntry[], vacancy: 
 }
 
 /** Bounded replay of a command list from outside the service, useful to test renderer-independent behaviour. */
-export function replayWorld(commands: readonly unknown[]): WorldResult {
+export function replayWorld(commands: readonly unknown[], investigations: Investigations = INVESTIGATIONS): WorldResult {
   if (commands.length > 256) return { ok: false, code: 'invalid-command', state: createWorld() }
-  return replayLog(commands)
+  return replayLog(commands, investigations)
 }
 
 /**
  * Unbounded replay of an accepted-command log. The service rebuilds with this, so the replay never refuses a log the
  * service accepted; the 256 bound belongs only to replayWorld's untrusted input.
  */
-export function replayLog(commands: readonly unknown[]): WorldResult {
+export function replayLog(commands: readonly unknown[], investigations: Investigations = INVESTIGATIONS): WorldResult {
   let state = createWorld()
   for (const command of commands) {
-    const result = reduceWorld(state, command)
+    const result = reduceWorld(state, command, investigations)
     if (!result.ok) return result
     state = result.state
   }

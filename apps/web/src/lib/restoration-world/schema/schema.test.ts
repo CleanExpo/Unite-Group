@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
+import { FIXTURES } from '../investigation.fixture'
 import { createWorld, reduceWorld, SCHEMA_VERSION, type WorldState } from '../scenario'
 import { WorldService } from '../service/world-service'
 import { generate, schemaSha256 } from './gen-gdscript'
@@ -109,6 +110,18 @@ describe('world.schema.json matches the reducer it describes', () => {
       if (n === 6) hiring = must(reduceWorld(hiring, { id: 'l7', expectedRevision: hiring.revision, type: 'post-vacancy', role: 'administrator' }), 'post-vacancy')
     }
     refuse(reduceWorld(hiring, { id: 'l9', expectedRevision: hiring.revision, type: 'post-vacancy', role: 'administrator' }))
+    // UNI-3411: the investigation codes, with the SIMULATED fixture passed in (W1 carries SHAPE).
+    const inv = (s: WorldState, c: Record<string, unknown>) => reduceWorld(s, { id: `i${s.revision}`, expectedRevision: s.revision, ...c }, FIXTURES)
+    let job = must(inv(created.state, { type: 'start-job', scenarioId: 'W1', houseType: 'T1' }), 'start-job')
+    job = must(inv(job, { type: 'call-stops', stops: ['ELEC'] }), 'call-stops')
+    job = must(inv(job, { type: 'call-water', category: 1, waterClass: 2 }), 'call-water')
+    refuse(inv(job, { type: 'finish-job' }))
+    refuse(inv(job, { type: 'call-cause', causeId: 'c-a' }))
+    job = must(inv(job, { type: 'call-step', stepId: 's1', optionId: 'o1' }), 'call-step')
+    refuse(inv(job, { type: 'call-step', stepId: 's1', optionId: 'o1' }))
+    job = must(inv(job, { type: 'call-step', stepId: 's2', optionId: 'o1' }), 'call-step')
+    job = must(inv(job, { type: 'call-cause', causeId: 'c-a' }), 'call-cause')
+    refuse(inv(job, { type: 'call-cause', causeId: 'c-a' }))
     expect([...codes].sort()).toEqual([...defs.ResultCode.enum].sort())
   })
 
@@ -243,7 +256,59 @@ describe('world.schema.json matches the reducer it describes', () => {
         state = result.state
       }
     }
+    // UNI-3411: the investigation commands, with the SIMULATED fixture passed in (W1 carries SHAPE).
+    const inv = (s: WorldState, c: Record<string, unknown>) => reduceWorld(s, { id: `i${s.revision}`, expectedRevision: s.revision, ...c }, FIXTURES)
+    let job = createWorld()
+    for (const c of [{ type: 'create-business', name: 'Fictional Restorers', address }, { type: 'start-job', scenarioId: 'W1', houseType: 'T1' },
+      { type: 'call-stops', stops: ['ELEC'] }, { type: 'call-water', category: 1, waterClass: 2 },
+      { type: 'call-step', stepId: 's1', optionId: 'o1' }, { type: 'call-step', stepId: 's2', optionId: 'o1' }, { type: 'call-cause', causeId: 'c-a' }]) {
+      const result = inv(job, c)
+      if (!result.ok) throw new Error(`${c.type} was refused: ${result.code}`)
+      acceptedTypes.add(c.type)
+      job = result.state
+    }
     expect([...acceptedTypes].sort()).toEqual([...defs.CommandType.enum].sort())
+  })
+
+  it('UNI-3411: a job investigation has exactly the schema keys before the first step, mid-way and after the cause call', () => {
+    const address = { line1: '12 Fictional Rd', suburb: 'Fortitude Valley', region: 'QLD', postcode: '4006', country: 'AU' }
+    const inv = (s: WorldState, c: Record<string, unknown>) => {
+      const r = reduceWorld(s, { id: `i${s.revision}`, expectedRevision: s.revision, ...c }, FIXTURES)
+      if (!r.ok) throw new Error(`${String(c.type)} was refused: ${r.code}`)
+      return r.state
+    }
+    const sorted = (name: string) => [...defs[name].required].sort()
+    const exact = (o: unknown, name: string) => expect(Object.keys(o as object).sort()).toEqual(sorted(name))
+    let s = createWorld()
+    for (const c of [{ type: 'create-business', name: 'Fictional Restorers', address }, { type: 'start-job', scenarioId: 'W1', houseType: 'T1' },
+      { type: 'call-stops', stops: ['ELEC'] }, { type: 'call-water', category: 1, waterClass: 2 }]) s = inv(s, c)
+    const before = s.job?.investigation
+    if (!before) throw new Error('the fixture investigation is missing')
+    exact(s.job, 'LibraryJob')
+    exact(before, 'JobInvestigation')
+    expect(before.steps).toHaveLength(1)
+    exact(before.steps[0], 'InvestigationStep')
+    for (const o of before.steps[0].options) exact(o, 'InvestigationOption')
+    for (const c of before.causes) exact(c, 'InvestigationCause')
+    expect(before.steps[0].call).toBeNull()
+    expect(before.causeCall).toBeNull()
+    expect(before.score).toBeNull()
+    s = inv(s, { type: 'call-step', stepId: 's1', optionId: 'o1' })
+    const mid = s.job?.investigation
+    if (!mid) throw new Error('the investigation went missing')
+    exact(mid, 'JobInvestigation')
+    expect(mid.steps).toHaveLength(2)
+    exact(mid.steps[0].call, 'StepCall')
+    exact(mid.steps[1], 'InvestigationStep')
+    for (const o of mid.steps[1].options) exact(o, 'InvestigationOption')
+    expect(mid.steps[1].call).toBeNull()
+    s = inv(inv(s, { type: 'call-step', stepId: 's2', optionId: 'o1' }), { type: 'call-cause', causeId: 'c-a' })
+    const after = s.job?.investigation
+    if (!after?.causeCall) throw new Error('the cause call is missing')
+    exact(after, 'JobInvestigation')
+    exact(after.causeCall, 'CauseCall')
+    for (const st of after.steps) exact(st.call, 'StepCall')
+    expect(after.score).toBe(2 + 2 + 2)
   })
 
   it('the Choice enum is exactly the set of choices a decide command may carry', () => {

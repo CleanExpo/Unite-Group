@@ -68,6 +68,8 @@ export interface AuditEntry {
 export type ServiceResult =
   | WorldResult
   | { ok: false; code: 'permission-denied'; reason: AuditEntry['reason']; state: WorldState }
+  /** UNI-3411: a command that threw inside the service. Recorded as an attempt with status 500, then rethrown. */
+  | { ok: false; code: 'internal-error'; state: WorldState }
 
 export type PermissionsResult =
   | { ok: true; actor: string; personId: string | null; roles: readonly Role[]; actions: readonly L3Action[] }
@@ -177,8 +179,18 @@ export class WorldService {
    * (including rejected ones) is appended to the attempt log.
    */
   handle(input: unknown, actor: unknown): ServiceResult {
-    const result = this.decide(input, actor)
-    this.recordAttempt('command', typeof actor === 'string' ? actor : null, input, null, result)
+    const who = typeof actor === 'string' ? actor : null
+    let result: ServiceResult
+    try {
+      result = this.decide(input, actor)
+    } catch (error) {
+      // UNI-3411: a fault is never silent. The stack goes to stderr, the attempt log keeps a status 500 entry, and the
+      // error reaches the HTTP layer, which answers 500.
+      process.stderr.write(`restoration-world command failed: ${error instanceof Error ? error.stack : String(error)}\n`)
+      this.recordAttempt('command', who, input, null, { ok: false, code: 'internal-error', state: this.state }, 500)
+      throw error
+    }
+    this.recordAttempt('command', who, input, null, result)
     return result
   }
 
