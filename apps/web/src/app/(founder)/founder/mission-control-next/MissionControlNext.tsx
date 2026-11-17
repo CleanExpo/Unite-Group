@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   classifyFleet,
   classifyMissions,
@@ -20,6 +20,7 @@ import { MISSION_CONTROL_NEXT_TABS, type MissionControlNextTab } from '@/lib/mis
 import type { CommandCentreTask } from '@/lib/command-centre/tasks'
 import type { DeliveryMissionView } from '@/lib/command-centre/delivery-types'
 import styles from './mission-control-next.module.css'
+import { WorldPlaytest } from './WorldPlaytest'
 
 const POLL_MS = 30_000
 const TAB_LABELS: Record<MissionControlNextTab, string> = {
@@ -95,23 +96,35 @@ export function MissionControlNext({ tab }: { tab: MissionControlNextTab }) {
   const [pendingId, setPendingId] = useState<string | null>(null)
   const [outcome, setOutcome] = useState<{ taskId: string; result: WriteOutcome } | null>(null)
 
+  // Refreshes can overlap (tab switches restart polling; the toggle and the button refresh too). The rule: each refresh
+  // takes a start number, and it writes unless a refresh that started later has already written. So older reads never
+  // replace newer ones, and a slow refresh is never thrown away just because another one started (if every refresh
+  // outlasted the poll, the old "only the newest started may write" rule would leave the screen frozen).
+  const started = useRef(0)
+  const shown = useRef(0)
   const refresh = useCallback(async () => {
+    const mine = ++started.current
     const [missions, queue, fleet, revenue] = await Promise.all([
       read('/api/command-centre/missions'),
       read('/api/command-centre/queue'),
       read('/api/command-centre/mesh-fleet'),
       read('/api/command-centre/revenue'),
     ])
+    if (mine < shown.current) return
+    shown.current = mine
     setReads({ missions, queue, fleet, revenue })
   }, [])
 
   useEffect(() => {
+    // The World tab has no live source yet. Its optional local playtest must not
+    // wait for unrelated feeds or poll operational APIs as a gameplay loop.
+    if (tab === 'world') return
     void refresh()
     const id = setInterval(() => {
       if (document.visibilityState === 'visible') void refresh()
     }, POLL_MS)
     return () => clearInterval(id)
-  }, [refresh])
+  }, [refresh, tab])
 
   const nav = (
     <nav className={styles.tabs} aria-label="Mission Control sections">
@@ -122,6 +135,27 @@ export function MissionControlNext({ tab }: { tab: MissionControlNextTab }) {
       ))}
     </nav>
   )
+
+  if (tab === 'world') {
+    return (
+      <main className={styles.page}>
+        <header className={styles.top}><h1 className={styles.title}>Mission Control · preview</h1></header>
+        {nav}
+        <div className={styles.grid}>
+          <Card
+            title="Restoration World"
+            status={{
+              state: 'unavailable',
+              source: 'none',
+              observedAt: null,
+              detail: 'No world-state source exists yet. The canonical world model is UNI-2774.',
+            }}
+          />
+          <WorldPlaytest />
+        </div>
+      </main>
+    )
+  }
 
   if (!reads) {
     return (
@@ -271,18 +305,6 @@ export function MissionControlNext({ tab }: { tab: MissionControlNextTab }) {
           )}
         </Card>
       </>
-    )
-  } else if (tab === 'world') {
-    body = (
-      <Card
-        title="Restoration World"
-        status={{
-          state: 'unavailable',
-          source: 'none',
-          observedAt: null,
-          detail: 'No world-state source exists yet. The canonical world model is UNI-2774.',
-        }}
-      />
     )
   } else if (tab === 'portfolio') {
     body = (
