@@ -10,8 +10,14 @@
 --     has 14 states; release states (approved_for_release, deployed, production_verified, done) are team-only and
 --     need evidence. cc_task_id links the item to the authoritative cc_tasks row (one task per item).
 --  3. portal_project_item_events: append-only audit log, one row per change (actor, aal, time, note).
--- RLS forced. Owners read only their own tenant's rows, only at aal2 (portal_owner_tenant_slug()). Nobody but the
--- functions below and service_role writes. A client may only answer an item that is awaiting_client_review; client
+-- RLS forced. Owners read only their own tenant's rows, only at aal2 (portal_owner_tenant_slug()), and only
+-- client-safe columns; the event log is not client-readable. Nobody but the functions below and service_role writes.
+-- A production hold blocks approved_for_release and deployed; each release step needs its own evidence.
+-- Named limits (independent review of 8de2650c, 19/11/2026), not fixed here:
+--   * team events carry no actor id: service_role calls have no user. The release approver is free text in the note.
+--   * service_role can UPDATE items directly and skip the state machine; only the functions are the intended path.
+--   * the bridge retries the oldest 100 unlinked items; more than 100 permanent failures would starve newer ones.
+--   * a person forwarding someone else's Telegram message is labelled client_human (labelling only; no approval). A client may only answer an item that is awaiting_client_review; client
 -- acceptance moves it to client_accepted and never to a release state.
 -- Re-appliable: if not exists / create or replace / drop-and-recreate policies.
 -- Rollback (a reviewed forward migration): drop the six functions portal_submit_project_request,
@@ -58,6 +64,8 @@ create table if not exists public.portal_project_items (
   idempotency_key text check (idempotency_key is null or idempotency_key ~ '^[A-Za-z0-9_-]{8,64}$'),
   cc_task_id uuid,
   evidence jsonb not null default '[]'::jsonb check (jsonb_typeof(evidence) = 'array'),
+  -- Clients read the count, never the raw evidence entries (column grants below).
+  evidence_count integer generated always as (jsonb_array_length(evidence)) stored,
   blocker_reason text check (blocker_reason is null or char_length(blocker_reason) <= 1000),
   decision_needed text check (decision_needed is null or char_length(decision_needed) <= 1000),
   forecast_window text check (forecast_window is null or char_length(forecast_window) <= 120),
@@ -99,6 +107,8 @@ create table if not exists public.portal_project_item_events (
 create index if not exists portal_project_items_project_idx on public.portal_project_items (project_id, updated_at desc);
 create index if not exists portal_project_items_tenant_created_idx on public.portal_project_items (tenant_slug, created_at desc);
 create index if not exists portal_project_item_events_item_idx on public.portal_project_item_events (item_id, created_at);
+-- One authoritative task per item, enforced by the database, not only by the bridge.
+create unique index if not exists portal_project_items_cc_task_key on public.portal_project_items (cc_task_id) where cc_task_id is not null;
 
 -- The client's original words never change after they are recorded.
 create or replace function public.portal_project_items_freeze_client_text()
@@ -127,7 +137,13 @@ alter table public.portal_project_item_events force row level security;
 
 revoke all on table public.portal_projects, public.portal_project_items, public.portal_project_item_events
   from public, anon, authenticated;
-grant select on table public.portal_projects, public.portal_project_items, public.portal_project_item_events to authenticated;
+-- Clients read only client-safe columns. Internal fields (cc_task_id, raw evidence, source_ref, submitted_by) and the
+-- event log (team notes, task ids) are not readable by authenticated at all, even through the API directly.
+grant select on table public.portal_projects to authenticated;
+grant select (id, project_id, tenant_slug, kind, title, client_text, plain_summary, summary_is_ai_proposal, state,
+  waiting_on, source, author_kind, idempotency_key, evidence_count, blocker_reason, decision_needed, forecast_window,
+  forecast_confidence, forecast_basis, forecast_updated_at, client_note, created_at, updated_at)
+  on table public.portal_project_items to authenticated;
 grant select, insert, update on table public.portal_projects, public.portal_project_items to service_role;
 grant select, insert on table public.portal_project_item_events to service_role;
 
@@ -138,8 +154,6 @@ drop policy if exists portal_project_items_owner_select on public.portal_project
 create policy portal_project_items_owner_select on public.portal_project_items
   for select to authenticated using (tenant_slug = (select public.portal_owner_tenant_slug()));
 drop policy if exists portal_project_item_events_owner_select on public.portal_project_item_events;
-create policy portal_project_item_events_owner_select on public.portal_project_item_events
-  for select to authenticated using (tenant_slug = (select public.portal_owner_tenant_slug()));
 
 -- Owner submits a request. Raises portal_not_owner / portal_bad_input / portal_not_found / portal_rate_limited.
 -- Idempotent on (tenant, p_idempotency_key): a retry with the same key returns the first item and writes nothing.
@@ -162,7 +176,14 @@ begin
   if not found then raise exception 'portal_not_found'; end if;
   select i.id into v_id from public.portal_project_items as i
     where i.tenant_slug = v_tenant and i.idempotency_key = p_idempotency_key;
-  if found then return v_id; end if;
+  if found then
+    -- A true retry carries the same words for the same project. Anything else is a client bug, not a retry.
+    if not exists (select 1 from public.portal_project_items as i
+                   where i.id = v_id and i.project_id = v_project and i.client_text = v_text) then
+      raise exception 'portal_idempotency_conflict';
+    end if;
+    return v_id;
+  end if;
   if (select count(*) from public.portal_project_items as i
       where i.tenant_slug = v_tenant and i.source = 'portal' and i.created_at > now() - interval '1 day') >= 50 then
     raise exception 'portal_rate_limited';
@@ -251,6 +272,14 @@ begin
   end;
   if not coalesce(v_ok, false) or v_from = p_to_state then raise exception 'portal_wrong_status'; end if;
   if p_to_state = 'approved_for_release' and v_note is null then raise exception 'portal_bad_input'; end if;
+  -- Each release step brings its own evidence (deploy record, post-release check, close-out), never the review's.
+  if p_to_state in ('deployed', 'production_verified', 'done') and p_evidence is null then raise exception 'portal_bad_input'; end if;
+  -- A production hold stops release in the database, not only on the page.
+  if p_to_state in ('approved_for_release', 'deployed') and exists (
+       select 1 from public.portal_project_items as i join public.portal_projects as p on p.id = i.project_id
+       where i.id = p_item_id and p.production_hold) then
+    raise exception 'portal_production_hold';
+  end if;
   if p_to_state = 'blocked' and nullif(btrim(coalesce(p_blocker_reason, '')), '') is null then raise exception 'portal_bad_input'; end if;
   update public.portal_project_items as i set
     state = p_to_state,

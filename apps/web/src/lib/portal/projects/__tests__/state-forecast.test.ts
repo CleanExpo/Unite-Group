@@ -17,7 +17,8 @@ describe('project item states', () => {
     expect(stateGroup('approved_for_release')).toBe('accepted_awaiting_release')
     expect(stateGroup('deployed')).toBe('released')
     expect(stateGroup('blocked')).toBe('blocked')
-    expect(stateGroup('clarification_required')).toBe('waiting_on_you')
+    expect(stateGroup('clarification_required', 'client')).toBe('waiting_on_you')
+    expect(stateGroup('clarification_required', 'unite')).toBe('in_progress')
   })
 
   it('labels bot-written text as not a confirmed decision', () => {

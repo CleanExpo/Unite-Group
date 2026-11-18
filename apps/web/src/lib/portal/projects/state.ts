@@ -35,11 +35,13 @@ export const STATE_LABEL: Record<ItemState, string> = {
 /** Groups for the client page. A held release is "waiting on release", never "failed". */
 export type StateGroup = 'waiting_on_you' | 'in_progress' | 'accepted_awaiting_release' | 'released' | 'blocked' | 'received'
 
-export function stateGroup(state: ItemState): StateGroup {
+export function stateGroup(state: ItemState, waitingOn: 'client' | 'unite' | 'third_party' | 'none' = 'unite'): StateGroup {
   switch (state) {
     case 'awaiting_client_review':
-    case 'clarification_required':
       return 'waiting_on_you'
+    case 'clarification_required':
+      // After the client asks for changes the team owes the next step, so it is not "waiting on you".
+      return waitingOn === 'client' ? 'waiting_on_you' : 'in_progress'
     case 'blocked':
       return 'blocked'
     case 'client_accepted':

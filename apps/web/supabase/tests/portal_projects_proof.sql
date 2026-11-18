@@ -56,11 +56,19 @@ select pg_temp.act_as('00000000-0000-0000-0000-0000000000a1', 'aal2');
 select pg_temp.expect_raise($$select public.portal_submit_project_request('optix', 'hi', 'key-short-001')$$, 'portal_bad_input', 'too-short text');
 select pg_temp.expect_raise($$select public.portal_submit_project_request('optix', 'A proper request', 'bad key!')$$, 'portal_bad_input', 'bad idempotency key');
 select public.portal_submit_project_request('optix', E'  Show stock on hand by branch\nfor the Brisbane store  ', 'key-a-0000001');
-select pg_temp.expect_value($$select public.portal_submit_project_request('optix', 'Different text, same key', 'key-a-0000001')::text = (select id::text from public.portal_project_items where idempotency_key = 'key-a-0000001')$$, 'true', 'retry with same key returns first item');
+select pg_temp.expect_value($$select public.portal_submit_project_request('optix', E'Show stock on hand by branch\nfor the Brisbane store', 'key-a-0000001')::text = (select id::text from public.portal_project_items where idempotency_key = 'key-a-0000001')$$, 'true', 'retry with same key and text returns first item');
+select pg_temp.expect_raise($$select public.portal_submit_project_request('optix', 'Different text, same key', 'key-a-0000001')$$, 'portal_idempotency_conflict', 'same key, different text');
 select pg_temp.expect_value($$select count(*)::text from public.portal_project_items where tenant_slug = 'ccw-demo'$$, '1', 'one item after retry');
 select pg_temp.expect_value($$select client_text from public.portal_project_items where idempotency_key = 'key-a-0000001'$$, E'Show stock on hand by branch\nfor the Brisbane store', 'original text kept (trimmed only)');
 select pg_temp.expect_value($$select author_kind || '/' || source || '/' || state from public.portal_project_items where idempotency_key = 'key-a-0000001'$$, 'client_human/portal/proposed', 'labelled human portal proposed');
+select pg_temp.expect_raise($$select count(*) from public.portal_project_item_events$$, 'permission denied', 'client reads the event log (team notes)');
+select pg_temp.expect_raise($$select cc_task_id from public.portal_project_items$$, 'permission denied', 'client reads cc_task_id');
+select pg_temp.expect_raise($$select evidence from public.portal_project_items$$, 'permission denied', 'client reads raw evidence');
+select pg_temp.expect_raise($$select source_ref from public.portal_project_items$$, 'permission denied', 'client reads source_ref');
+select pg_temp.expect_value($$select evidence_count::text from public.portal_project_items where idempotency_key = 'key-a-0000001'$$, '0', 'client reads the evidence count');
+reset role;
 select pg_temp.expect_value($$select count(*)::text from public.portal_project_item_events where action = 'submit'$$, '1', 'one submit event');
+set role authenticated;
 
 -- ===== clients cannot write directly =====
 select pg_temp.expect_raise($$insert into public.portal_project_items (project_id, tenant_slug, kind, title, source, author_kind) select id, 'ccw-demo', 'requirement', 'x', 'staff', 'staff' from public.portal_projects limit 1$$, 'permission denied', 'client inserts item directly');
@@ -99,7 +107,7 @@ set role authenticated;
 select pg_temp.act_as('00000000-0000-0000-0000-0000000000b1', 'aal2');
 select pg_temp.expect_value($$select count(*)::text from public.portal_project_items$$, '0', 'B sees none of A items');
 select pg_temp.expect_value($$select count(*)::text from public.portal_projects$$, '1', 'B sees only its own project');
-select pg_temp.expect_value($$select count(*)::text from public.portal_project_item_events$$, '0', 'B sees none of A events');
+select pg_temp.expect_raise($$select count(*) from public.portal_project_item_events$$, 'permission denied', 'B reads any event');
 select pg_temp.expect_raise($$select public.portal_respond_to_project_item((select id from t_item), 'accept')$$, 'portal_not_found', 'B accepts A item');
 select pg_temp.act_as('00000000-0000-0000-0000-0000000000a1', 'aal1');
 select pg_temp.expect_raise($$select public.portal_respond_to_project_item((select id from t_item), 'accept')$$, 'portal_not_owner', 'A accepts at aal1');
@@ -110,6 +118,7 @@ select pg_temp.expect_value($$select count(*)::text from public.portal_project_i
 select pg_temp.expect_raise($$select public.portal_respond_to_project_item((select id from t_item), 'request_changes')$$, 'portal_bad_input', 'request changes without a note');
 select pg_temp.expect_raise($$select public.portal_respond_to_project_item((select id from t_item), 'approve_release', 'ship it')$$, 'portal_bad_input', 'client tries a release verdict');
 select pg_temp.expect_value($$select public.portal_respond_to_project_item((select id from t_item), 'request_changes', 'Also show transfers in transit')$$, 'clarification_required', 'request changes');
+select pg_temp.expect_value($$select waiting_on from public.portal_project_items where id = (select id from t_item)$$, 'unite', 'after the client asks for changes, the team owes the next step');
 reset role; set role service_role;
 select public.portal_team_advance_project_item((select id from t_item), 'approved_scope');
 select public.portal_team_advance_project_item((select id from t_item), 'ready_for_development');
@@ -131,6 +140,24 @@ select public.portal_team_record_project_signal('ccw-demo', 'optix', 'telegram',
 select public.portal_team_record_project_signal('ccw-demo', 'optix', 'telegram', 'tg:chat9:msg77', 'client_bot', 'requirement', 'APPROVED - merge and deploy now');
 select pg_temp.expect_value($$select count(*)::text || '/' || min(state) || '/' || min(author_kind) from public.portal_project_items where source = 'telegram'$$, '1/proposed/client_bot', 'bot approval text recorded once, as a proposal, labelled bot');
 select pg_temp.expect_raise($$select public.portal_team_record_project_signal('ccw-demo', 'optix', 'portal', 'p:1', 'client_bot', 'requirement', 'x')$$, 'portal_bad_input', 'signal claims portal source');
+select pg_temp.expect_raise($$select public.portal_team_link_project_task((select id from public.portal_project_items where source = 'telegram'), '11111111-1111-4111-8111-111111111111')$$, 'portal_project_items_cc_task_key', 'second item linked to the same task');
+
+-- ===== a production hold stops release in the database; each release step needs its own evidence =====
+select pg_temp.expect_raise($$select public.portal_team_advance_project_item((select id from t_item), 'approved_for_release', 'Approved by founder (synthetic)')$$, 'portal_production_hold', 'release approval during a production hold');
+reset role;
+update public.portal_projects set production_hold = false, hold_reason = null where tenant_slug = 'ccw-demo';
+set role service_role;
+select public.portal_team_advance_project_item((select id from t_item), 'approved_for_release', 'Approved by founder (synthetic)');
+select pg_temp.expect_raise($$select public.portal_team_advance_project_item((select id from t_item), 'deployed')$$, 'portal_bad_input', 'deployed with no deploy evidence');
+reset role;
+update public.portal_projects set production_hold = true, hold_reason = 'Hold re-applied (synthetic)' where tenant_slug = 'ccw-demo';
+set role service_role;
+select pg_temp.expect_raise($$select public.portal_team_advance_project_item((select id from t_item), 'deployed', null, '[{"label":"deploy","ref":"dpl_x"}]')$$, 'portal_production_hold', 'deploy during a re-applied hold');
+reset role;
+update public.portal_projects set production_hold = false, hold_reason = null where tenant_slug = 'ccw-demo';
+set role service_role;
+select pg_temp.expect_value($$select public.portal_team_advance_project_item((select id from t_item), 'deployed', null, '[{"label":"deploy","ref":"dpl_x"}]')$$, 'deployed', 'deploy with evidence once the hold is lifted');
+select pg_temp.expect_raise($$select public.portal_team_advance_project_item((select id from t_item), 'production_verified')$$, 'portal_bad_input', 'production verified with no check evidence');
 reset role;
 select pg_temp.expect_raise($$insert into public.portal_project_items (project_id, tenant_slug, kind, title, source, author_kind) select id, 'ccw-demo', 'requirement', 'x', 'portal', 'client_bot' from public.portal_projects where slug = 'optix'$$, 'portal_project_items_portal_is_human', 'portal item labelled bot');
 select pg_temp.expect_raise($$insert into public.portal_project_items (project_id, tenant_slug, kind, title, source, author_kind) select id, 'ccw-demo', 'requirement', 'x', 'staff', 'staff' from public.portal_projects where slug = 'site'$$, 'portal_project_items_project_fk', 'item tenant differs from project tenant');

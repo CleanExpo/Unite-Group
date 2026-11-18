@@ -20,7 +20,7 @@ export interface PortalProjectsDb {
   from(table: 'portal_projects' | 'portal_project_items'): {
     select(columns: string): {
       eq(column: 'tenant_slug', value: string): {
-        order(column: 'created_at' | 'updated_at', options: { ascending: boolean }): Result<unknown>
+        order(column: 'created_at' | 'updated_at', options: { ascending: boolean }): { limit(n: number): Result<unknown> }
       }
     }
   }
@@ -39,7 +39,7 @@ export interface ProjectSummary {
 export interface ProjectItem {
   id: string; projectId: string; kind: ItemKind; title: string; clientText: string | null; plainSummary: string | null
   summaryIsAiProposal: boolean; state: ItemState; group: StateGroup; waitingOn: 'client' | 'unite' | 'third_party' | 'none'
-  authorKind: AuthorKind; source: string; linkedToTask: boolean; evidenceCount: number; blockerReason: string | null
+  authorKind: AuthorKind; source: string; evidenceCount: number; blockerReason: string | null
   decisionNeeded: string | null; clientNote: string | null; forecast: ForecastView; createdAt: string; updatedAt: string
 }
 
@@ -54,7 +54,7 @@ export interface ProjectView {
 
 const PROJECT_COLUMNS = 'id, tenant_slug, slug, name, objective, health, health_reason, production_hold, hold_reason, current_milestone, updated_at'
 const ITEM_COLUMNS = 'id, project_id, tenant_slug, kind, title, client_text, plain_summary, summary_is_ai_proposal, state, waiting_on, '
-  + 'source, author_kind, cc_task_id, evidence, blocker_reason, decision_needed, client_note, forecast_window, forecast_confidence, '
+  + 'source, author_kind, evidence_count, blocker_reason, decision_needed, client_note, forecast_window, forecast_confidence, '
   + 'forecast_basis, forecast_updated_at, created_at, updated_at'
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const KEY_RE = /^[A-Za-z0-9_-]{8,64}$/
@@ -62,6 +62,8 @@ const SLUG_RE = /^[a-z0-9-]{1,64}$/
 const HEALTH: readonly ProjectHealth[] = ['on_track', 'at_risk', 'blocked', 'on_hold', 'unknown']
 const AUTHORS: readonly AuthorKind[] = ['client_human', 'client_bot', 'staff', 'agent']
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
+/** Below PostgREST's default max-rows (1000), so our own cap, not the server's, decides when a list is incomplete. */
+export const ROW_CAP = 500
 
 type ProjectRow = {
   id: string; tenant_slug: string; slug: string; name: string; objective: string | null; health: string
@@ -70,7 +72,7 @@ type ProjectRow = {
 type ItemRow = {
   id: string; project_id: string; tenant_slug: string; kind: string; title: string; client_text: string | null
   plain_summary: string | null; summary_is_ai_proposal: boolean; state: string; waiting_on: string; source: string
-  author_kind: string; cc_task_id: string | null; evidence: unknown; blocker_reason: string | null; decision_needed: string | null
+  author_kind: string; evidence_count: number | null; blocker_reason: string | null; decision_needed: string | null
   client_note: string | null; forecast_window: string | null; forecast_confidence: string | null; forecast_basis: string | null
   forecast_updated_at: string | null; created_at: string; updated_at: string
 }
@@ -87,15 +89,16 @@ function toProject(row: ProjectRow): ProjectSummary {
 /** Rows with an unknown state, kind or author are dropped, never shown with a guessed label. */
 function toItem(row: ItemRow, now: Date): ProjectItem | null {
   if (!isItemState(row.state) || !isItemKind(row.kind) || !AUTHORS.includes(row.author_kind as AuthorKind)) return null
+  const waitingOn = (['client', 'unite', 'third_party', 'none'] as const).find((w) => w === row.waiting_on) ?? 'unite'
   const confidence = row.forecast_confidence === 'low' || row.forecast_confidence === 'medium' || row.forecast_confidence === 'high'
     ? row.forecast_confidence : null
   return {
     id: row.id, projectId: row.project_id, kind: row.kind, title: row.title, clientText: row.client_text,
     plainSummary: row.plain_summary, summaryIsAiProposal: row.summary_is_ai_proposal === true, state: row.state,
-    group: stateGroup(row.state),
-    waitingOn: (['client', 'unite', 'third_party', 'none'] as const).find((w) => w === row.waiting_on) ?? 'unite',
-    authorKind: row.author_kind as AuthorKind, source: row.source, linkedToTask: typeof row.cc_task_id === 'string',
-    evidenceCount: Array.isArray(row.evidence) ? row.evidence.length : 0, blockerReason: row.blocker_reason,
+    group: stateGroup(row.state, waitingOn),
+    waitingOn,
+    authorKind: row.author_kind as AuthorKind, source: row.source,
+    evidenceCount: typeof row.evidence_count === 'number' ? row.evidence_count : 0, blockerReason: row.blocker_reason,
     decisionNeeded: row.decision_needed, clientNote: row.client_note,
     forecast: forecastView({ window: row.forecast_window, basis: row.forecast_basis, confidence, updatedAt: row.forecast_updated_at }, now),
     createdAt: row.created_at, updatedAt: row.updated_at,
@@ -112,13 +115,16 @@ export async function loadProjectView(
   if (access.kind !== 'ok') return deniedResult(access)
   const tenant = access.owner.tenantSlug
   const failed: ActionFailed = { ok: false, code: 'failed', message: 'We could not load your project. Please refresh.' }
-  const p = await db.from('portal_projects').select(PROJECT_COLUMNS).eq('tenant_slug', tenant).order('created_at', { ascending: true })
-  if (p.error || !Array.isArray(p.data)) return failed
+  const p = await db.from('portal_projects').select(PROJECT_COLUMNS).eq('tenant_slug', tenant)
+    .order('created_at', { ascending: true }).limit(ROW_CAP)
+  // A full page may be a cut-off list; showing it as complete would hide work. Fail loudly instead.
+  if (p.error || !Array.isArray(p.data) || p.data.length >= ROW_CAP) return failed
   const projects = (p.data as ProjectRow[]).filter((r) => r.tenant_slug === tenant)
   const row = projectSlug ? projects.find((r) => r.slug === projectSlug) : projects[0]
   if (!row) return { ok: true, view: null }
-  const i = await db.from('portal_project_items').select(ITEM_COLUMNS).eq('tenant_slug', tenant).order('updated_at', { ascending: false })
-  if (i.error || !Array.isArray(i.data)) return failed
+  const i = await db.from('portal_project_items').select(ITEM_COLUMNS).eq('tenant_slug', tenant)
+    .order('updated_at', { ascending: false }).limit(ROW_CAP)
+  if (i.error || !Array.isArray(i.data) || i.data.length >= ROW_CAP) return failed
   const items = (i.data as ItemRow[])
     .filter((r) => r.tenant_slug === tenant && r.project_id === row.id)
     .map((r) => toItem(r, now))
@@ -180,6 +186,7 @@ function fromDbError(error: DbError): ActionFailed | ActionDenied {
   if (m.includes('portal_not_owner')) return { ok: false, code: 'verify_second_factor', message: 'Please confirm it is you with your second sign-in step first.' }
   if (m.includes('portal_wrong_status')) return { ok: false, code: 'not_allowed', message: 'This item is not waiting for your review.' }
   if (m.includes('portal_not_found')) return { ok: false, code: 'not_found', message: 'We could not find that item.' }
+  if (m.includes('portal_idempotency_conflict')) return { ok: false, code: 'invalid', message: 'Please refresh the page and send your request again.' }
   if (m.includes('portal_rate_limited')) return { ok: false, code: 'not_allowed', message: 'You have sent a lot of requests today. Please try again tomorrow.' }
   if (m.includes('portal_bad_input')) return { ok: false, code: 'invalid', message: 'Please check what you entered and try again.' }
   return { ok: false, code: 'failed', message: 'Something went wrong. Please try again.' }

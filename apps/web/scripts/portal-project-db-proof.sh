@@ -107,6 +107,11 @@ mutant "client accept grants release" "s/when 'accept' then 'client_accepted'/wh
 mutant "original text may be rewritten" "s/raise exception 'portal_source_immutable'/return new/"
 mutant "release approval without a named approver" "s/if p_to_state = 'approved_for_release' and v_note is null then raise exception 'portal_bad_input'; end if;//"
 mutant "submit ignores aal / tenant" "s/if v_tenant is null or v_uid is null then raise exception 'portal_not_owner'; end if;/if v_uid is null then raise exception 'portal_not_owner'; end if;/"
+mutant "client reads internal columns and events" "s/^grant select on table public.portal_projects to authenticated;/grant select on table public.portal_projects, public.portal_project_items, public.portal_project_item_events to authenticated;/"
+mutant "production hold ignored by the database" "s/where i.id = p_item_id and p.production_hold) then/where i.id = p_item_id and false) then/"
+mutant "release steps reuse the review evidence" "s/if p_to_state in ('deployed', 'production_verified', 'done') and p_evidence is null then/if false then/"
+mutant "replay with different text accepted" "s/raise exception 'portal_idempotency_conflict'/return v_id/"
+mutant "two items may share one task" "s/create unique index if not exists portal_project_items_cc_task_key/create index if not exists portal_project_items_cc_task_key/"
 
 if [ $FAILS -eq 0 ]; then echo "PORTAL_PROJECT_DB_PROOF_ALL_PASS"; exit 0; fi
 echo "PORTAL_PROJECT_DB_PROOF_FAILURES=$FAILS"; exit 1

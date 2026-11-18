@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import type { PortalAccess } from '../../changes/access'
 import { ESTIMATE_NOT_VERIFIED } from '../forecast'
-import { loadProjectView, respondToProjectItem, submitProjectRequest, type PortalProjectsDb } from '../service'
+import { loadProjectView, respondToProjectItem, ROW_CAP, submitProjectRequest, type PortalProjectsDb } from '../service'
 
 const OWNER: PortalAccess = { kind: 'ok', owner: { userId: 'u1', tenantSlug: 'ccw-demo', aal: 'aal2' } as never }
 const NOW = new Date('2026-11-19T00:00:00Z')
@@ -15,13 +15,14 @@ const project = (over: Record<string, unknown> = {}) => ({
 const item = (over: Record<string, unknown> = {}) => ({
   id: ITEM_ID, project_id: 'p1', tenant_slug: 'ccw-demo', kind: 'requirement', title: 'Stock by branch', client_text: 'Stock by branch',
   plain_summary: null, summary_is_ai_proposal: false, state: 'awaiting_client_review', waiting_on: 'client', source: 'portal',
-  author_kind: 'client_human', cc_task_id: 't1', evidence: [{ label: 'x' }], blocker_reason: null, decision_needed: null,
+  author_kind: 'client_human', evidence_count: 1, blocker_reason: null, decision_needed: null,
   client_note: null, forecast_window: null, forecast_confidence: null, forecast_basis: null, forecast_updated_at: null,
   created_at: '2026-11-10T00:00:00Z', updated_at: '2026-11-18T00:00:00Z', ...over,
 })
 
 function fakeDb(tables: { projects?: unknown; items?: unknown; error?: 'projects' | 'items' }, rpc = vi.fn()) {
   const eqs: string[] = []
+  const limits: number[] = []
   const db: PortalProjectsDb = {
     rpc,
     from(table) {
@@ -31,11 +32,12 @@ function fakeDb(tables: { projects?: unknown; items?: unknown; error?: 'projects
             eq(_c, v) {
               eqs.push(`${table}:${v}`)
               return {
-                order: async () => {
+                order: () => ({ limit: async (n: number) => {
+                  limits.push(n)
                   const isP = table === 'portal_projects'
                   if (tables.error === (isP ? 'projects' : 'items')) return { data: null, error: { message: 'boom' } }
                   return { data: (isP ? tables.projects : tables.items) ?? [], error: null }
-                },
+                } }),
               }
             },
           }
@@ -43,8 +45,28 @@ function fakeDb(tables: { projects?: unknown; items?: unknown; error?: 'projects
       }
     },
   }
-  return { db, eqs, rpc }
+  return { db, eqs, rpc, limits }
 }
+
+describe('honest lists', () => {
+  it('fails loudly when a read hits the row cap, instead of showing a cut-off list as complete', async () => {
+    const many = Array.from({ length: ROW_CAP }, (_, n) => item({ id: `i${n}` }))
+    const { db, limits } = fakeDb({ projects: [project()], items: many })
+    expect(await loadProjectView(OWNER, db, undefined, NOW)).toMatchObject({ ok: false, code: 'failed' })
+    expect(limits).toEqual([ROW_CAP, ROW_CAP])
+  })
+
+  it('does not say "waiting on you" once the client has asked for changes and the team owes the next step', async () => {
+    const { db } = fakeDb({ projects: [project()], items: [
+      item({ id: 'c1', state: 'clarification_required', waiting_on: 'unite' }),
+      item({ id: 'c2', state: 'clarification_required', waiting_on: 'client' }),
+    ] })
+    const r = await loadProjectView(OWNER, db, undefined, NOW)
+    if (!r.ok || !r.view) throw new Error('expected a view')
+    expect(r.view.waitingOnYou.map((i) => i.id)).toEqual(['c2'])
+    expect(r.view.items.find((i) => i.id === 'c1')?.group).toBe('in_progress')
+  })
+})
 
 describe('client project view', () => {
   it('refuses a signed-out or aal1 visitor without touching the database', async () => {
@@ -75,7 +97,7 @@ describe('client project view', () => {
       projects: [project()],
       items: [
         item(),
-        item({ id: 'b1', state: 'blocked', waiting_on: 'third_party', blocker_reason: 'Waiting on access', evidence: [], updated_at: '2026-10-01T00:00:00Z' }),
+        item({ id: 'b1', state: 'blocked', waiting_on: 'third_party', blocker_reason: 'Waiting on access', evidence_count: 0, updated_at: '2026-10-01T00:00:00Z' }),
         item({ id: 'f1', state: 'in_development', forecast_window: 'Week of 1 Dec', forecast_confidence: 'medium', forecast_basis: 'Estimate', forecast_updated_at: '2026-11-18T00:00:00Z' }),
         item({ id: 'bad', state: 'shipped_maybe' }),
       ],

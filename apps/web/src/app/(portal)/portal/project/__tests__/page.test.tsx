@@ -25,10 +25,10 @@ function db(projects: unknown[] | null, items: unknown[] | null): PortalProjects
       return {
         select: () => ({
           eq: () => ({
-            order: async () => {
+            order: () => ({ limit: async () => {
               const data = table === 'portal_projects' ? projects : items
               return data ? { data, error: null } : { data: null, error: { message: 'boom' } }
-            },
+            } }),
           }),
         }),
       }
@@ -43,15 +43,15 @@ const PROJECT = {
 }
 const base = {
   project_id: 'p1', tenant_slug: 'ccw-demo', kind: 'requirement', client_text: 'x', plain_summary: null, summary_is_ai_proposal: false,
-  waiting_on: 'unite', source: 'portal', author_kind: 'client_human', cc_task_id: 't', evidence: [{ label: 'vitest' }],
+  waiting_on: 'unite', source: 'portal', author_kind: 'client_human', evidence_count: 1,
   blocker_reason: null, decision_needed: null, client_note: null, forecast_window: null, forecast_confidence: null,
   forecast_basis: null, forecast_updated_at: null, created_at: iso(10), updated_at: iso(1),
 }
 const ITEMS = [
   { ...base, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1', title: 'Portal block review', state: 'awaiting_client_review', waiting_on: 'client' },
-  { ...base, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2', title: 'Area 2 valuation', state: 'blocked', evidence: [], blocker_reason: 'Approved read-only data source not agreed' },
+  { ...base, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2', title: 'Area 2 valuation', state: 'blocked', evidence_count: 0, blocker_reason: 'Approved read-only data source not agreed' },
   { ...base, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3', title: 'Stock by branch', state: 'client_accepted' },
-  { ...base, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4', title: 'Bot idea', state: 'proposed', source: 'telegram', author_kind: 'client_bot', evidence: [], summary_is_ai_proposal: true, plain_summary: 'Add a stock alert' },
+  { ...base, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4', title: 'Bot idea', state: 'proposed', source: 'telegram', author_kind: 'client_bot', evidence_count: 0, summary_is_ai_proposal: true, plain_summary: 'Add a stock alert' },
 ]
 
 async function render(access: PortalAccess, d: PortalProjectsDb): Promise<string> {
