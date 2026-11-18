@@ -31,13 +31,19 @@ function fakeDb(tables: { projects?: unknown; items?: unknown; error?: 'projects
           return {
             eq(_c, v) {
               eqs.push(`${table}:${v}`)
+              const order = () => ({ limit: async (n: number) => {
+                limits.push(n)
+                const isP = table === 'portal_projects'
+                if (tables.error === (isP ? 'projects' : 'items')) return { data: null, error: { message: 'boom' } }
+                const data = ((isP ? tables.projects : tables.items) ?? []) as unknown[]
+                return { data: data.slice(0, n), error: null }
+              } })
               return {
-                order: () => ({ limit: async (n: number) => {
-                  limits.push(n)
-                  const isP = table === 'portal_projects'
-                  if (tables.error === (isP ? 'projects' : 'items')) return { data: null, error: { message: 'boom' } }
-                  return { data: (isP ? tables.projects : tables.items) ?? [], error: null }
-                } }),
+                order,
+                eq(_c2: string, v2: string) {
+                  eqs.push(`${table}:${v2}`)
+                  return { order }
+                },
               }
             },
           }
@@ -49,11 +55,21 @@ function fakeDb(tables: { projects?: unknown; items?: unknown; error?: 'projects
 }
 
 describe('honest lists', () => {
-  it('fails loudly when a read hits the row cap, instead of showing a cut-off list as complete', async () => {
-    const many = Array.from({ length: ROW_CAP }, (_, n) => item({ id: `i${n}` }))
+  it('shows the newest items and flags the list as cut when there are more than the cap, never failing or hiding it', async () => {
+    const many = Array.from({ length: ROW_CAP + 5 }, (_, n) => item({ id: `i${n}` }))
     const { db, limits } = fakeDb({ projects: [project()], items: many })
-    expect(await loadProjectView(OWNER, db, undefined, NOW)).toMatchObject({ ok: false, code: 'failed' })
-    expect(limits).toEqual([ROW_CAP, ROW_CAP])
+    const r = await loadProjectView(OWNER, db, undefined, NOW)
+    if (!r.ok || !r.view) throw new Error('expected a view')
+    expect(limits).toEqual([ROW_CAP, ROW_CAP + 1])
+    expect(r.view.truncated).toBe(true)
+    expect(r.view.items).toHaveLength(ROW_CAP)
+    expect(r.view.items[0].id).toBe('i0')
+  })
+
+  it('does not flag a list of exactly the cap as cut', async () => {
+    const exact = Array.from({ length: ROW_CAP }, (_, n) => item({ id: `i${n}` }))
+    const r = await loadProjectView(OWNER, fakeDb({ projects: [project()], items: exact }).db, undefined, NOW)
+    expect(r.ok && r.view?.truncated).toBe(false)
   })
 
   it('does not say "waiting on you" once the client has asked for changes and the team owes the next step', async () => {
@@ -65,6 +81,8 @@ describe('honest lists', () => {
     if (!r.ok || !r.view) throw new Error('expected a view')
     expect(r.view.waitingOnYou.map((i) => i.id)).toEqual(['c2'])
     expect(r.view.items.find((i) => i.id === 'c1')?.group).toBe('in_progress')
+    expect(r.view.items.find((i) => i.id === 'c1')?.actions).toEqual([])
+    expect(r.view.items.find((i) => i.id === 'c2')?.actions).toEqual(['answer'])
   })
 })
 
@@ -82,7 +100,7 @@ describe('client project view', () => {
       items: [item(), item({ id: 'x2', tenant_slug: 'other-co' }), item({ id: 'x3', project_id: 'p9' })],
     })
     const r = await loadProjectView(OWNER, db, undefined, NOW)
-    expect(eqs).toEqual(['portal_projects:ccw-demo', 'portal_project_items:ccw-demo'])
+    expect(eqs).toEqual(['portal_projects:ccw-demo', 'portal_project_items:ccw-demo', 'portal_project_items:p1'])
     expect(r.ok && r.view?.items.map((i) => i.id)).toEqual([ITEM_ID])
   })
 
@@ -123,6 +141,17 @@ describe('client submit and respond', () => {
     expect(rpc).not.toHaveBeenCalled()
     expect(await submitProjectRequest(OWNER, db, { projectSlug: 'optix', text: '  Show stock by branch ', idempotencyKey: 'key-0000001' })).toEqual({ ok: true, id: ITEM_ID })
     expect(rpc).toHaveBeenCalledWith('portal_submit_project_request', { p_project_slug: 'optix', p_text: 'Show stock by branch', p_idempotency_key: 'key-0000001' })
+  })
+
+  it('answers a team question only when the team asked the client, with a note, through the database', async () => {
+    const rpc = vi.fn(async () => ({ data: 'proposed', error: null }))
+    const { db } = fakeDb({}, rpc)
+    const base = { itemId: ITEM_ID, verdict: 'answer', currentState: 'clarification_required' }
+    expect(await respondToProjectItem(OWNER, db, { ...base, note: ' ', waitingOn: 'client' })).toMatchObject({ ok: false, code: 'invalid' })
+    expect(await respondToProjectItem(OWNER, db, { ...base, note: 'Branch 3 only', waitingOn: 'unite' })).toMatchObject({ ok: false, code: 'not_allowed' })
+    expect(rpc).not.toHaveBeenCalled()
+    expect(await respondToProjectItem(OWNER, db, { ...base, note: 'Branch 3 only', waitingOn: 'client' })).toEqual({ ok: true, state: 'proposed' })
+    expect(rpc).toHaveBeenLastCalledWith('portal_respond_to_project_item', { p_item_id: ITEM_ID, p_verdict: 'answer', p_note: 'Branch 3 only' })
   })
 
   it('accepts or asks for changes only through the database, and needs a note to ask for changes', async () => {

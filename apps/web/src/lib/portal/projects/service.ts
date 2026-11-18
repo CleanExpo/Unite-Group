@@ -2,8 +2,8 @@ import { deniedResult, type ActionDenied, type PortalAccess } from '../changes/a
 
 import { forecastView, type ForecastView } from './forecast'
 import {
-  clientCanRespond, isItemKind, isItemState, stateGroup,
-  type AuthorKind, type ItemKind, type ItemState, type StateGroup,
+  clientActions, isItemKind, isItemState, stateGroup, VERDICT_RESULT,
+  type AuthorKind, type ClientVerdict, type ItemKind, type ItemState, type StateGroup, type WaitingOn,
 } from './state'
 
 // Owner actions on the client project page. Same shape as lib/portal/changes/service.ts:
@@ -21,6 +21,9 @@ export interface PortalProjectsDb {
     select(columns: string): {
       eq(column: 'tenant_slug', value: string): {
         order(column: 'created_at' | 'updated_at', options: { ascending: boolean }): { limit(n: number): Result<unknown> }
+        eq(column: 'project_id', value: string): {
+          order(column: 'updated_at', options: { ascending: boolean }): { limit(n: number): Result<unknown> }
+        }
       }
     }
   }
@@ -38,7 +41,7 @@ export interface ProjectSummary {
 
 export interface ProjectItem {
   id: string; projectId: string; kind: ItemKind; title: string; clientText: string | null; plainSummary: string | null
-  summaryIsAiProposal: boolean; state: ItemState; group: StateGroup; waitingOn: 'client' | 'unite' | 'third_party' | 'none'
+  summaryIsAiProposal: boolean; state: ItemState; group: StateGroup; waitingOn: WaitingOn; actions: readonly ClientVerdict[]
   authorKind: AuthorKind; source: string; evidenceCount: number; blockerReason: string | null
   decisionNeeded: string | null; clientNote: string | null; forecast: ForecastView; createdAt: string; updatedAt: string
 }
@@ -50,6 +53,8 @@ export interface ProjectView {
   blockers: ProjectItem[]
   changedThisWeek: ProjectItem[]
   nextForecast: ProjectItem | null
+  /** True when the project has more than ROW_CAP items: only the newest ROW_CAP are shown, and the page says so. */
+  truncated: boolean
 }
 
 const PROJECT_COLUMNS = 'id, tenant_slug, slug, name, objective, health, health_reason, production_hold, hold_reason, current_milestone, updated_at'
@@ -97,6 +102,7 @@ function toItem(row: ItemRow, now: Date): ProjectItem | null {
     plainSummary: row.plain_summary, summaryIsAiProposal: row.summary_is_ai_proposal === true, state: row.state,
     group: stateGroup(row.state, waitingOn),
     waitingOn,
+    actions: clientActions(row.state, waitingOn),
     authorKind: row.author_kind as AuthorKind, source: row.source,
     evidenceCount: typeof row.evidence_count === 'number' ? row.evidence_count : 0, blockerReason: row.blocker_reason,
     decisionNeeded: row.decision_needed, clientNote: row.client_note,
@@ -117,15 +123,17 @@ export async function loadProjectView(
   const failed: ActionFailed = { ok: false, code: 'failed', message: 'We could not load your project. Please refresh.' }
   const p = await db.from('portal_projects').select(PROJECT_COLUMNS).eq('tenant_slug', tenant)
     .order('created_at', { ascending: true }).limit(ROW_CAP)
-  // A full page may be a cut-off list; showing it as complete would hide work. Fail loudly instead.
-  if (p.error || !Array.isArray(p.data) || p.data.length >= ROW_CAP) return failed
+  if (p.error || !Array.isArray(p.data)) return failed
   const projects = (p.data as ProjectRow[]).filter((r) => r.tenant_slug === tenant)
   const row = projectSlug ? projects.find((r) => r.slug === projectSlug) : projects[0]
   if (!row) return { ok: true, view: null }
-  const i = await db.from('portal_project_items').select(ITEM_COLUMNS).eq('tenant_slug', tenant)
-    .order('updated_at', { ascending: false }).limit(ROW_CAP)
-  if (i.error || !Array.isArray(i.data) || i.data.length >= ROW_CAP) return failed
-  const items = (i.data as ItemRow[])
+  // Fetch one more than we show. If it arrives, the list is cut, and the page says "older items not shown".
+  // Never fail on size and never present a cut list as complete.
+  const i = await db.from('portal_project_items').select(ITEM_COLUMNS).eq('tenant_slug', tenant).eq('project_id', row.id)
+    .order('updated_at', { ascending: false }).limit(ROW_CAP + 1)
+  if (i.error || !Array.isArray(i.data)) return failed
+  const truncated = i.data.length > ROW_CAP
+  const items = (i.data as ItemRow[]).slice(0, ROW_CAP)
     .filter((r) => r.tenant_slug === tenant && r.project_id === row.id)
     .map((r) => toItem(r, now))
     .filter((x): x is ProjectItem => x !== null)
@@ -139,6 +147,7 @@ export async function loadProjectView(
       blockers: items.filter((x) => x.group === 'blocked'),
       changedThisWeek: items.filter((x) => now.getTime() - Date.parse(x.updatedAt) <= WEEK_MS),
       nextForecast: forecasted[0] ?? null,
+      truncated,
     },
   }
 }
@@ -159,23 +168,25 @@ export async function submitProjectRequest(
 }
 
 export async function respondToProjectItem(
-  access: PortalAccess, db: PortalProjectsDb, input: { itemId: unknown; verdict: unknown; note: unknown; currentState: unknown },
+  access: PortalAccess, db: PortalProjectsDb, input: { itemId: unknown; verdict: unknown; note: unknown; currentState: unknown; waitingOn?: unknown },
 ): Promise<ActionResult<{ state: ItemState }>> {
   if (access.kind !== 'ok') return deniedResult(access)
   if (typeof input.itemId !== 'string' || !UUID_RE.test(input.itemId)) return { ok: false, code: 'not_found', message: 'We could not find that item.' }
-  if (input.verdict !== 'accept' && input.verdict !== 'request_changes') return { ok: false, code: 'invalid', message: 'Please choose Accept or Ask for changes.' }
-  const note = typeof input.note === 'string' ? input.note.trim() : ''
-  if (input.verdict === 'request_changes' && (note.length < 1 || note.length > 1000)) {
-    return { ok: false, code: 'invalid', message: 'Please say what should change (up to 1000 characters).' }
+  const verdict = input.verdict
+  if (verdict !== 'accept' && verdict !== 'request_changes' && verdict !== 'answer') {
+    return { ok: false, code: 'invalid', message: 'Please choose an answer.' }
   }
+  const note = typeof input.note === 'string' ? input.note.trim() : ''
+  if (verdict !== 'accept' && note.length < 1) return { ok: false, code: 'invalid', message: 'Please write your answer or what should change.' }
   if (note.length > 1000) return { ok: false, code: 'invalid', message: 'Please keep your note under 1000 characters.' }
   // Friendly early answer only; the database function is the real check.
-  if (isItemState(input.currentState) && !clientCanRespond(input.currentState)) {
-    return { ok: false, code: 'not_allowed', message: 'This item is not waiting for your review.' }
+  const waitingOn = (['client', 'unite', 'third_party', 'none'] as const).find((w) => w === input.waitingOn) ?? 'unite'
+  if (isItemState(input.currentState) && !clientActions(input.currentState, waitingOn).includes(verdict)) {
+    return { ok: false, code: 'not_allowed', message: 'This item is not waiting for you.' }
   }
-  const want: ItemState = input.verdict === 'accept' ? 'client_accepted' : 'clarification_required'
+  const want: ItemState = VERDICT_RESULT[verdict]
   const { data, error } = await db.rpc('portal_respond_to_project_item', {
-    p_item_id: input.itemId, p_verdict: input.verdict, p_note: note || null,
+    p_item_id: input.itemId, p_verdict: verdict, p_note: note || null,
   })
   if (error || data !== want) return fromDbError(error)
   return { ok: true, state: want }
@@ -184,7 +195,7 @@ export async function respondToProjectItem(
 function fromDbError(error: DbError): ActionFailed | ActionDenied {
   const m = error?.message ?? ''
   if (m.includes('portal_not_owner')) return { ok: false, code: 'verify_second_factor', message: 'Please confirm it is you with your second sign-in step first.' }
-  if (m.includes('portal_wrong_status')) return { ok: false, code: 'not_allowed', message: 'This item is not waiting for your review.' }
+  if (m.includes('portal_wrong_status')) return { ok: false, code: 'not_allowed', message: 'This item is not waiting for you.' }
   if (m.includes('portal_not_found')) return { ok: false, code: 'not_found', message: 'We could not find that item.' }
   if (m.includes('portal_idempotency_conflict')) return { ok: false, code: 'invalid', message: 'Please refresh the page and send your request again.' }
   if (m.includes('portal_rate_limited')) return { ok: false, code: 'not_allowed', message: 'You have sent a lot of requests today. Please try again tomorrow.' }

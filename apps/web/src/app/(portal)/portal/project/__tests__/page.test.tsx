@@ -24,12 +24,13 @@ function db(projects: unknown[] | null, items: unknown[] | null): PortalProjects
     from(table) {
       return {
         select: () => ({
-          eq: () => ({
-            order: () => ({ limit: async () => {
+          eq: () => {
+            const order = () => ({ limit: async (n: number) => {
               const data = table === 'portal_projects' ? projects : items
-              return data ? { data, error: null } : { data: null, error: { message: 'boom' } }
-            } }),
-          }),
+              return data ? { data: data.slice(0, n), error: null } : { data: null, error: { message: 'boom' } }
+            } })
+            return { order, eq: () => ({ order }) }
+          },
         }),
       }
     },
@@ -51,6 +52,8 @@ const ITEMS = [
   { ...base, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1', title: 'Portal block review', state: 'awaiting_client_review', waiting_on: 'client' },
   { ...base, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2', title: 'Area 2 valuation', state: 'blocked', evidence_count: 0, blocker_reason: 'Approved read-only data source not agreed' },
   { ...base, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3', title: 'Stock by branch', state: 'client_accepted' },
+  { ...base, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa5', title: 'Which branches?', state: 'clarification_required', waiting_on: 'client', decision_needed: 'Which branches should see this?' },
+  { ...base, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6', title: 'Changes asked', state: 'clarification_required', waiting_on: 'unite' },
   { ...base, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4', title: 'Bot idea', state: 'proposed', source: 'telegram', author_kind: 'client_bot', evidence_count: 0, summary_is_ai_proposal: true, plain_summary: 'Add a stock alert' },
 ]
 
@@ -88,9 +91,21 @@ describe('/portal/project', () => {
     expect(renderedFindings(html)).toEqual([])
   })
 
-  it('shows the accept control only on an item awaiting review', async () => {
+  it('shows the accept control only on an item awaiting review, and an answer box only where the team asked', async () => {
     const html = await render({ kind: 'ok', owner: OWNER as never }, db([PROJECT], ITEMS))
     expect(html.match(/>Accept</g)).toHaveLength(1)
+    expect(html.match(/>Send answer</g)).toHaveLength(1)
+    const decisions = html.slice(html.indexOf('Needs your decision'), html.indexOf('Current blockers'))
+    expect(decisions).toContain('Which branches?')
+    expect(decisions).not.toContain('Changes asked')
+  })
+
+  it('says older items are not shown when the list is cut', async () => {
+    const many = Array.from({ length: 501 }, (_, n) => ({ ...base, id: `aaaaaaaa-aaaa-4aaa-8aaa-${String(n).padStart(12, '0')}`, title: `T${n}`, state: 'in_development' }))
+    const html = await render({ kind: 'ok', owner: OWNER as never }, db([PROJECT], many))
+    expect(html).toContain('older items are not shown')
+    const few = await render({ kind: 'ok', owner: OWNER as never }, db([PROJECT], ITEMS))
+    expect(few).not.toContain('older items are not shown')
   })
 
   it('says the read failed instead of showing an empty project', async () => {

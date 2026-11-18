@@ -119,6 +119,19 @@ select pg_temp.expect_raise($$select public.portal_respond_to_project_item((sele
 select pg_temp.expect_raise($$select public.portal_respond_to_project_item((select id from t_item), 'approve_release', 'ship it')$$, 'portal_bad_input', 'client tries a release verdict');
 select pg_temp.expect_value($$select public.portal_respond_to_project_item((select id from t_item), 'request_changes', 'Also show transfers in transit')$$, 'clarification_required', 'request changes');
 select pg_temp.expect_value($$select waiting_on from public.portal_project_items where id = (select id from t_item)$$, 'unite', 'after the client asks for changes, the team owes the next step');
+select pg_temp.expect_raise($$select public.portal_respond_to_project_item((select id from t_item), 'answer', 'unasked answer')$$, 'portal_wrong_status', 'client answers when the team asked nothing');
+
+-- ===== the team asks the client a question; only then can the client answer it =====
+reset role; set role service_role;
+select public.portal_team_advance_project_item((select id from t_item), 'proposed');
+select public.portal_team_advance_project_item((select id from t_item), 'clarification_required', 'Which branches should see transfers?');
+select pg_temp.expect_value($$select waiting_on from public.portal_project_items where id = (select id from t_item)$$, 'client', 'team question waits on client');
+set role authenticated;
+select pg_temp.act_as('00000000-0000-0000-0000-0000000000a1', 'aal2');
+select pg_temp.expect_raise($$select public.portal_respond_to_project_item((select id from t_item), 'answer')$$, 'portal_bad_input', 'answer without a note');
+select pg_temp.expect_raise($$select public.portal_respond_to_project_item((select id from t_item), 'accept')$$, 'portal_wrong_status', 'accept a question');
+select pg_temp.expect_value($$select public.portal_respond_to_project_item((select id from t_item), 'answer', 'All branches except 3')$$, 'proposed', 'client answers the team question');
+select pg_temp.expect_value($$select waiting_on || '/' || client_note from public.portal_project_items where id = (select id from t_item)$$, 'unite/All branches except 3', 'answer stored and the team owes the next step');
 reset role; set role service_role;
 select public.portal_team_advance_project_item((select id from t_item), 'approved_scope');
 select public.portal_team_advance_project_item((select id from t_item), 'ready_for_development');

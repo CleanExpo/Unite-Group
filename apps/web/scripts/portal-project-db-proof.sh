@@ -99,11 +99,13 @@ mutant() { # label, sed expression applied to the subject migration
   if proof_ok "$name"; then echo "FAIL  proof stayed green on mutant: $1"; FAILS=$((FAILS+1))
   else echo "RED-AS-EXPECTED  $1"; fi
 }
-mutant "client may answer in any state" "s/if v_state <> 'awaiting_client_review' then raise/if false then raise/"
+mutant "client may act in any state" "s/if v_to is null then raise exception 'portal_wrong_status'; end if;/if v_to is null then v_to := 'client_accepted'; end if;/"
+mutant "client may answer when the team asked nothing" "s/and v_waiting = 'client' and p_verdict = 'answer'/and p_verdict = 'answer'/"
+mutant "client action leaves the item waiting on the client" "s/set state = v_to, waiting_on = 'unite', client_note = v_note/set state = v_to, client_note = v_note/"
 mutant "owner select policy open to every tenant" "s/for select to authenticated using (tenant_slug = (select public.portal_owner_tenant_slug()))/for select to authenticated using (true)/"
 mutant "verified states need no evidence" "s/or jsonb_array_length(evidence) > 0)/or true)/"
 mutant "team may set client_accepted" "s/then p_to_state in ('awaiting_client_review', 'in_development', 'blocked')/then p_to_state in ('awaiting_client_review', 'client_accepted', 'in_development', 'blocked')/"
-mutant "client accept grants release" "s/when 'accept' then 'client_accepted'/when 'accept' then 'approved_for_release'/"
+mutant "client accept grants release" "s/and p_verdict = 'accept' then 'client_accepted'/and p_verdict = 'accept' then 'approved_for_release'/"
 mutant "original text may be rewritten" "s/raise exception 'portal_source_immutable'/return new/"
 mutant "release approval without a named approver" "s/if p_to_state = 'approved_for_release' and v_note is null then raise exception 'portal_bad_input'; end if;//"
 mutant "submit ignores aal / tenant" "s/if v_tenant is null or v_uid is null then raise exception 'portal_not_owner'; end if;/if v_uid is null then raise exception 'portal_not_owner'; end if;/"

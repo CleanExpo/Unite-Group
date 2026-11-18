@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { noIndexPageMetadata } from '@/lib/page-metadata'
 import { formatAuDate } from '@/lib/portal/projects/forecast'
 import { portalProjectsContext } from '@/lib/portal/projects/server'
-import { loadProjectView, type ProjectItem, type ProjectView } from '@/lib/portal/projects/service'
+import { loadProjectView, ROW_CAP, type ProjectItem, type ProjectView } from '@/lib/portal/projects/service'
 import { authorLabel, STATE_LABEL, type StateGroup } from '@/lib/portal/projects/state'
 
 import { AccessPanel } from '../changes/access-panel'
@@ -89,6 +89,12 @@ function ProjectPage({ view }: { view: ProjectView }) {
         <RequestForm projectSlug={project.slug} />
       </section>
 
+      {view.truncated && (
+        <p className={s.hold} role="note">
+          This project has more than {ROW_CAP} items. Only the {ROW_CAP} most recently updated are shown below; older items are not shown.
+        </p>
+      )}
+
       {GROUP_ORDER.map(({ group, title }) => (
         <Section key={group} title={title} empty="None." items={view.items.filter((i) => i.group === group)} />
       ))}
@@ -117,7 +123,7 @@ function Section({ title, empty, items, respond = false }: { title: string; empt
                 From: {authorLabel(item.authorKind)} · Updated {formatAuDate(item.updatedAt)} · Expected: <Forecast item={item} />
                 {item.evidenceCount > 0 && <> · {item.evidenceCount} evidence record{item.evidenceCount === 1 ? '' : 's'}</>}
               </p>
-              {respond && item.state === 'awaiting_client_review' && <RespondControl itemId={item.id} currentState={item.state} />}
+              {respond && <RespondControl itemId={item.id} currentState={item.state} waitingOn={item.waitingOn} actions={item.actions} />}
             </li>
           ))}
         </ul>

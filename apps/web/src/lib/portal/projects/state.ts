@@ -35,13 +35,23 @@ export const STATE_LABEL: Record<ItemState, string> = {
 /** Groups for the client page. A held release is "waiting on release", never "failed". */
 export type StateGroup = 'waiting_on_you' | 'in_progress' | 'accepted_awaiting_release' | 'released' | 'blocked' | 'received'
 
-export function stateGroup(state: ItemState, waitingOn: 'client' | 'unite' | 'third_party' | 'none' = 'unite'): StateGroup {
+export type WaitingOn = 'client' | 'unite' | 'third_party' | 'none'
+export type ClientVerdict = 'accept' | 'request_changes' | 'answer'
+
+/**
+ * What the client may do with an item. This mirrors the CASE table in portal_respond_to_project_item
+ * (the database is the authority). It is the ONE rule owner on this side: "waiting on you" and every
+ * control on the page are derived from it, so the page can never say "waiting on you" without an action.
+ */
+export function clientActions(state: ItemState, waitingOn: WaitingOn): readonly ClientVerdict[] {
+  if (state === 'awaiting_client_review') return ['accept', 'request_changes']
+  if (state === 'clarification_required' && waitingOn === 'client') return ['answer']
+  return []
+}
+
+export function stateGroup(state: ItemState, waitingOn: WaitingOn = 'unite'): StateGroup {
+  if (clientActions(state, waitingOn).length > 0) return 'waiting_on_you'
   switch (state) {
-    case 'awaiting_client_review':
-      return 'waiting_on_you'
-    case 'clarification_required':
-      // After the client asks for changes the team owes the next step, so it is not "waiting on you".
-      return waitingOn === 'client' ? 'waiting_on_you' : 'in_progress'
     case 'blocked':
       return 'blocked'
     case 'client_accepted':
@@ -58,9 +68,11 @@ export function stateGroup(state: ItemState, waitingOn: 'client' | 'unite' | 'th
   }
 }
 
-/** The only state in which the client may accept or ask for changes (the database re-checks this). */
-export function clientCanRespond(state: ItemState): boolean {
-  return state === 'awaiting_client_review'
+/** The state the database moves an item to for each verdict. */
+export const VERDICT_RESULT: Record<ClientVerdict, ItemState> = {
+  accept: 'client_accepted',
+  request_changes: 'clarification_required',
+  answer: 'proposed',
 }
 
 export function isItemState(v: unknown): v is ItemState {

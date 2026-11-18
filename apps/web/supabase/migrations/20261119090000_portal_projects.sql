@@ -94,7 +94,7 @@ create table if not exists public.portal_project_item_events (
   id uuid primary key default gen_random_uuid(),
   item_id uuid not null references public.portal_project_items(id) on delete restrict,
   tenant_slug text not null,
-  action text not null check (action in ('submit', 'record_signal', 'advance', 'accept', 'request_changes', 'link_task')),
+  action text not null check (action in ('submit', 'record_signal', 'advance', 'accept', 'request_changes', 'answer', 'link_task')),
   from_state text,
   to_state text not null,
   actor_kind text not null check (actor_kind in ('owner', 'team')),
@@ -165,6 +165,7 @@ declare
   v_uid uuid := auth.uid();
   v_project uuid;
   v_id uuid;
+  v_new uuid;
   v_text text := btrim(coalesce(p_text, ''));
 begin
   if v_tenant is null or v_uid is null then raise exception 'portal_not_owner'; end if;
@@ -174,40 +175,36 @@ begin
   then raise exception 'portal_bad_input'; end if;
   select p.id into v_project from public.portal_projects as p where p.tenant_slug = v_tenant and p.slug = p_project_slug;
   if not found then raise exception 'portal_not_found'; end if;
-  select i.id into v_id from public.portal_project_items as i
-    where i.tenant_slug = v_tenant and i.idempotency_key = p_idempotency_key;
-  if found then
-    -- A true retry carries the same words for the same project. Anything else is a client bug, not a retry.
-    if not exists (select 1 from public.portal_project_items as i
-                   where i.id = v_id and i.project_id = v_project and i.client_text = v_text) then
-      raise exception 'portal_idempotency_conflict';
+  -- ONE path for first sends, retries and racing retries: insert if new, then always read the stored row back and
+  -- compare. A true retry carries the same words for the same project; anything else is refused.
+  if not exists (select 1 from public.portal_project_items as i
+                 where i.tenant_slug = v_tenant and i.idempotency_key = p_idempotency_key) then
+    if (select count(*) from public.portal_project_items as i
+        where i.tenant_slug = v_tenant and i.source = 'portal' and i.created_at > now() - interval '1 day') >= 50 then
+      raise exception 'portal_rate_limited';
     end if;
-    return v_id;
+    insert into public.portal_project_items (project_id, tenant_slug, kind, title, client_text, state, waiting_on,
+        source, author_kind, submitted_by, idempotency_key)
+      values (v_project, v_tenant, 'requirement', left(split_part(v_text, E'\n', 1), 200), v_text, 'proposed', 'unite',
+        'portal', 'client_human', v_uid, p_idempotency_key)
+      on conflict (tenant_slug, idempotency_key) do nothing
+      returning id into v_new;
   end if;
-  if (select count(*) from public.portal_project_items as i
-      where i.tenant_slug = v_tenant and i.source = 'portal' and i.created_at > now() - interval '1 day') >= 50 then
-    raise exception 'portal_rate_limited';
+  select i.id into v_id from public.portal_project_items as i
+    where i.tenant_slug = v_tenant and i.idempotency_key = p_idempotency_key
+      and i.project_id = v_project and i.client_text = v_text;
+  if v_id is null then raise exception 'portal_idempotency_conflict'; end if;
+  if v_new is not null then
+    insert into public.portal_project_item_events (item_id, tenant_slug, action, from_state, to_state, actor_kind, actor_id, actor_aal)
+      values (v_new, v_tenant, 'submit', null, 'proposed', 'owner', v_uid, 'aal2');
   end if;
-  insert into public.portal_project_items (project_id, tenant_slug, kind, title, client_text, state, waiting_on,
-      source, author_kind, submitted_by, idempotency_key)
-    values (v_project, v_tenant, 'requirement', left(split_part(v_text, E'\n', 1), 200), v_text, 'proposed', 'unite',
-      'portal', 'client_human', v_uid, p_idempotency_key)
-    on conflict (tenant_slug, idempotency_key) do nothing
-    returning id into v_id;
-  if v_id is null then -- a concurrent retry with the same key won the insert
-    select i.id into v_id from public.portal_project_items as i
-      where i.tenant_slug = v_tenant and i.idempotency_key = p_idempotency_key;
-    return v_id;
-  end if;
-  insert into public.portal_project_item_events (item_id, tenant_slug, action, from_state, to_state, actor_kind, actor_id, actor_aal)
-    values (v_id, v_tenant, 'submit', null, 'proposed', 'owner', v_uid, 'aal2');
   return v_id;
 end $$;
 revoke all on function public.portal_submit_project_request(text, text, text) from public, anon;
 grant execute on function public.portal_submit_project_request(text, text, text) to authenticated;
 
--- Owner answers an item waiting on review. accept -> client_accepted. request_changes -> clarification_required
--- (note required). Only from awaiting_client_review. Client acceptance is NOT release approval.
+-- Owner acts on an item. accept -> client_accepted, request_changes -> clarification_required (note required),
+-- answer (note required, only when the team asked the client: waiting_on client) -> proposed. Acceptance is NOT release approval.
 create or replace function public.portal_respond_to_project_item(p_item_id uuid, p_verdict text, p_note text default null)
 returns text
 language plpgsql security definer set search_path = public, pg_temp as $$
@@ -215,19 +212,25 @@ declare
   v_tenant text := public.portal_owner_tenant_slug();
   v_uid uuid := auth.uid();
   v_state text;
+  v_waiting text;
   v_to text;
   v_note text := nullif(btrim(coalesce(p_note, '')), '');
 begin
   if v_tenant is null or v_uid is null then raise exception 'portal_not_owner'; end if;
-  if p_verdict is null or p_verdict not in ('accept', 'request_changes')
+  if p_verdict is null or p_verdict not in ('accept', 'request_changes', 'answer')
      or (v_note is not null and char_length(v_note) > 1000)
-     or (p_verdict = 'request_changes' and v_note is null)
+     or (p_verdict in ('request_changes', 'answer') and v_note is null)
   then raise exception 'portal_bad_input'; end if;
-  select i.state into v_state from public.portal_project_items as i
+  select i.state, i.waiting_on into v_state, v_waiting from public.portal_project_items as i
     where i.id = p_item_id and i.tenant_slug = v_tenant for update;
   if not found then raise exception 'portal_not_found'; end if;
-  if v_state <> 'awaiting_client_review' then raise exception 'portal_wrong_status'; end if;
-  v_to := case p_verdict when 'accept' then 'client_accepted' else 'clarification_required' end;
+  -- THE table of client actions. lib/portal/projects/state.ts clientActions() mirrors it for display only.
+  v_to := case
+    when v_state = 'awaiting_client_review' and p_verdict = 'accept' then 'client_accepted'
+    when v_state = 'awaiting_client_review' and p_verdict = 'request_changes' then 'clarification_required'
+    when v_state = 'clarification_required' and v_waiting = 'client' and p_verdict = 'answer' then 'proposed'
+  end;
+  if v_to is null then raise exception 'portal_wrong_status'; end if;
   update public.portal_project_items as i
     set state = v_to, waiting_on = 'unite', client_note = v_note, updated_at = now()
     where i.id = p_item_id;
@@ -275,10 +278,15 @@ begin
   -- Each release step brings its own evidence (deploy record, post-release check, close-out), never the review's.
   if p_to_state in ('deployed', 'production_verified', 'done') and p_evidence is null then raise exception 'portal_bad_input'; end if;
   -- A production hold stops release in the database, not only on the page.
-  if p_to_state in ('approved_for_release', 'deployed') and exists (
-       select 1 from public.portal_project_items as i join public.portal_projects as p on p.id = i.project_id
-       where i.id = p_item_id and p.production_hold) then
-    raise exception 'portal_production_hold';
+  -- The project row is locked FOR SHARE, so a hold being switched on in another transaction waits for this one
+  -- (or this one waits for it) and the check can never read a hold that is being changed.
+  if p_to_state in ('approved_for_release', 'deployed') then
+    perform 1 from public.portal_projects as p
+      where p.id = (select i.project_id from public.portal_project_items as i where i.id = p_item_id) for share;
+    if exists (select 1 from public.portal_project_items as i join public.portal_projects as p on p.id = i.project_id
+               where i.id = p_item_id and p.production_hold) then
+      raise exception 'portal_production_hold';
+    end if;
   end if;
   if p_to_state = 'blocked' and nullif(btrim(coalesce(p_blocker_reason, '')), '') is null then raise exception 'portal_bad_input'; end if;
   update public.portal_project_items as i set
