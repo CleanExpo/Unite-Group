@@ -123,8 +123,22 @@ function makeSharedFileCheck(resolvePath) {
   }
 }
 
-/** Directories whose programs are system binaries, not files a lane wrote. */
-const SYSTEM_BIN_DIRS = ['/bin', '/usr/bin', '/usr/local/bin', '/sbin', '/usr/sbin', '/opt/homebrew/bin']
+/**
+ * Directories whose programs are system binaries, not files a lane wrote.
+ * Trust is judged on a program's real path, so the directory a symlink lands in
+ * must be listed. Ubuntu 26.04 links /usr/bin/cat, ls and the rest of coreutils
+ * into /usr/lib/cargo/bin/coreutils (root-owned, written only by the package
+ * manager); without it every coreutils program counts as untrusted (UNI-3475).
+ */
+const SYSTEM_BIN_DIRS = [
+  '/bin',
+  '/usr/bin',
+  '/usr/local/bin',
+  '/sbin',
+  '/usr/sbin',
+  '/opt/homebrew/bin',
+  '/usr/lib/cargo/bin/coreutils',
+]
 
 function realOrNull(p) {
   try {
