@@ -5,7 +5,10 @@
 set -u
 BASE=${1:?base sha}; shift
 [ $# -gt 0 ] || { echo "FAIL: no allowed paths given"; exit 2; }
-git diff --quiet HEAD || { echo "FAIL: uncommitted changes"; exit 1; }
+# Clean means no tracked change AND no untracked file (git diff alone misses untracked files).
+# Ignored files stay out of scope: they are never committed.
+DIRTY=$(git status --porcelain --untracked-files=all) || { echo "FAIL: git status failed"; exit 2; }
+[ -z "$DIRTY" ] || { echo "FAIL: uncommitted or untracked changes:"; echo "$DIRTY"; exit 1; }
 CHANGED=$(git diff --name-only "$BASE" HEAD) || { echo "FAIL: git diff failed"; exit 2; }
 [ -n "$CHANGED" ] || { echo "FAIL: no change against $BASE"; exit 1; }
 bad=0
