@@ -14,7 +14,7 @@ import type { PortalProjectsDb } from '@/lib/portal/projects/service'
 
 import ProjectPage from '../page'
 
-const OWNER = { userId: 'u1', ownerId: 'u1', tenantSlug: 'ccw-demo', plan: 'comp', aal: 'aal2' } as const
+const OWNER = { userId: 'u1', ownerId: 'u1', tenantSlug: 'acme-demo', plan: 'comp', aal: 'aal2' } as const
 const NOW = Date.now()
 const iso = (daysAgo: number) => new Date(NOW - daysAgo * 86400000).toISOString()
 
@@ -38,19 +38,19 @@ function db(projects: unknown[] | null, items: unknown[] | null): PortalProjects
 }
 
 const PROJECT = {
-  id: 'p1', tenant_slug: 'ccw-demo', slug: 'optix', name: 'Optix ERP (synthetic)', objective: 'Run stock and sales in one place.',
-  health: 'on_hold', health_reason: null, production_hold: true, hold_reason: 'Owner production hold.', current_milestone: 'Phase 2 reconciliation',
+  id: 'p1', tenant_slug: 'acme-demo', slug: 'demo-erp', name: 'Demo ERP (synthetic)', objective: 'Run stock and sales in one place.',
+  health: 'on_hold', health_reason: null, production_hold: true, hold_reason: 'Owner production hold.', current_milestone: 'Phase 2 testing',
   updated_at: iso(1),
 }
 const base = {
-  project_id: 'p1', tenant_slug: 'ccw-demo', kind: 'requirement', client_text: 'x', plain_summary: null, summary_is_ai_proposal: false,
+  project_id: 'p1', tenant_slug: 'acme-demo', kind: 'requirement', client_text: 'x', plain_summary: null, summary_is_ai_proposal: false,
   waiting_on: 'unite', source: 'portal', author_kind: 'client_human', evidence_count: 1,
   blocker_reason: null, decision_needed: null, client_note: null, forecast_window: null, forecast_confidence: null,
   forecast_basis: null, forecast_updated_at: null, created_at: iso(10), updated_at: iso(1),
 }
 const ITEMS = [
-  { ...base, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1', title: 'Portal block review', state: 'awaiting_client_review', waiting_on: 'client' },
-  { ...base, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2', title: 'Area 2 valuation', state: 'blocked', evidence_count: 0, blocker_reason: 'Approved read-only data source not agreed' },
+  { ...base, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1', title: 'Login page review', state: 'awaiting_client_review', waiting_on: 'client' },
+  { ...base, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2', title: 'Monthly sales report', state: 'blocked', evidence_count: 0, blocker_reason: 'Report layout not agreed' },
   { ...base, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3', title: 'Stock by branch', state: 'client_accepted' },
   { ...base, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa5', title: 'Which branches?', state: 'clarification_required', waiting_on: 'client', decision_needed: 'Which branches should see this?' },
   { ...base, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6', title: 'Changes asked', state: 'clarification_required', waiting_on: 'unite' },
@@ -70,19 +70,19 @@ describe('/portal/project', () => {
     const d = db([PROJECT], ITEMS)
     for (const access of [{ kind: 'sign_in' }, { kind: 'verify_second_factor' }] as PortalAccess[]) {
       const html = await render(access, d)
-      expect(html).not.toContain('Optix')
-      expect(html).not.toContain('Portal block review')
+      expect(html).not.toContain('Demo ERP')
+      expect(html).not.toContain('Login page review')
     }
   })
 
   it('shows health, hold, decisions, blockers and an unverified forecast honestly', async () => {
     const html = await render({ kind: 'ok', owner: OWNER as never }, db([PROJECT], ITEMS))
-    expect(html).toContain('Optix ERP (synthetic)')
+    expect(html).toContain('Demo ERP (synthetic)')
     expect(html).toContain('On hold')
     expect(html).toContain('Release on hold.')
     expect(html).toContain('Needs your decision')
     expect(html).toContain('Ready for your review')
-    expect(html).toContain('Approved read-only data source not agreed')
+    expect(html).toContain('Report layout not agreed')
     expect(html).toContain('Accepted by you, waiting for release')
     expect(html).toContain('ESTIMATE NOT YET VERIFIED')
     expect(html).toContain('not a confirmed decision')

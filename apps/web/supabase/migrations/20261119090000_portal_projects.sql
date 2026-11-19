@@ -2,7 +2,7 @@
 -- migrations 20261102180000 .. 20261103120000 (portal_owner_tenant_slug from membership).
 -- Proven on a throwaway Postgres only: scripts/portal-project-db-proof.sh (supabase/tests/portal_projects_proof.sql).
 --
--- Client project loop (Mission Control client view, CCW first). Additive only. Tables keep the portal_ prefix so the
+-- Client project loop (Mission Control client view). Additive only. Tables keep the portal_ prefix so the
 -- restrictive staff_only_gate of 20261104040000 does not apply to them (clients must read their own rows).
 --  1. portal_projects: one row per client project, owned by one tenant. Health, hold and milestone are staff-written.
 --  2. portal_project_items: requirements, defects, questions, milestones, blockers and decisions. The client's

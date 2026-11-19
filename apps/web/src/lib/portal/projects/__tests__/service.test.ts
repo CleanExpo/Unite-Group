@@ -4,16 +4,16 @@ import type { PortalAccess } from '../../changes/access'
 import { ESTIMATE_NOT_VERIFIED } from '../forecast'
 import { loadProjectView, respondToProjectItem, ROW_CAP, submitProjectRequest, type PortalProjectsDb } from '../service'
 
-const OWNER: PortalAccess = { kind: 'ok', owner: { userId: 'u1', tenantSlug: 'ccw-demo', aal: 'aal2' } as never }
+const OWNER: PortalAccess = { kind: 'ok', owner: { userId: 'u1', tenantSlug: 'acme-demo', aal: 'aal2' } as never }
 const NOW = new Date('2026-11-19T00:00:00Z')
 const ITEM_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
 
 const project = (over: Record<string, unknown> = {}) => ({
-  id: 'p1', tenant_slug: 'ccw-demo', slug: 'optix', name: 'Optix', objective: 'ERP', health: 'on_hold', health_reason: null,
-  production_hold: true, hold_reason: 'Owner hold', current_milestone: 'Phase 2', updated_at: '2026-11-18T00:00:00Z', ...over,
+  id: 'p1', tenant_slug: 'acme-demo', slug: 'demo-erp', name: 'Demo ERP', objective: 'ERP', health: 'on_hold', health_reason: null,
+  production_hold: true, hold_reason: 'Owner hold', current_milestone: 'Phase 2 testing', updated_at: '2026-11-18T00:00:00Z', ...over,
 })
 const item = (over: Record<string, unknown> = {}) => ({
-  id: ITEM_ID, project_id: 'p1', tenant_slug: 'ccw-demo', kind: 'requirement', title: 'Stock by branch', client_text: 'Stock by branch',
+  id: ITEM_ID, project_id: 'p1', tenant_slug: 'acme-demo', kind: 'requirement', title: 'Stock by branch', client_text: 'Stock by branch',
   plain_summary: null, summary_is_ai_proposal: false, state: 'awaiting_client_review', waiting_on: 'client', source: 'portal',
   author_kind: 'client_human', evidence_count: 1, blocker_reason: null, decision_needed: null,
   client_note: null, forecast_window: null, forecast_confidence: null, forecast_basis: null, forecast_updated_at: null,
@@ -96,11 +96,11 @@ describe('client project view', () => {
 
   it('scopes reads to the owner tenant and drops any row from another tenant or project', async () => {
     const { db, eqs } = fakeDb({
-      projects: [project(), project({ id: 'p9', tenant_slug: 'other-co', slug: 'optix' })],
+      projects: [project(), project({ id: 'p9', tenant_slug: 'other-co', slug: 'demo-erp' })],
       items: [item(), item({ id: 'x2', tenant_slug: 'other-co' }), item({ id: 'x3', project_id: 'p9' })],
     })
     const r = await loadProjectView(OWNER, db, undefined, NOW)
-    expect(eqs).toEqual(['portal_projects:ccw-demo', 'portal_project_items:ccw-demo', 'portal_project_items:p1'])
+    expect(eqs).toEqual(['portal_projects:acme-demo', 'portal_project_items:acme-demo', 'portal_project_items:p1'])
     expect(r.ok && r.view?.items.map((i) => i.id)).toEqual([ITEM_ID])
   })
 
@@ -136,11 +136,11 @@ describe('client submit and respond', () => {
   it('submits through the database function with the idempotency key, after checking input', async () => {
     const rpc = vi.fn(async () => ({ data: ITEM_ID, error: null }))
     const { db } = fakeDb({}, rpc)
-    expect(await submitProjectRequest(OWNER, db, { projectSlug: 'optix', text: 'hi', idempotencyKey: 'key-0000001' })).toMatchObject({ ok: false, code: 'invalid' })
-    expect(await submitProjectRequest(OWNER, db, { projectSlug: 'optix', text: 'Long enough', idempotencyKey: 'bad key' })).toMatchObject({ ok: false, code: 'invalid' })
+    expect(await submitProjectRequest(OWNER, db, { projectSlug: 'demo-erp', text: 'hi', idempotencyKey: 'key-0000001' })).toMatchObject({ ok: false, code: 'invalid' })
+    expect(await submitProjectRequest(OWNER, db, { projectSlug: 'demo-erp', text: 'Long enough', idempotencyKey: 'bad key' })).toMatchObject({ ok: false, code: 'invalid' })
     expect(rpc).not.toHaveBeenCalled()
-    expect(await submitProjectRequest(OWNER, db, { projectSlug: 'optix', text: '  Show stock by branch ', idempotencyKey: 'key-0000001' })).toEqual({ ok: true, id: ITEM_ID })
-    expect(rpc).toHaveBeenCalledWith('portal_submit_project_request', { p_project_slug: 'optix', p_text: 'Show stock by branch', p_idempotency_key: 'key-0000001' })
+    expect(await submitProjectRequest(OWNER, db, { projectSlug: 'demo-erp', text: '  Show stock by branch ', idempotencyKey: 'key-0000001' })).toEqual({ ok: true, id: ITEM_ID })
+    expect(rpc).toHaveBeenCalledWith('portal_submit_project_request', { p_project_slug: 'demo-erp', p_text: 'Show stock by branch', p_idempotency_key: 'key-0000001' })
   })
 
   it('answers a team question only when the team asked the client, with a note, through the database', async () => {

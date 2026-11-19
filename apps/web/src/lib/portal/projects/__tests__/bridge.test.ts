@@ -6,8 +6,8 @@ import { bridgeItem, bridgeItems, portalItemRef, taskInputForItem, type BridgeIt
 
 const FOUNDER = '00000000-0000-0000-0000-00000000f001'
 const ITEM: BridgeItem = {
-  id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', tenant_slug: 'ccw-demo', project_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-  kind: 'requirement', title: 'Show stock by branch', client_text: 'Show stock on hand by branch\nfor Brisbane',
+  id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', tenant_slug: 'acme-demo', project_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+  kind: 'requirement', title: 'Show stock by branch', client_text: 'Show stock on hand by branch\nfor the north store',
   source: 'portal', source_ref: null, author_kind: 'client_human', cc_task_id: null,
 }
 
@@ -62,7 +62,7 @@ describe('portal item to cc_tasks bridge', () => {
     expect(input.status).toBe('proposed')
     expect(input.humanApprovalRequired).toBe(true)
     expect(input.objective).toBe(ITEM.client_text)
-    expect(input.title).toBe('[client:ccw-demo] Show stock by branch')
+    expect(input.title).toBe('[client:acme-demo] Show stock by branch')
   })
 
   it('labels a bot-written item as not a confirmed decision, and still only proposes it', () => {
