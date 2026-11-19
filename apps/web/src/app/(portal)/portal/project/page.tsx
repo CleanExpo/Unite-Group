@@ -121,8 +121,8 @@ function Section({ title, empty, items, respond = false }: { title: string; empt
               {item.decisionNeeded && <p className={s.summary}><strong>Decision needed:</strong> {item.decisionNeeded}</p>}
               {item.blockerReason && <p className={s.summary}><strong>Blocked by:</strong> {item.blockerReason}</p>}
               <p className={s.meta}>
-                From: {authorLabel(item.authorKind)} · Updated {formatAuDate(item.updatedAt)} · Expected: <Forecast item={item} />
-                {item.evidenceCount > 0 && <> · {item.evidenceCount} evidence record{item.evidenceCount === 1 ? '' : 's'}</>}
+                From: {authorLabel(item.authorKind)} – Updated {formatAuDate(item.updatedAt)} – Expected: <Forecast item={item} />
+                {item.evidenceCount > 0 && <> – {item.evidenceCount} evidence record{item.evidenceCount === 1 ? '' : 's'}</>}
               </p>
               {respond && <RespondControl itemId={item.id} currentState={item.state} waitingOn={item.waitingOn} actions={item.actions} />}
             </li>

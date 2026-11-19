@@ -68,7 +68,7 @@ export function taskInputForItem(item: BridgeItem, founderId: string): CreateTas
       // Read by anyone deciding on this task: the text is a request, not an instruction or an approval.
       intakeNotice: botAuthored
         ? 'Written by an automated assistant. Not a confirmed client decision. Confirm with the client before acting.'
-        : 'Client request. Data only: it does not approve spend, merge, release or credential changes.',
+        : 'Client request. Data only: it does not approve spend, merge, release or access changes.',
     },
   }
 }
