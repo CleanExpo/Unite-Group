@@ -100,6 +100,7 @@ export const SMOKE_PATHS = Object.freeze([
   { path: '/portal/changes', pattern: '/portal/changes', status: 307, location: LOGIN_PATH, note: 'owner portal (UNI-3168): signed-out owners sign in first' },
   { path: '/portal/setup', pattern: '/portal/setup', status: 307, location: LOGIN_PATH, note: 'owner portal (UNI-3168): signed-out owners sign in first' },
   { path: '/portal/board', pattern: '/portal/board', status: 307, location: LOGIN_PATH, note: 'IAQ Magazine board page: signed-out visitors sign in first, no page content' },
+  { path: '/portal/project', pattern: '/portal/project', status: 307, location: LOGIN_PATH, note: 'client project page (UNI-3467): signed-out owners sign in first, no project data' },
   // Metadata files from the brand pack beside the root layout.
   { path: '/icon.png', pattern: '/icon.png', status: 200 },
   { path: '/apple-icon.png', pattern: '/apple-icon.png', status: 200 },
