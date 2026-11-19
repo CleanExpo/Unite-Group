@@ -100,6 +100,24 @@ describe('/portal/project', () => {
     expect(decisions).not.toContain('Changes asked')
   })
 
+  it('shows the full original request and the client note before the client can accept', async () => {
+    const review = {
+      ...ITEMS[0],
+      title: 'Show stock by branch',
+      client_text: 'Show stock by branch\nOnly for the two northern branches, never the southern one.',
+      client_note: 'Please also hide cost prices.',
+    }
+    const html = await render({ kind: 'ok', owner: OWNER as never }, db([PROJECT], [review]))
+    const decisions = html.slice(html.indexOf('Needs your decision'), html.indexOf('Current blockers'))
+    const accept = decisions.indexOf('>Accept<')
+    expect(accept).toBeGreaterThan(-1)
+    for (const words of ['Only for the two northern branches, never the southern one.', 'Please also hide cost prices.']) {
+      const at = decisions.indexOf(words)
+      expect(at, words).toBeGreaterThan(-1)
+      expect(at, words).toBeLessThan(accept)
+    }
+  })
+
   it('says older items are not shown when the list is cut', async () => {
     const many = Array.from({ length: 501 }, (_, n) => ({ ...base, id: `aaaaaaaa-aaaa-4aaa-8aaa-${String(n).padStart(12, '0')}`, title: `T${n}`, state: 'in_development' }))
     const html = await render({ kind: 'ok', owner: OWNER as never }, db([PROJECT], many))

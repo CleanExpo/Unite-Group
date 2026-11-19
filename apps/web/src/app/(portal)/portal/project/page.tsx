@@ -114,6 +114,7 @@ function Section({ title, empty, items, respond = false }: { title: string; empt
                 <span className={s.itemTitle}>{item.title}</span>
                 <span className={s.badge} data-group={item.group}>{STATE_LABEL[item.state]}</span>
               </div>
+              <ItemContext item={item} />
               {item.plainSummary && (
                 <p className={s.summary}>{item.plainSummary}{item.summaryIsAiProposal && <em className={s.ai}> (AI summary, not yet confirmed)</em>}</p>
               )}
@@ -129,6 +130,21 @@ function Section({ title, empty, items, respond = false }: { title: string; empt
         </ul>
       )}
     </section>
+  )
+}
+
+// The one place that decides what context a card carries. Every card renders it, in every section, so no section
+// can show a decision without the words it is about. The title is only the first line of client_text, cut at 200
+// characters (portal_submit_project_request), so the full original text is shown whenever it says more.
+function ItemContext({ item }: { item: ProjectItem }) {
+  const original = item.clientText?.trim()
+  return (
+    <>
+      {original && original !== item.title.trim() && (
+        <p className={`${s.summary} ${s.original}`}><strong>Original request:</strong> {original}</p>
+      )}
+      {item.clientNote && <p className={`${s.summary} ${s.original}`}><strong>Your last note:</strong> {item.clientNote}</p>}
+    </>
   )
 }
 

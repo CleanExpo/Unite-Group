@@ -45,6 +45,7 @@
 .badge[data-group='blocked'] { background: #fde8e6; color: var(--pp-bad); }
 .badge[data-group='released'], .badge[data-group='accepted_awaiting_release'] { background: #e3f4e8; color: var(--pp-ok); }
 .summary { margin: 0; overflow-wrap: anywhere; }
+.original { white-space: pre-wrap; }
 .ai { color: var(--pp-muted); }
 .meta { margin: 0; font-size: 14px; color: var(--pp-muted); }
 .unverified { font-weight: 600; color: var(--pp-warn); }
