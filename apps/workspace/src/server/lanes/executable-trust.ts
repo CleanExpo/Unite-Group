@@ -197,10 +197,22 @@ function pathVariable(env: NodeJS.ProcessEnv, windows: boolean): string {
   return env.PATH ?? env.Path ?? env.path ?? ''
 }
 
+/**
+ * The extensions to append, each in the spelling PATHEXT gives AND in lower case.
+ *
+ * Windows matches file names without regard to case, so `.EXE` from PATHEXT finds
+ * `findstr.exe` there. The same lookup run on a case-sensitive filesystem (the
+ * Linux CI runner, where this module's Windows tests also run) found nothing, so
+ * three trust tests failed on ubuntu-latest (GitHub run 44714988508) and the
+ * refusal tests passed only because no file was found at all. Trying both
+ * spellings makes the lookup behave the same on every host. It cannot widen
+ * trust: whatever is found must still really live in a trusted directory.
+ */
 function executableExtensions(env: NodeJS.ProcessEnv): string[] {
   const raw = (env.PATHEXT ?? '').trim()
   const configured = raw === '' ? [...WINDOWS_EXECUTABLE_EXTENSIONS] : raw.split(';')
-  return configured.map((extension) => extension.trim()).filter((extension) => extension !== '')
+  const spelled = configured.map((extension) => extension.trim()).filter((extension) => extension !== '')
+  return [...new Set(spelled.flatMap((extension) => [extension, extension.toLowerCase()]))]
 }
 
 /**
