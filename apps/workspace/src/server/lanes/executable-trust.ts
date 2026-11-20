@@ -20,9 +20,15 @@ import path from 'node:path'
 /**
  * Directories whose programs are system binaries, not files a lane wrote.
  *
- * Unchanged from the list this gate has carried since UNI-2409. Anything added
- * here widens what the allow tier will run, so the Windows set below is kept
- * separate rather than appended.
+ * The list this gate has carried since UNI-2409, plus one entry from UNI-3475.
+ * Anything added here widens what the allow tier will run, so the Windows set
+ * below is kept separate rather than appended.
+ *
+ * Trust is judged on a program's real path, so the directory a symlink lands in
+ * must be listed. Ubuntu 26.04 links /usr/bin/cat, ls and the rest of coreutils
+ * into /usr/lib/cargo/bin/coreutils (root-owned, written only by the package
+ * manager); without it every coreutils program counts as untrusted (UNI-3475,
+ * #1417, moved here from autonomy-hook.mjs when the decision moved).
  */
 const POSIX_SYSTEM_BIN_DIRS = [
   '/bin',
@@ -31,6 +37,7 @@ const POSIX_SYSTEM_BIN_DIRS = [
   '/sbin',
   '/usr/sbin',
   '/opt/homebrew/bin',
+  '/usr/lib/cargo/bin/coreutils',
 ] as const
 
 /**

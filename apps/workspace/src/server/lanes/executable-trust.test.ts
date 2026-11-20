@@ -73,8 +73,16 @@ function filesystemIsCaseInsensitive(directory: string): boolean {
 }
 
 describe('the trusted directory set', () => {
-  it('the POSIX trusted directories are the six this gate has always used', () => {
-    const expected = ['/bin', '/usr/bin', '/usr/local/bin', '/sbin', '/usr/sbin', '/opt/homebrew/bin']
+  it('the POSIX trusted directories are the six this gate has always used plus Ubuntu 26.04 coreutils (UNI-3475)', () => {
+    const expected = [
+      '/bin',
+      '/usr/bin',
+      '/usr/local/bin',
+      '/sbin',
+      '/usr/sbin',
+      '/opt/homebrew/bin',
+      '/usr/lib/cargo/bin/coreutils',
+    ]
     expect(systemBinDirs('linux', {})).toEqual(expected)
     expect(systemBinDirs('darwin', {})).toEqual(expected)
     // The POSIX list is a constant: no environment variable extends it.
