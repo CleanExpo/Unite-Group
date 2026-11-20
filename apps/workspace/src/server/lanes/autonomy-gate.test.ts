@@ -1101,6 +1101,33 @@ describe('review r17: credential stores and the gate policy files', () => {
    * own local imports, follows them, and requires a lane write to EVERY file found to
    * be refused. A new module the hook loads fails CI until it is protected.
    */
+  /**
+   * The relative modules one source file loads, plus every loading form this reader
+   * does NOT model. It follows static `import`/`export ... from` with `./` or `../`.
+   * Anything else that can load code (`import(...)`, `require(...)`,
+   * `createRequire`) is returned as unsupported, and the test fails on it: the hook
+   * may only load what this reader can follow (sweep finding
+   * incomplete-hook-dependency-closure on 1836d62d).
+   */
+  function localDependencies(source: string): { relative: string[]; unsupported: string[] } {
+    const relative = [
+      ...source.matchAll(/^\s*(?:import|export)\s(?:[^'"]*?\sfrom\s)?['"](\.{1,2}\/[^'"]+)['"]/gm),
+    ].map((match) => match[1])
+    const unsupported = [...source.matchAll(/\bimport\s*\(|\brequire\s*\(|\bcreateRequire\b/g)].map((match) => match[0])
+    return { relative, unsupported }
+  }
+
+  it('reads every module-loading form, or refuses to judge it', () => {
+    // Planted controls: each form a later hook could use is either followed or flagged.
+    expect(localDependencies("export * from './re-export.ts'\n").relative).toEqual(['./re-export.ts'])
+    expect(localDependencies("import { x } from '../up.ts'\n").relative).toEqual(['../up.ts'])
+    expect(localDependencies("import {\n  a,\n  b,\n} from './multi.ts'\n").relative).toEqual(['./multi.ts'])
+    expect(localDependencies("const m = await import('./late.ts')\n").unsupported).toHaveLength(1)
+    expect(localDependencies("const m = require('./late.ts')\n").unsupported).toHaveLength(1)
+    expect(localDependencies("import { createRequire } from 'node:module'\n").unsupported).toHaveLength(1)
+    expect(localDependencies("const u = import.meta.url\n")).toEqual({ relative: [], unsupported: [] })
+  })
+
   it('protects every module in the hook import closure, found by reading the imports', () => {
     const lanesDir = path.dirname(fileURLToPath(import.meta.url))
     const closure = new Set<string>()
@@ -1109,11 +1136,9 @@ describe('review r17: credential stores and the gate policy files', () => {
       const name = queue.shift() as string
       if (closure.has(name)) continue
       closure.add(name)
-      const source = readFileSync(path.join(lanesDir, name), 'utf8')
-      // Static `import ... from './x'` (any line breaks inside the braces) and bare `import './x'`.
-      for (const match of source.matchAll(/^\s*import\s(?:[^'"]*?\sfrom\s)?['"]\.\/([^'"]+)['"]/gm)) {
-        queue.push(match[1])
-      }
+      const { relative, unsupported } = localDependencies(readFileSync(path.join(lanesDir, name), 'utf8'))
+      expect(unsupported, `${name} loads code in a form this test cannot follow`).toEqual([])
+      for (const spec of relative) queue.push(path.posix.normalize(path.posix.join(path.posix.dirname(name), spec)))
     }
     // Floor: a regex that stopped matching would leave only the entry file and pass
     // vacuously. These four are what the hook loads today.
@@ -1122,7 +1147,7 @@ describe('review r17: credential stores and the gate policy files', () => {
     }
     const root = '/gate-checkout'
     for (const name of closure) {
-      const file_path = `${root}/apps/workspace/src/server/lanes/${name}`
+      const file_path = path.posix.normalize(`${root}/apps/workspace/src/server/lanes/${name}`)
       expect(classifyToolCall(call({ tool: 'Write', input: { file_path } }), { worktreeRoot: root }).tier, file_path).toBe(
         'L3',
       )
