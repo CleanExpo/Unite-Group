@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 import {
   actionHash,
@@ -1102,18 +1103,46 @@ describe('review r17: credential stores and the gate policy files', () => {
    * be refused. A new module the hook loads fails CI until it is protected.
    */
   /**
-   * The relative modules one source file loads, plus every loading form this reader
-   * does NOT model. It follows static `import`/`export ... from` with `./` or `../`.
-   * Anything else that can load code (`import(...)`, `require(...)`,
-   * `createRequire`) is returned as unsupported, and the test fails on it: the hook
-   * may only load what this reader can follow (sweep finding
-   * incomplete-hook-dependency-closure on 1836d62d).
+   * The relative modules one source file loads, plus everything this reader refuses
+   * to judge. It reads the TypeScript compiler's syntax tree, not the text: two
+   * text-pattern readers in a row missed forms Node accepts (sweep findings
+   * incomplete-hook-dependency-closure on 1836d62d and on 6eb6f8bc, e.g.
+   * `import'./x.ts'`). Allow-list, not deny-list:
+   * - an import/export declaration is followed only when its specifier is a string
+   *   literal starting `./` or `../`;
+   * - any other specifier must be one of ALLOWED_EXTERNAL_MODULES;
+   * - `import(...)`, `import x = require(...)`, and any identifier that names a
+   *   code loader (LOADER_NAMES) are unsupported;
+   * - a file the parser reports a syntax error for is unsupported.
+   * The test fails on every unsupported item, so the hook may only load what this
+   * reader can follow. Named limit: computed access to a global loader (for example
+   * `globalThis['ev' + 'al']`) is not modelled; the hook itself is L3, so such code
+   * could only arrive through a reviewed human change, not a lane write.
    */
-  function localDependencies(source: string): { relative: string[]; unsupported: string[] } {
-    const relative = [
-      ...source.matchAll(/^\s*(?:import|export)\s(?:[^'"]*?\sfrom\s)?['"](\.{1,2}\/[^'"]+)['"]/gm),
-    ].map((match) => match[1])
-    const unsupported = [...source.matchAll(/\bimport\s*\(|\brequire\s*\(|\bcreateRequire\b/g)].map((match) => match[0])
+  const ALLOWED_EXTERNAL_MODULES = new Set(['node:crypto', 'node:fs', 'node:os', 'node:path'])
+  const LOADER_NAMES = new Set(['require', 'createRequire', 'eval', 'Function', 'Worker', 'dlopen'])
+  function localDependencies(source: string, fileName = 'hook-module.ts'): { relative: Array<string>; unsupported: Array<string> } {
+    const relative: Array<string> = []
+    const unsupported: Array<string> = []
+    const syntax = ts.transpileModule(source, { fileName, reportDiagnostics: true }).diagnostics ?? []
+    for (const diagnostic of syntax) unsupported.push(`syntax: ${ts.flattenDiagnosticMessageText(diagnostic.messageText, ' ')}`)
+    const sourceFile = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true)
+    const visit = (node: ts.Node): void => {
+      if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier) {
+        const specifier = node.moduleSpecifier
+        if (!ts.isStringLiteral(specifier)) unsupported.push(`specifier: ${specifier.getText(sourceFile)}`)
+        else if (/^\.{1,2}\//.test(specifier.text)) relative.push(specifier.text)
+        else if (!ALLOWED_EXTERNAL_MODULES.has(specifier.text)) unsupported.push(`external: ${specifier.text}`)
+      } else if (ts.isImportEqualsDeclaration(node)) {
+        unsupported.push(`import-equals: ${node.getText(sourceFile)}`)
+      } else if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) {
+        unsupported.push(`dynamic import: ${node.getText(sourceFile)}`)
+      } else if (ts.isIdentifier(node) && LOADER_NAMES.has(node.text)) {
+        unsupported.push(`loader name: ${node.text}`)
+      }
+      ts.forEachChild(node, visit)
+    }
+    visit(sourceFile)
     return { relative, unsupported }
   }
 
@@ -1122,10 +1151,31 @@ describe('review r17: credential stores and the gate policy files', () => {
     expect(localDependencies("export * from './re-export.ts'\n").relative).toEqual(['./re-export.ts'])
     expect(localDependencies("import { x } from '../up.ts'\n").relative).toEqual(['../up.ts'])
     expect(localDependencies("import {\n  a,\n  b,\n} from './multi.ts'\n").relative).toEqual(['./multi.ts'])
-    expect(localDependencies("const m = await import('./late.ts')\n").unsupported).toHaveLength(1)
-    expect(localDependencies("const m = require('./late.ts')\n").unsupported).toHaveLength(1)
-    expect(localDependencies("import { createRequire } from 'node:module'\n").unsupported).toHaveLength(1)
     expect(localDependencies("const u = import.meta.url\n")).toEqual({ relative: [], unsupported: [] })
+    // Compact forms Node accepts (sweep on 6eb6f8bc): no space after the keyword.
+    expect(localDependencies("import'./lane-helper.ts'\n").relative).toEqual(['./lane-helper.ts'])
+    expect(localDependencies("export*from'./lane-helper.ts'\n").relative).toEqual(['./lane-helper.ts'])
+    expect(localDependencies("import{a}from'./lane-helper.ts'\n").relative).toEqual(['./lane-helper.ts'])
+    expect(localDependencies("import data from './x.json' with { type: 'json' }\n").relative).toEqual(['./x.json'])
+    // Words inside strings and comments are not code.
+    expect(localDependencies("const s = 'require(./x)' // eval import('./y')\n")).toEqual({ relative: [], unsupported: [] })
+    expect(localDependencies("import path from 'node:path'\n")).toEqual({ relative: [], unsupported: [] })
+    // Every form the reader cannot follow is refused, never silently skipped.
+    for (const refused of [
+      "const m = await import('./late.ts')\n",
+      'const m = await import(name)\n',
+      'const m = import  (\n"./late.ts")\n',
+      "const m = require('./late.ts')\n",
+      "import { createRequire } from 'node:module'\n",
+      "import vm from 'node:vm'\n",
+      "import x = require('./late')\n",
+      'eval(code)\n',
+      "const f = new Function('return 1')\n",
+      "process.dlopen(m, './native.node')\n",
+      "import { x } from './a.ts'\nconst = 1\n",
+    ]) {
+      expect(localDependencies(refused).unsupported, refused).not.toEqual([])
+    }
   })
 
   it('protects every module in the hook import closure, found by reading the imports', () => {
@@ -1136,7 +1186,8 @@ describe('review r17: credential stores and the gate policy files', () => {
       const name = queue.shift() as string
       if (closure.has(name)) continue
       closure.add(name)
-      const { relative, unsupported } = localDependencies(readFileSync(path.join(lanesDir, name), 'utf8'))
+      if (name.endsWith('.json')) continue // data, not code: it loads nothing
+      const { relative, unsupported } = localDependencies(readFileSync(path.join(lanesDir, name), 'utf8'), name)
       expect(unsupported, `${name} loads code in a form this test cannot follow`).toEqual([])
       for (const spec of relative) queue.push(path.posix.normalize(path.posix.join(path.posix.dirname(name), spec)))
     }
