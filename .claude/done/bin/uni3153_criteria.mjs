@@ -104,6 +104,10 @@ function runVitest(extraArgs) {
     passed: report.numPassedTests ?? 0,
     failed: report.numFailedTests ?? 0,
     pending: report.numPendingTests ?? 0,
+    todo: report.numTodoTests ?? 0,
+    // Test file names exactly as vitest reported them, with Windows separators
+    // folded, so every requested suite can be required by name (PR #1419 review).
+    files: (report.testResults ?? []).map((result) => String(result.name).replaceAll('\\', '/')),
   }
 }
 
@@ -115,6 +119,18 @@ function suites() {
   }
   if (r.pending > 0) {
     console.log(`FAIL suites: ${r.pending} skipped; a skip on the platform under test proves nothing`)
+    return 1
+  }
+  // Vitest counts a todo test in the total but not as pending or passed.
+  if (r.todo > 0 || r.passed !== r.total) {
+    console.log(`FAIL suites: ${r.passed} passed of ${r.total} (${r.todo} todo); every collected test must pass`)
+    return 1
+  }
+  // Positional paths are filters: a missing or excluded suite drops out silently
+  // while the others can still clear the floor. Require each one by name.
+  const missing = SUITES.filter((suite) => !r.files.some((file) => file.endsWith(suite.replaceAll('\\', '/'))))
+  if (missing.length > 0) {
+    console.log(`FAIL suites: no report entry for ${missing.join(', ')}; reported ${r.files.length} files`)
     return 1
   }
   if (r.total < TEST_FLOOR) {

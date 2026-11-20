@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import {
   actionHash,
@@ -1088,6 +1091,48 @@ describe('review r17: credential stores and the gate policy files', () => {
     }
     const command = `*** Begin Patch\n*** Update File: ${root}/apps/workspace/src/server/lanes/autonomy-gate.ts\n+x\n*** End Patch\n`
     expect(classifyToolCall(call({ tool: 'apply_patch', input: { command } }), { worktreeRoot: root }).tier).toBe('L3')
+  })
+
+  /**
+   * The list above is written by hand, and a hand list goes stale whenever the hook
+   * starts loading a new file. That has happened twice: the action policy (Codex
+   * review r17) and executable-trust.ts, moved out of the hook by UNI-3153 (found by
+   * CodeRabbit on PR #1419). So this test does not name the files. It reads the hook's
+   * own local imports, follows them, and requires a lane write to EVERY file found to
+   * be refused. A new module the hook loads fails CI until it is protected.
+   */
+  it('protects every module in the hook import closure, found by reading the imports', () => {
+    const lanesDir = path.dirname(fileURLToPath(import.meta.url))
+    const closure = new Set<string>()
+    const queue = ['autonomy-hook.mjs']
+    while (queue.length > 0) {
+      const name = queue.shift() as string
+      if (closure.has(name)) continue
+      closure.add(name)
+      const source = readFileSync(path.join(lanesDir, name), 'utf8')
+      // Static `import ... from './x'` (any line breaks inside the braces) and bare `import './x'`.
+      for (const match of source.matchAll(/^\s*import\s(?:[^'"]*?\sfrom\s)?['"]\.\/([^'"]+)['"]/gm)) {
+        queue.push(match[1])
+      }
+    }
+    // Floor: a regex that stopped matching would leave only the entry file and pass
+    // vacuously. These four are what the hook loads today.
+    for (const known of ['autonomy-hook.mjs', 'autonomy-gate.ts', 'mission-authority.json', 'executable-trust.ts']) {
+      expect(closure.has(known), `import closure ${[...closure].join(', ')} lacks ${known}`).toBe(true)
+    }
+    const root = '/gate-checkout'
+    for (const name of closure) {
+      const file_path = `${root}/apps/workspace/src/server/lanes/${name}`
+      expect(classifyToolCall(call({ tool: 'Write', input: { file_path } }), { worktreeRoot: root }).tier, file_path).toBe(
+        'L3',
+      )
+    }
+    // Control: an ordinary module beside them is still writable, so the check above
+    // is not passing by refusing every write in the folder.
+    const ordinary = `${root}/apps/workspace/src/server/lanes/lane-notes.ts`
+    expect(classifyToolCall(call({ tool: 'Write', input: { file_path: ordinary } }), { worktreeRoot: root }).tier).not.toBe(
+      'L3',
+    )
   })
 })
 

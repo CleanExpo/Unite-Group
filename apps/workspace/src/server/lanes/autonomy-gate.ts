@@ -126,6 +126,11 @@ const SELF_PROTECTED_WRITE_PATTERNS: ReadonlyArray<{ pattern: RegExp; what: stri
   // policy it imports. Guarding the entry file alone left the policy itself
   // writable to a lane rooted at the gate checkout (Codex review r17).
   { pattern: /(^|\/)autonomy-gate\.ts$/, what: "the gate's own classifier" },
+  // The executable-trust check moved out of the hook into its own module
+  // (UNI-3153), so it is now a separate file the hook loads. The test "protects
+  // every module in the hook import closure" reads the imports, so the next
+  // file the hook starts loading fails CI until it is listed here.
+  { pattern: /(^|\/)executable-trust\.ts$/, what: "the gate's own executable trust check" },
   { pattern: /(^|\/)mission-authority\.json$/, what: "the gate's own action policy" },
   { pattern: /(^|\/)lanes\/gate(\/|$)/, what: "the gate's own per-run settings" },
   { pattern: /(^|\/)\.claude(\/|$)/, what: 'agent configuration' },

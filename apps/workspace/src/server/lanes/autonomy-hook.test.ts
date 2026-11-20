@@ -59,6 +59,10 @@ const PLATFORM_ENV: NodeJS.ProcessEnv =
     ? {
         SystemRoot: process.env.SystemRoot,
         ProgramFiles: process.env.ProgramFiles,
+        // Every Program Files variable the trusted-folder list reads, so a Git
+        // found through any of them is trusted in the child hook too.
+        'ProgramFiles(x86)': process.env['ProgramFiles(x86)'],
+        ProgramW6432: process.env.ProgramW6432,
         PATHEXT: process.env.PATHEXT,
       }
     : {}
