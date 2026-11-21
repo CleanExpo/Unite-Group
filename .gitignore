@@ -1,5 +1,10 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# Client website material (copy, photos, email drafts) lives in a private workspace outside this
+# public repo (scripts/website/client-site.mjs). This guard catches a copy dropped into a site folder.
+sites/*/incoming/
+sites/*/outgoing/
+
 # dependencies
 node_modules/
 /node_modules
@@ -169,6 +174,9 @@ scripts/swarm/bench-results.json
 
 # npm lockfile when installs run outside the pnpm workspace root
 package-lock.json
+# Client sites and their template build from a committed lockfile with npm ci, so theirs are kept.
+!/sites/*/package-lock.json
+!/scripts/website/template/astro/package-lock.json
 
 # Accidental per-app lockfiles (canonical locks live under apps/web, apps/workspace)
 /apps/empire/pnpm-lock.yaml
