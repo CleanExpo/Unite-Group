@@ -15,29 +15,34 @@ export const HOME_HERO = {
   growCta: 'Grow your business',
 } as const
 
-/** Short trust strip below the hero — factual only (entity, process, support). */
+/**
+ * Short trust strip below the hero — factual only (entity, process, support).
+ * Plain, fifth-grade wording that leads with what the customer gets (UNI-3316, UNI-3317).
+ * Replies are AI-written, so no "human" or "real person" claims (UNI-3315 item 6).
+ */
 export const HOME_TRUST_STRIP = {
-  eyebrow: 'Why teams choose us',
+  eyebrow: 'Why small businesses pick us',
   items: [
     {
-      title: 'Australian operator',
-      line: 'AUD pricing, GST called out, and delivery from an Australian company — ABN on the footer, no offshore mystery invoice.',
+      title: 'Prices in Australian dollars',
+      line: 'You pay in Australian dollars, and we show GST when it applies. We are an Australian company. Our ABN is at the bottom of this page.',
     },
     {
-      title: 'Approve before it goes live',
-      line: 'Every card and public page ships behind a private proof link. Nothing publishes until you say yes.',
+      title: 'You check it first',
+      line: 'We send you a private link to check your card or page. Nothing goes live until you say yes.',
     },
     {
-      title: 'Direct email, not a ticket maze',
-      line: 'You write to a real inbox. We answer in plain language with the next step, not a template number.',
+      title: 'Clear answers by email',
+      line: 'Send us an email. We reply in plain words and tell you the next step. No ticket numbers to chase.',
     },
   ],
 } as const
 
+/** Plain explainer above the five steps (UNI-3323). Every <p> in #start stays at 64 characters or fewer. */
 export const HOME_START = {
-  eyebrow: 'Orientation',
-  title: 'Pick the outcome you need first',
-  lead: 'Five paths into the same system — start with what matters now.',
+  eyebrow: 'Your next step',
+  title: 'Where do you want to start?',
+  lead: 'We make films, web pages and follow-up. Pick the step you need.',
 } as const
 
 export const HOME_HIGHLIGHTS = {

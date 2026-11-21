@@ -53,13 +53,13 @@ describe('the start chooser', () => {
     expect(ids.slice(0, 4)).toEqual(['hero', 'trust', 'start', 'today'])
   })
 
-  it('is labelled by a visible h2 "Pick the outcome you need first"', async () => {
+  it('is labelled by a visible h2 "Where do you want to start?" (UNI-3323)', async () => {
     const { block } = await chooser()
     const labelled = block.match(/aria-labelledby="([^"]+)"/)?.[1]
     expect(labelled).toBeTruthy()
     const h2 = block.match(new RegExp(`<h2[^>]*id="${labelled}"[^>]*>([\\s\\S]*?)</h2>`))
     expect(h2).not.toBeNull()
-    expect(strip(h2![1])).toBe('Pick the outcome you need first')
+    expect(strip(h2![1])).toBe('Where do you want to start?')
   })
 
   it('is an ordered list of five links with the exact hrefs, in order', async () => {
