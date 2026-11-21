@@ -2,7 +2,149 @@
 > For the complete documentation index, see [llms.txt](/llms.txt). Markdown versions of documentation pages are available by appending `.md` to the page URL.
 > The latest features and updates to the OpenAI API.
 Upcoming deprecations are listed on the [deprecations page](/api/docs/deprecations).
+## November, 2026
+### Nov 19
+Feature · Model: gpt-live-1.1 · API: v1/live/sessions
+[GPT-Live-1.1](https://developers.openai.com/api/docs/models/gpt-live-1.1) improves pronunciation, accent consistency, and transcription in multilingual voice conversations. Use `gpt-live-1.1` in an existing Live session configuration and [describe in plain language when to delegate](https://developers.openai.com/api/docs/guides/live-prompting#recommended-prompt-structure) to your backend.
+[Configure standby](https://developers.openai.com/api/docs/guides/live-conversations#configure-standby) for GPT-Live-1 and GPT-Live-1.1 WebRTC sessions to pause inference during inactivity and resume when someone speaks.
+### Nov 17
+Feature · Model: gpt-6.2-astra · Model: gpt-6.2-sol · API: v1/responses · API: v1/chat/completions
+Use [GPT-6.2 Astra](https://developers.openai.com/api/docs/models/gpt-6.2-astra) for demanding reasoning and coding tasks, or [GPT-6.2 Sol](https://developers.openai.com/api/docs/models/gpt-6.2-sol) for everyday coding and agent workflows. Both models support the Responses API and Chat Completions. Tool calling requires the Responses API.
+GPT-6.2 changes how the Responses API preserves reasoning when you edit a conversation’s prefix and how it handles the top-level `instructions` field. See the [GPT-6.2 migration guide](https://developers.openai.com/api/docs/guides/latest-model?model=gpt-6.2-astra#gpt-6.2-astra-migration-quickstart) for details and recommended updates to your integration.
+### Nov 17
+Feature · Model: gpt-6.2-astra · Model: gpt-6.2-sol · Model: gpt-6.1-terra · Model: gpt-6-luna · API: v1/responses
+Choose a two-hour or eight-hour [background completion window](https://developers.openai.com/api/docs/guides/background#use-discounted-completion-windows) in the Responses API public beta. Model token rates are 30% lower than Standard for the two-hour window and 40% lower for the eight-hour window.
+New models will not support [Flex processing](https://developers.openai.com/api/docs/guides/flex-processing). Flex remains available on supported models while the beta winds down.
+### Nov 16
+Feature · Model: omni-moderation-csam-latest · API: v1/moderations
+Approved organizations can use the [OpenAI CSAM Image Classifier](https://developers.openai.com/api/docs/guides/csam-classifier) at no cost to help prioritize images for human review. The model returns separate signals for potential child sexual abuse material (CSAM) and potential AI-generated CSAM.
+### Nov 5
+Feature · Model: gpt-6-cyber
+Use [GPT-6 Cyber](https://developers.openai.com/api/docs/models/gpt-6-cyber) to investigate vulnerabilities, reproduce them in an authorized test environment, and verify fixes. See [Daybreak setup](https://developers.openai.com/api/docs/guides/daybreak#set-up-gpt-6-cyber) before sending your first request.
+### Nov 4
+Feature · Model: gpt-image-2.6-sunburst · Model: gpt-image-2.6-flare · API: v1/images/generations · API: v1/images/edits
+Released [GPT-Image-2.6 Sunburst](https://developers.openai.com/api/docs/models/gpt-image-2.6-sunburst) and [GPT-Image-2.6 Flare](https://developers.openai.com/api/docs/models/gpt-image-2.6-flare) for image generation and editing, with adjustable complexity, SVG generation, and animated GIF generation. Added markup-guided editing for supported GPT-Image-2.5 and GPT-Image-2.6 models.
+See the [image generation guide](https://developers.openai.com/api/docs/guides/image-generation#gpt-image-26).
+### Nov 2
+Feature · Model: gpt-live-1 · API: v1/live/sessions
+Outbound SIP calling is now available to all organizations through the Live API. Connect GPT-Live to a phone number through your SIP provider. See the [SIP guide](https://developers.openai.com/api/docs/guides/voice-sip?api=live#place-an-outbound-call).
+## October, 2026
+### Oct 30
+Update · API: v1/agents · API: v1/agents/sessions
+You can now [update the tools in an existing session](https://developers.openai.com/api/docs/guides/agents-api/configuration#update-settings-for-an-existing-session) in the Agents API public beta. Updates replace the full tool list. Function tools and MCP servers change on the next model call; built-in tools change by the next turn.
+Context compaction now runs in the background by default. Set `compaction.async` to `false` for blocking compaction. Background compaction may increase token usage.
+Added opt-in experimental time awareness. Set `experimental.time_awareness` to `true` to give the model periodic current-time reminders. It is disabled by default. See the [agent configuration reference](https://developers.openai.com/api/reference/resources/beta/subresources/agents/methods/create) for compaction and experimental settings.
+### Oct 30
+Feature · API: v1/agents/sessions
+Added automatic review for eligible Agents API projects. Set the session's `review` field to `"auto_review"` to have a model approve or deny supported tool and permission requests based on conversation intent and risk. See the [automatic review guide](https://developers.openai.com/api/docs/guides/agents-api/sessions/approvals) for supported requests, limitations, and additional token billing.
+### Oct 30
+Feature · Model: gpt-6-rosalind
+Released [GPT-6 Rosalind](https://developers.openai.com/api/docs/pricing#life-sciences-models), bringing specialized biological reasoning with scientific tool use to complex life sciences research. Access is available to organizations approved for Rosalind Research through the [trusted-access program](https://help.openai.com/en/articles/20001193-gpt-rosalind-for-life-sciences-research) for internal research by authorized users.
+### Oct 28
+Feature
+Eligible ChatGPT Pro and Business subscribers can now claim up to $500 per month in free API credits as a subscription benefit. Activate the benefit from ChatGPT or API Platform by linking an API organization you own. See [API credits for ChatGPT subscribers](https://developers.openai.com/api/docs/guides/chatgpt-api-credits) for credit amounts, eligibility, and how to claim.
+### Oct 26
+Feature · Model: gpt-6.1-terra · API: v1/responses · API: v1/chat/completions
+Released [GPT-6.1 Terra](https://developers.openai.com/api/docs/models/gpt-6.1-terra), a fast, efficient model for visual reasoning, precise computer use, and clear, natural writing.
+See the [GPT-6 guide](https://developers.openai.com/api/docs/guides/latest-model?model=gpt-6-astra#gpt-61-terra) for prompting and migration guidance.
+### Oct 23
+Feature · API: v1/agents/automations
+Added [scheduled automations](https://developers.openai.com/api/docs/guides/agents-api/sessions/automations) to the Agents API public beta. Schedule one-time or recurring tasks in new or existing sessions. Enable the `automations` tool to let an agent schedule its own follow-ups in the current session.
+### Oct 22
+Update · Model: gpt-6-luna · API: v1/decisions
+The [Decisions API](https://developers.openai.com/api/docs/guides/decisions) is now generally available with `gpt-6-luna`. Cache shared input across requests for prompt-cache discounts, include images in individual question instructions, and pass structured data directly with `input_json`. Each request now supports up to 400 questions, increased from 200 in public beta. Review the [changes since public beta](https://developers.openai.com/api/docs/guides/decisions#whats-new).
+### Oct 21
+Feature
+You can now choose which service tiers projects can use in Platform settings. Organization settings can restrict service tiers for all projects. See [service tier errors](https://developers.openai.com/api/docs/guides/error-codes).
+### Oct 20
+Feature · API: v1/responses
+You can now choose 12-hour prompt caching in the API. 12-hour prompt caching keeps shared instructions, tools, and context cached longer to benefit from lower cached-input pricing, even when requests are hours apart. 12-hour cache writes cost 2.5x the input token price. Read more [here](https://developers.openai.com/api/docs/guides/prompt-caching).
+### Oct 16
+Feature · Model: gpt-live-1 · API: v1/audio/voices · API: v1/live/sessions
+Released [prompt-to-voice](https://developers.openai.com/api/docs/guides/custom-voices#create-a-voice-from-a-description) for all API customers. Create a custom voice from a text description through the API or voice Playground, then reuse it in GPT-Live sessions. Creating a prompt-generated voice is free; speech generation uses regular GPT-Live session billing.
+Added nine [natural voices for GPT-Live](https://developers.openai.com/api/docs/guides/live-conversations#voice-options): Nuri, Juni, and Flitz (German); Brise and Sillage (French); Nira (Hindi); Harema and Shida (Japanese); and Noeul (Korean).
+### Oct 16
+Feature · API: v1/agents
+[OpenAI-hosted sandboxes](https://developers.openai.com/api/docs/guides/agents-api/environments/openai-hosted) in the Agents API now include the Artifact SDK and skills for creating and editing spreadsheets, presentations, and Word documents.
+Added [Ultrafast mode](https://developers.openai.com/api/docs/guides/ultrafast-mode) to the Agents API. Set `agent.service_tier` to `ultrafast` with a supported model to reduce the time between generated tokens.
+### Oct 15
+Feature · Model: gpt-live-1 · Model: gpt-6-luna · API: v1/live/sessions
+Added native [Decisions integration in GPT-Live](https://developers.openai.com/api/docs/guides/decisions-voice). Your app can act while your user is speaking or react to what Live says. Let Live call Decisions directly through native delegation, or trigger decisions as input or output transcript deltas arrive.
+### Oct 9
+Feature · API: v1/agents
+You can now [pre-warm an OpenAI-hosted sandbox](https://developers.openai.com/api/docs/guides/agents-api/environments/prewarmed) before attaching it to an Agents API session. Prewarming improves latency by creating and configuring the sandbox before a user finishes sending their message. This means the user doesn't have to wait for all this work to complete.
+OpenAI-hosted sandbox compute is now billed during active turns. You no longer pay for idle time between turns.
+### Oct 8
+Feature · Model: gpt-6.1-sol · API: v1/responses
+Added [Ultrafast mode](https://developers.openai.com/api/docs/guides/ultrafast-mode) for [GPT-6.1 Sol](https://developers.openai.com/api/docs/models/gpt-6.1-sol) in the Responses API. Use `gpt-6.1-sol` with `service_tier: "ultrafast"` to reduce the time between generated output tokens. It is available to all API users, subject to rate limits, with global processing and US and EU data residency. See [Ultrafast pricing](https://developers.openai.com/api/docs/pricing?latest-pricing=ultrafast).
+### Oct 7
+Update · Model: chat-latest
+Updated the **chat-latest** snapshot, which points to the latest model available in ChatGPT for Plus, Pro, Business and Enterprise users. We recommend leveraging the [GPT-6 model family](https://developers.openai.com/api/docs/guides/latest-model) for production API usage, but feel free to use this model to test the latest improvements for chat use cases. The underlying model snapshot will be regularly updated. Read more [here](https://developers.openai.com/api/docs/models/chat-latest).
+### Oct 6
+Feature · Model: gpt-6-luna · API: v1/decisions
+Released the [Decisions API](https://developers.openai.com/api/docs/guides/decisions) in beta with `gpt-6-luna`. Turn text and images into typed answers 10x faster than the Responses API.
+### Oct 6
+Update
+Simplified API usage tiers from five to three: Build, Launch, and Grow. Organizations automatically upgrade as total credit purchases reach tier minimums. See [usage tiers](https://developers.openai.com/api/docs/guides/rate-limits#usage-tiers) for monthly usage limits and how to view rate limits for each model.
+### Oct 5
+Feature
+Added an in-product flow for HIPAA compliance support in API [Organization settings > General](https://platform.openai.com/settings/organization/general). Admins of eligible organizations can now accept the standard Business Associate Agreement (BAA) and enable HIPAA compliance support for their organization. See the [Help Center](https://help.openai.com/en/articles/8660679-getting-a-business-associate-agreement-for-the-openai-api) for eligibility, covered services, and configuration requirements.
+### Oct 2
+Feature · API: v1/agents/sessions
+Added [item history for individual root-agent turns](https://developers.openai.com/api/docs/guides/agents-api/sessions/events#fetch-items-and-turns) in the Agents API public beta. Retrieve a turn's messages and tool calls without listing the entire session's history.
 ## September, 2026
+### Sep 29
+Feature
+Added [computer use](https://developers.openai.com/api/docs/guides/agents-api/tools/computer-use) to the Agents API. Agents can complete tasks in an OpenAI-hosted browser, with website access approvals and sign-in handled by your application.
+### Sep 29
+Feature · Model: gpt-6.1-sol · API: v1/responses · API: v1/chat/completions
+Released [GPT-6.1 Sol](https://developers.openai.com/api/docs/models/gpt-6.1-sol) (`gpt-6.1-sol`) for complex coding and professional work at a lower cost than GPT-6 Astra.
+Standard pricing per 1M tokens for prompts with up to 272K input tokens is $2 input, $0.10 cached input, $2.50 cache write, and $10 output.
+GPT-6.1 Sol also supports [Multi-agent](https://developers.openai.com/api/docs/guides/responses-multi-agent) in beta. Let the model delegate work to subagents in a Responses API request.
+Use the Responses API for tool calling. See [GPT-6 model guidance](https://developers.openai.com/api/docs/guides/latest-model?model=gpt-6-astra#gpt-61-sol) for reasoning settings and [pricing](https://developers.openai.com/api/docs/pricing) for available processing tiers.
+### Sep 29
+Feature · Model: gpt-6-astra · API: v1/responses
+Added [Ultrafast mode](https://developers.openai.com/api/docs/guides/ultrafast-mode) for GPT-6 Astra in the Responses API. Use `gpt-6-astra` with `service_tier: "ultrafast"` to reduce the time between generated output tokens. It is available to API customers, subject to rate limits, with global processing and US data residency. EU and other regional inference residency aren't supported. See [Ultrafast pricing](https://developers.openai.com/api/docs/pricing?latest-pricing=ultrafast).
+### Sep 25
+Fix · Model: gpt-6-sol · Model: gpt-6-luna
+Fixed a bug in image encoding that degraded image understanding in [GPT-6 Sol](https://developers.openai.com/api/docs/models/gpt-6-sol) and [GPT-6 Luna](https://developers.openai.com/api/docs/models/gpt-6-luna). This update improves results on visual tasks in the API and Codex, including computer use.
+If your use cases involve image inputs, we recommend rerunning your evaluations and retrying workflows affected by the issue.
+### Sep 22
+Feature · Model: gpt-6-sol · Model: gpt-6-luna · API: v1/responses · API: v1/chat/completions
+Released [GPT-6 Sol](https://developers.openai.com/api/docs/models/gpt-6-sol) (`gpt-6-sol`) and [GPT-6 Luna](https://developers.openai.com/api/docs/models/gpt-6-luna) (`gpt-6-luna`).
+These reasoning models accept text and image inputs and generate text through the Responses and Chat Completions APIs.
+Standard pricing per 1M tokens for prompts with up to 272K input tokens:
+- GPT-6 Sol: $2 input, $0.20 cached input, and $10 output.
+- GPT-6 Luna: $0.10 input, $0.01 cached input, and $0.50 output.
+Compare capabilities in the [model catalog](https://developers.openai.com/api/docs/models), and see [pricing](https://developers.openai.com/api/docs/pricing) for cache writes, longer prompts, and other processing tiers.
+### Sep 15
+Feature
+Added API key creation governance controls at the organization and project levels. Administrators can allow only service-account keys, allow only user-owned project keys, or disable all new API key creation. Organization restrictions take precedence over project settings, and existing API keys are unaffected. See [production best practices](https://developers.openai.com/api/docs/guides/production-best-practices#api-keys) for details.
+### Sep 10
+Feature
+You can now set expiration dates when creating project API keys. Administrators can also enforce a maximum key lifetime at the organization or project level in Platform settings, requiring newly created keys to expire within the configured limit. See [production best practices](https://developers.openai.com/api/docs/guides/production-best-practices#api-keys) for guidance on key expiration and rotation.
+### Sep 10
+Feature
+Released the [Agents API](https://developers.openai.com/api/docs/guides/agents-api/overview) in public beta. Build agents with a managed Codex harness while OpenAI handles session orchestration, context compaction, and recovery.
+Use durable sessions to continue work across turns, stream progress, and connect your own tools and MCP servers. Run agents in OpenAI-hosted sandboxes or connect a sandbox from your own infrastructure or a supported provider.
+Start with the [Agents API quickstart](https://developers.openai.com/api/docs/guides/agents-api/quickstart).
+### Sep 10
+Feature · Model: gpt-live-1 · API: v1/live/sessions
+[GPT-Live-1](https://developers.openai.com/api/docs/models/gpt-live-1) is now generally available in the API. Build full-duplex voice conversations that can continue while a backend model or agent handles reasoning and tools.
+Use Responses delegation with an OpenAI model, or client delegation to connect your own backend. Voice sessions cost $0.05 per minute, billed per second; backend model and tool usage is charged separately.
+Start with [GPT-Live](https://developers.openai.com/api/docs/guides/live), [prompting](https://developers.openai.com/api/docs/guides/live-prompting), and [migration guidance](https://developers.openai.com/api/docs/guides/live-migration). See [pricing](https://developers.openai.com/api/docs/pricing) for details.
+### Sep 8
+Feature · API: v1/responses
+[Prompt Cache Diagnostics](https://developers.openai.com/api/docs/guides/prompt-caching/diagnostics) is now generally available in the Responses API for GPT-5.6 and later supported models.
+Compare cache reuse against a previous response, identify reasons for cache misses, and follow troubleshooting guidance to improve cache reuse.
+### Sep 8
+Feature · Model: gpt-image-2.5-sunburst · Model: gpt-image-2.5-flare · API: v1/images · API: v1/responses
+Released [GPT-Image-2.5 Sunburst](https://developers.openai.com/api/docs/models/gpt-image-2.5-sunburst) and [GPT-Image-2.5 Flare](https://developers.openai.com/api/docs/models/gpt-image-2.5-flare) for image generation and editing through the Image API and the Responses API image generation tool.
+Use Sunburst for workflows where editing precision matters most, or Flare for fast, high-quality everyday image generation. Both models support the new `xhigh` and `max` quality settings and use GPT Image 2 token rates. See the [image generation guide](https://developers.openai.com/api/docs/guides/image-generation) and [pricing](https://developers.openai.com/api/docs/pricing#image-generation).
+### Sep 8
+Feature · Model: gpt-rosalind-research
+GPT-Rosalind (`gpt-rosalind-research`) is now generally available through the [trusted-access program](https://help.openai.com/en/articles/20001193-gpt-rosalind-for-life-sciences-research) for approved internal life sciences research.
+Standard pricing is $5 per 1M input tokens, $0.50 per 1M cached input tokens, and $25 per 1M output tokens. Billing begins on October 5, 2026. See [pricing](https://developers.openai.com/api/docs/pricing) for details.
 ### Sep 3
 Feature · Model: gpt-6-astra · API: v1/responses · API: v1/chat/completions
 Released [GPT-6 Astra](https://developers.openai.com/api/docs/models/gpt-6-astra), our most capable model, built for the hardest end-to-end work.
@@ -36,7 +178,7 @@ Announced the deprecation of `whisper-1`, `gpt-4o-transcribe`, `gpt-4o-mini-tran
 The Assistants API shut down on August 26, 2026. Migrate to the Responses API and Conversations API using the [migration guide](https://developers.openai.com/api/docs/assistants/migration).
 ### Aug 21
 Feature
-API customers can now select regional processing for an individual request by using a prefixed domain with an API key from a project having Global geography. Existing eligibility, data retention control, endpoint, and model support requirements continue to apply. Learn more in the [data controls guide](https://developers.openai.com/api/docs/guides/your-data#select-a-processing-region-per-request).
+API customers can now select regional processing for an individual request by using a prefixed domain with an API key from a project having Global geography. Existing eligibility, data retention control, endpoint, and model support requirements continue to apply. Learn more in the [data controls guide](https://developers.openai.com/api/docs/guides/data-residency#select-a-processing-region-per-request).
 ### Aug 21
 Update · Model: gpt-5.6-sol
 GPT-5.6 Sol now costs $4 per million input tokens and $20 per million output tokens, representing 20% lower input pricing and 33% lower output pricing. GPT-5.6 Sol’s promotional pricing is available at least through November 21, 2026. See [pricing details](https://developers.openai.com/api/docs/pricing).
@@ -75,7 +217,7 @@ Released the official [OpenAI Terraform provider](https://developers.openai.com/
 Provision and manage projects, users, groups, roles, access assignments, service accounts, certificates, invitations, and project-level rate limits. Use standard Terraform workflows to review and apply changes, import existing resources, and detect and reconcile configuration drift. Install the provider from the [Terraform Registry](https://registry.terraform.io/providers/openai/openai/latest).
 ### Jul 28
 Feature · Model: gpt-transcribe · Model: gpt-live-transcribe · API: v1/audio/transcriptions · API: v1/realtime
-Released [GPT Transcribe](https://developers.openai.com/api/docs/models/gpt-transcribe) for accurate file transcription and final transcripts of committed Realtime turns, along with [GPT Live Transcribe](https://developers.openai.com/api/docs/models/gpt-live-transcribe) for low-latency streaming transcription.
+Released [GPT-Transcribe](https://developers.openai.com/api/docs/models/gpt-transcribe) for accurate file transcription and final transcripts of committed Realtime turns, along with [GPT-Live-Transcribe](https://developers.openai.com/api/docs/models/gpt-live-transcribe) for low-latency streaming transcription.
 Both models support free-form transcription context, keyword hints, and multiple expected input languages. Compare supported outputs and workflows in the [transcription guide](https://developers.openai.com/api/docs/guides/transcription).
 ### Jul 22
 Feature
@@ -145,7 +287,7 @@ Added `return_token_budget` for the Responses API [web search tool](https://deve
 ### May 7
 Feature · Model: gpt-realtime-2 · Model: gpt-realtime-translate · Model: gpt-realtime-whisper · API: v1/realtime · API: v1/realtime/translations · API: v1/realtime/transcription_sessions
 Released [GPT-Realtime-2](https://developers.openai.com/api/docs/models/gpt-realtime-2), a new realtime voice model with configurable reasoning for speech-to-speech agents, along with [GPT-Realtime-Translate](https://developers.openai.com/api/docs/models/gpt-realtime-translate) for streaming speech translation and [GPT-Realtime-Whisper](https://developers.openai.com/api/docs/models/gpt-realtime-whisper) for streaming speech-to-text.
-Updated the [Realtime and audio guide](https://developers.openai.com/api/docs/guides/realtime), added a dedicated [Realtime translation guide](https://developers.openai.com/api/docs/guides/realtime-translation), refreshed [Realtime transcription](https://developers.openai.com/api/docs/guides/realtime-transcription) for streaming transcripts, and moved realtime prompting guidance into [Using realtime models](https://developers.openai.com/api/docs/guides/realtime-models-prompting).
+Updated the [Realtime and audio guide](https://developers.openai.com/api/docs/guides/realtime), added a dedicated [Realtime translation guide](https://developers.openai.com/api/docs/guides/realtime-translation), refreshed [Realtime transcription](https://developers.openai.com/api/docs/guides/realtime-transcription) for streaming transcripts, and moved realtime prompting guidance into [Using realtime models](https://developers.openai.com/api/docs/guides/voice-prompting).
 ### May 7
 Feature
 Released the [OpenAI Developers plugin for Codex](https://developers.openai.com/learn/developers-codex-plugin). This helps you build AI applications and agents in Codex with OpenAI Platform access and OpenAI API setup guidance.
@@ -167,6 +309,9 @@ GPT-5.5 supports a 1M token context window, image input, structured outputs, fun
 - When `image_detail` is unset or set to `auto`, the model now uses [original behavior](https://developers.openai.com/api/docs/guides/latest-model?model=gpt-5.5#behavioral-changes).
 - Caching for GPT-5.5 only works with extended prompt caching. In-memory prompt caching is not supported.
 Learn more [here](https://developers.openai.com/api/docs/guides/latest-model?model=gpt-5.5#behavioral-changes).
+### Apr 22
+Update · Model: o3-deep-research · Model: o3-deep-research-2025-06-26 · Model: o4-mini-deep-research · Model: o4-mini-deep-research-2025-06-26 · API: v1/responses
+Deprecated `o3-deep-research` and `o4-mini-deep-research`, including their June 26, 2025 snapshots. These models are scheduled to shut down on July 23, 2026. See the [deprecation notice](https://developers.openai.com/api/docs/deprecations#2026-04-22-legacy-gpt-model-snapshots-july-2026-shutdown).
 ### Apr 21
 Feature · Model: gpt-image-2 · API: v1/images/generations · API: v1/images/edits · API: v1/batch
 Released [GPT Image 2](https://developers.openai.com/api/docs/models/gpt-image-2), a state-of-the-art image generation model for image generation and editing. GPT Image 2 supports flexible image sizes, high-fidelity image inputs, token-based image pricing, and Batch API support with a 50% discount.
@@ -189,10 +334,10 @@ Fix · Model: gpt-5.4 · API: v1/responses · API: v1/chat/completions
 Updated our image encoder to fix a small bug with `input_image` inputs in GPT-5.4. Some image understanding use cases may now see improved quality. No action is required.
 ### Mar 12
 Feature · Model: sora-2 · Model: sora-2-pro · API: v1/videos · API: v1/videos/characters · API: v1/videos/extensions · API: v1/batch
-Expanded the Sora API with reusable character references, longer generations up to `20` seconds, `1080p` output for `sora-2-pro`, video extensions, and Batch API support for `POST /v1/videos`. `1080p` generations on `sora-2-pro` are billed at `$0.70` per second. Learn more [here](https://developers.openai.com/api/docs/guides/video-generation).
+Expanded the Sora API with reusable character references, longer generations up to `20` seconds, `1080p` output for `sora-2-pro`, video extensions, and Batch API support for `POST /v1/videos`. `1080p` generations on `sora-2-pro` are billed at `$0.70` per second.
 ### Mar 12
 Update · Model: sora-2 · Model: sora-2-pro · API: v1/videos/edits · API: v1/videos/{video_id}/remix
-Added `POST /v1/videos/edits` for editing existing videos. This will replace `POST /v1/videos/{video_id}/remix`, which will be deprecated in `6` months. Learn more [here](https://developers.openai.com/api/docs/guides/video-generation#edit-existing-videos).
+Added `POST /v1/videos/edits` for editing existing videos. This will replace `POST /v1/videos/{video_id}/remix`, which will be deprecated in `6` months.
 ### Mar 5
 Feature · Model: gpt-5.4 · Model: gpt-5.4-pro · API: v1/responses · API: v1/chat/completions
 Released [GPT-5.4](https://developers.openai.com/api/docs/models/gpt-5.4), our newest frontier model for professional work, to the Chat Completions and Responses API, and released [GPT-5.4 Pro](https://developers.openai.com/api/docs/models/gpt-5.4-pro) to the Responses API for tougher problems that benefit from more compute.
@@ -205,8 +350,8 @@ Feature · Model: gpt-5.3-chat-latest · API: v1/chat/completions · API: v1/res
 Released `gpt-5.3-chat-latest` to the Chat Completions and Responses API. This model points to the GPT-5.3 Instant snapshot currently used in ChatGPT. Read more [here](https://developers.openai.com/api/docs/models/gpt-5.3-chat-latest).
 ## February, 2026
 ### Feb 24
-Feature · API: v1/responses · API: v1/chat/completions
-Expanded `input_file` support to accept more document, presentation, spreadsheet, code, and text file types. Learn more [here](https://developers.openai.com/api/docs/guides/file-inputs).
+Feature · API: v1/responses
+Expanded `input_file` support in the Responses API to accept more document, presentation, spreadsheet, code, and text file types. Learn more [here](https://developers.openai.com/api/docs/guides/file-inputs).
 ### Feb 24
 Feature · API: v1/responses
 Released `phase` to the Responses API. It labels an assistant message as intermediate commentary (`commentary`) or the final answer (`final_answer`). Read more [here](https://developers.openai.com/api/docs/%3Chttps://developers.openai.com/api/reference/resources/responses/methods/create#(resource)%20responses%20%3E%20(model)%20easy_input_message%20%3E%20(schema)%20%3E%20(property)%20phase>).
@@ -250,7 +395,7 @@ Feature · Model: gpt-5.2-codex · API: v1/responses
 Released `gpt-5.2-codex` to the Responses API. GPT-5.2-Codex is a version of GPT-5.2 optimized for agentic coding tasks in Codex or similar environments. Read more [here](https://platform.openai.com/docs/models/gpt-5.2-codex).
 ### Jan 13
 Feature · API: v1/realtime
-Added dedicated SIP IP ranges for Realtime API. `sip.api.openai.com` does GeoIP routing, and will direct SIP traffic to the closest region. [Learn more](https://developers.openai.com/api/docs/guides/realtime-sip#dedicated-sip-ip-ranges).
+Added dedicated SIP IP ranges for Realtime API. `sip.api.openai.com` does GeoIP routing, and will direct SIP traffic to the closest region. [Learn more](https://developers.openai.com/api/docs/guides/voice-sip?voice-api=realtime#dedicated-sip-ip-ranges).
 ### Jan 13
 Update · Model: gpt-realtime-mini · Model: gpt-audio-mini
 Updated the [`gpt-realtime-mini`](https://developers.openai.com/api/docs/models/gpt-realtime-mini) and [`gpt-audio-mini`](https://platform.openai.com/docs/models/gpt-audio-mini) slugs to point to the 2025-12-15 snapshots. If you need the previous model snapshots, use `gpt-realtime-mini-2025-10-06` and `gpt-audio-mini-2025-10-06`.
@@ -324,14 +469,14 @@ Feature
 Released [Enterprise Key Management (EKM)](https://platform.openai.com/docs/guides/your-data#enterprise-key-management-ekm). Enterprise Key Management (EKM) allows you to encrypt your customer content at OpenAI using keys managed by your own external Key Management System (KMS).
 ### Oct 24
 Feature
-Released [UK data residency](https://platform.openai.com/docs/guides/your-data#data-residency-controls).
+Released [UK data residency](https://developers.openai.com/api/docs/guides/data-residency).
 ### Oct 6
 Feature · Model: gpt-5-pro · Model: gpt-realtime-mini · Model: gpt-audio-mini · Model: gpt-image-1-mini · Model: sora-2 · Model: sora-2-pro · API: v1/responses · API: v1/batch · API: v1/chat/completions · API: v1/videos · API: v1/realtime · API: v1/images/generations
 Released several new features at [OpenAI DevDay](https://openai.com/devday/):
-Released [GPT-5 Pro](https://developers.openai.com/api/docs/models/gpt-5-pro), a version of [GPT-5](https://developers.openai.com/api/docs/models/gpt-5) that uses more compute to think harder and provide consistently better answers.
+Released [GPT-5 pro](https://developers.openai.com/api/docs/models/gpt-5-pro), a version of [GPT-5](https://developers.openai.com/api/docs/models/gpt-5) that uses more compute to think harder and provide consistently better answers.
 Released [GPT-Realtime mini](https://developers.openai.com/api/docs/models/gpt-realtime-mini) and [gpt-audio-mini](https://developers.openai.com/api/docs/models/gpt-audio-mini) for more cost-efficient speech to speech performance.
 Released [gpt-image-1-mini](https://developers.openai.com/api/docs/models/gpt-image-1-mini) for more cost-efficient image generation and editing.
-Launched [v1/videos](https://developers.openai.com/api/docs/guides/video-generation) for rich, detailed, and dynamic video generation and remixing with our latest [Sora 2](https://developers.openai.com/api/docs/models/sora-2) and [Sora 2 Pro](https://developers.openai.com/api/docs/models/sora-2-pro) models.
+Launched `v1/videos` for rich, detailed, and dynamic video generation and remixing with our latest [Sora 2](https://developers.openai.com/api/docs/models/sora-2) and [Sora 2 Pro](https://developers.openai.com/api/docs/models/sora-2-pro) models.
 Launched [Agent Builder](https://developers.openai.com/api/docs/guides/agent-builder) for visually creating custom multi-agent workflows.
 Launched [ChatKit](https://developers.openai.com/api/docs/guides/chatkit), an embeddable chat interface for deploying agents.
 Released [Trace Evals, Datasets, and Prompt Optimization tools](https://developers.openai.com/api/docs/guides/agent-evals).
@@ -343,7 +488,7 @@ Released [IP allowlist](https://platform.openai.com/settings/organization/securi
 ## September, 2025
 ### Sep 26
 Feature · API: v1/responses
-Added support for image and file as a [tool call output](https://developers.openai.com/api/docs/docs/guides/function-calling#how-it-works) in Responses API.
+Added support for image and file as a [tool call output](https://developers.openai.com/api/docs/guides/function-calling#how-it-works) in Responses API.
 ### Sep 23
 Feature · Model: gpt-5-codex · API: v1/responses
 Launched special-purpose model [gpt-5-codex](https://developers.openai.com/api/docs/models/gpt-5-codex), built and optimized for use with the [Codex CLI](https://github.com/openai/codex).
@@ -368,7 +513,7 @@ Feature
 Launched support for [Priority processing](https://platform.openai.com/docs/guides/priority-processing). Priority processing delivers significantly lower and more consistent latency compared to Standard processing while keeping pay-as-you-go flexibility.
 ### Jun 24
 Feature · Model: o3-deep-research · Model: o3-deep-research-2025-06-26 · Model: o4-mini-deep-research · Model: o4-mini-deep-research-2025-06-26 · API: v1/responses
-Released [o3-deep-research](https://developers.openai.com/api/docs/models/o3-deep-research) and [o4-mini-deep-research](https://developers.openai.com/api/docs/models/o4-mini-deep-research), deep research variants of our o-series reasoning models optimized for deep analysis and research tasks. Learn more in the [deep research guide](https://developers.openai.com/api/docs/guides/deep-research).
+Released [o3-deep-research](https://developers.openai.com/api/docs/models/o3-deep-research) and [o4-mini-deep-research](https://developers.openai.com/api/docs/models/o4-mini-deep-research), deep research variants of our o-series reasoning models optimized for deep analysis and research tasks. Learn more in the [deep research guide](https://developers.openai.com/api/docs/guides/tools-web-search?api-mode=responses#run-longer-web-research).
 Added support for async event handling with [webhooks](https://developers.openai.com/api/docs/guides/webhooks). [Reduced and simplified pricing](https://developers.openai.com/api/docs/pricing) for the web search tool. Added support for the [web search tool](https://developers.openai.com/api/docs/guides/tools-web-search).
 ### Jun 13
 Feature · API: v1/responses
@@ -395,7 +540,7 @@ Feature · Model: codex-mini-latest · API: v1/responses · API: v1/chat/complet
 Launched [codex-mini-latest](https://developers.openai.com/api/docs/models/codex-mini-latest) in the API, optimized for use with the [Codex CLI](https://github.com/openai/codex).
 ### May 7
 Feature · API: v1/fine-tuning · API: v1/responses · API: v1/chat/completions
-Launched support for [reinforcement fine-tuning](https://developers.openai.com/api/docs/guides/reinforcement-fine-tuning). Learn about available [fine-tuning methods](https://developers.openai.com/api/docs/guides/model-optimization). [gpt-4.1-nano](https://developers.openai.com/api/docs/models/gpt-4.1-nano) is now available for fine-tuning.
+Launched support for [reinforcement fine-tuning](https://developers.openai.com/api/reference/resources/fine_tuning). Learn about available [fine-tuning methods](https://developers.openai.com/api/docs/guides/model-optimization). [gpt-4.1-nano](https://developers.openai.com/api/docs/models/gpt-4.1-nano) is now available for fine-tuning.
 ## April, 2025
 ### Apr 30
 Feature
@@ -438,7 +583,7 @@ Feature
 Launched the [API Usage Dashboard Update](https://help.openai.com/en/articles/10478918-api-usage-dashboard). This update addresses requests for additional data filters, such as project selection, date picker, and fine-grained intervals. There’s also better support for viewing usage across different products and service tiers.
 ### Feb 5
 Feature
-Introducing data residency in Europe. Read more [here](https://platform.openai.com/docs/guides/your-data).
+Introducing data residency in Europe. Read more [here](https://developers.openai.com/api/docs/guides/data-residency).
 ## January, 2025
 ### Jan 31
 Feature · Model: o3-mini · Model: o3-mini-2025-01-31 · API: v1/chat/completions
@@ -457,7 +602,7 @@ Added new models for [o1](https://developers.openai.com/api/docs/models/o1), [gp
 Added WebRTC connection method for the [Realtime API](https://developers.openai.com/api/docs/guides/realtime).
 Added [`reasoning_effort` parameter](https://developers.openai.com/api/reference/resources/chat#chat-create-reasoning_effort) for o1 models.
 Added [`developer` message role](https://developers.openai.com/api/reference/resources/chat#chat-create-messages) for o1 model. Note that o1-preview and o1-mini do not support system or developer messages.
-Launched Preference Fine-tuning using [Direct Preference Optimization (DPO)](https://developers.openai.com/api/docs/guides/model-optimization#preference).
+Launched Preference Fine-tuning using [Direct Preference Optimization (DPO)](https://developers.openai.com/api/docs/guides/direct-preference-optimization).
 Launched beta SDKs for Go and Java. [Learn more](https://developers.openai.com/api/docs/libraries).
 Added [Realtime API](https://developers.openai.com/api/docs/guides/realtime) support in the [Python SDK](https://github.com/openai/openai-python).
 ### Dec 4
@@ -482,7 +627,7 @@ Feature · API: v1/realtime · API: v1/chat/completions · API: v1/fine_tuning
 Released several new features at [OpenAI DevDay in San Francisco](https://openai.com/devday/):
 [Realtime API](https://developers.openai.com/api/docs/guides/realtime): Build fast speech-to-speech experiences into your applications using a WebSockets interface.
 [Model distillation](https://developers.openai.com/api/docs/guides/supervised-fine-tuning#distilling-from-a-larger-model): Platform for fine-tuning cost-efficient models with your outputs from a large frontier model.
-[Image fine-tuning](https://developers.openai.com/api/docs/guides/model-optimization#vision): Fine-tune GPT-4o with images and text to improve vision capabilities.
+[Image fine-tuning](https://developers.openai.com/api/docs/guides/vision-fine-tuning): Fine-tune GPT-4o with images and text to improve vision capabilities.
 [Evals](https://developers.openai.com/api/docs/guides/evals): Create and run custom evaluations to measure model performance on specific tasks.
 [Prompt caching](https://developers.openai.com/api/docs/guides/prompt-caching): Discounts and faster processing times on recently seen input tokens.
 [Generate in playground](https://developers.openai.com/chat/edit): Easily generate prompts, function definitions, and structured output schemas in the playground using the Generate button.
@@ -496,7 +641,7 @@ Released [o1-preview and o1-mini](https://developers.openai.com/api/docs/guides/
 ## August, 2024
 ### Aug 29
 Feature · API: v1/assistants
-Assistants API now supports [including file search results used by the file search tool, and customizing ranking behavior](https://developers.openai.com/api/docs/assistants/migration#improve-file-search-result-relevance-with-chunk-ranking).
+Assistants API now supports including file search results used by the file search tool, and customizing ranking behavior.
 ### Aug 20
 Feature · Model: gpt-4o · API: v1/fine_tuning
 GA release for [`gpt-4o-2024-08-06` fine-tuning](https://developers.openai.com/api/docs/guides/model-optimization)—all API users can now fine-tune the latest GPT-4o model.
@@ -526,11 +671,11 @@ Released [Uploads](https://developers.openai.com/api/reference/resources/uploads
 ## June, 2024
 ### Jun 6
 Update
-[Parallel function calling](https://developers.openai.com/api/docs/guides/function-calling#configure-parallel-function-calling) can be disabled in Chat Completions and the Assistants API by passing `parallel_tool_calls=false`.
+[Parallel function calling](https://developers.openai.com/api/docs/guides/function-calling#parallel-function-calling) can be disabled in Chat Completions and the Assistants API by passing `parallel_tool_calls=false`.
 [.NET SDK](https://developers.openai.com/api/docs/libraries#dotnet-library) launched in Beta.
 ### Jun 3
 Update
-Added support for [file search customizations](https://developers.openai.com/api/docs/assistants/migration#customizing-file-search-settings).
+Added support for file search customizations.
 ## May, 2024
 ### May 15
 Update
@@ -554,7 +699,7 @@ Added [a new endpoint](https://developers.openai.com/api/reference/resources/bet
 ## April, 2024
 ### Apr 29
 Update
-Added a new [function calling option `tool_choice: "required"`](https://developers.openai.com/api/docs/guides/function-calling#function-calling-behavior) to the Chat Completions and Assistants APIs.
+Added a new [function calling option `tool_choice: "required"`](https://developers.openai.com/api/docs/guides/function-calling#tool-choice) to the Chat Completions and Assistants APIs.
 Added a [guide for the Batch API](https://developers.openai.com/api/docs/guides/batch) and Batch API support for [embeddings models](https://developers.openai.com/api/docs/guides/batch#model-availability)
 ### Apr 17
 Update
@@ -611,7 +756,7 @@ Update
 Released [OpenAI Deno SDK](https://deno.land/x/openai)
 ### Nov 6
 Update
-Released [GPT-4 Turbo Preview](https://developers.openai.com/api/docs/models/gpt-4-turbo), [updated GPT-3.5 Turbo](https://developers.openai.com/api/docs/models/gpt-3-5-turbo), [GPT-4 Turbo with Vision](https://developers.openai.com/api/docs/guides/images-vision), [Assistants API](https://developers.openai.com/api/docs/assistants/migration), [DALL·E 3 in the API](https://developers.openai.com/api/docs/models/dall-e-3), and [text-to-speech API](https://developers.openai.com/api/docs/guides/text-to-speech)
+Released [GPT-4 Turbo preview](https://developers.openai.com/api/docs/models/gpt-4-turbo), [updated GPT-3.5 Turbo](https://developers.openai.com/api/docs/models/gpt-3-5-turbo), [GPT-4 Turbo with Vision](https://developers.openai.com/api/docs/guides/images-vision), [Assistants API](https://developers.openai.com/api/docs/assistants/migration), [DALL·E 3 in the API](https://developers.openai.com/api/docs/models/dall-e-3), and [text-to-speech API](https://developers.openai.com/api/docs/guides/text-to-speech)
 Deprecated the Chat Completions `functions` parameter [in favor of `tools`](https://developers.openai.com/api/reference/resources/chat#chat-create-tools)
 Released [OpenAI Python SDK V1.0](https://developers.openai.com/api/docs/libraries#python-library)
 ## October, 2023
@@ -621,4 +766,4 @@ Added [`encoding_format` parameter](https://developers.openai.com/api/reference/
 Added `max_tokens` to the [Moderation models](https://developers.openai.com/api/docs/models/text-moderation-latest)
 ### Oct 6
 Update
-Added [function calling support](https://developers.openai.com/api/docs/guides/model-optimization#fine-tuning-examples) to the Fine-tuning API
+Added [function calling support](https://developers.openai.com/api/docs/guides/supervised-fine-tuning#formatting-your-data) to the Fine-tuning API

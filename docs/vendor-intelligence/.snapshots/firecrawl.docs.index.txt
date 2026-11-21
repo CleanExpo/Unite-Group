@@ -1,5 +1,6 @@
 # Firecrawl Docs
-- [v2 (165 pages)](https://docs.firecrawl.dev/_llms/en/v2.md): Documentation for v2.
+- [v2 (253 pages)](https://docs.firecrawl.dev/_llms/en/v2.txt): Documentation, SDKs, API Reference, Build with AI.
+## v1
 ## OpenAPI Specs
 - [v2-openapi](/api-reference/v2-openapi.json)
 - [webhooks-openapi](/api-reference/webhooks-openapi.json)
@@ -35,14 +36,19 @@
 - [Integrations](https://www.firecrawl.dev/app)
 > The links below point to documentation indexes. Follow each `/_llms/` index recursively until you reach documentation pages.
 ## Indexes
-- [English / v2 (165 pages)](https://docs.firecrawl.dev/_llms/en/v2.md): Documentation for English / v2.
-- [Spanish (165 pages)](https://docs.firecrawl.dev/_llms/es.md): Documentation for Spanish.
-- [Spanish / v2 (165 pages)](https://docs.firecrawl.dev/_llms/es/v2.md): Documentation for Spanish / v2.
-- [French (165 pages)](https://docs.firecrawl.dev/_llms/fr.md): Documentation for French.
-- [French / v2 (165 pages)](https://docs.firecrawl.dev/_llms/fr/v2.md): Documentation for French / v2.
-- [Japanese (165 pages)](https://docs.firecrawl.dev/_llms/ja.md): Documentation for Japanese.
-- [Japanese / v2 (165 pages)](https://docs.firecrawl.dev/_llms/ja/v2.md): Documentation for Japanese / v2.
-- [Brazilian Portuguese (165 pages)](https://docs.firecrawl.dev/_llms/pt-br.md): Documentation for Brazilian Portuguese.
-- [Brazilian Portuguese / v2 (165 pages)](https://docs.firecrawl.dev/_llms/pt-br/v2.md): Documentation for Brazilian Portuguese / v2.
-- [Chinese (165 pages)](https://docs.firecrawl.dev/_llms/zh.md): Documentation for Chinese.
-- [Chinese / v2 (165 pages)](https://docs.firecrawl.dev/_llms/zh/v2.md): Documentation for Chinese / v2.
+- [English / v2 (253 pages)](https://docs.firecrawl.dev/_llms/en/v2.txt): Documentation, SDKs, API Reference, Build with AI.
+- [English / v2 / Documentation (140 pages)](https://docs.firecrawl.dev/_llms/en/v2/documentation.txt): Get Started, Core Endpoints, More, Quickstarts, Developer Guides, Webhooks, Use Cases, Other, Contributing.
+- [Spanish (246 pages)](https://docs.firecrawl.dev/_llms/es.txt): v2, v1.
+- [Spanish / v2 (246 pages)](https://docs.firecrawl.dev/_llms/es/v2.txt): Documentación, SDKs, Referencia de la API, Crear con IA.
+- [Spanish / v2 / Documentación (136 pages)](https://docs.firecrawl.dev/_llms/es/v2/documentacion.txt): Primeros pasos, Endpoints principales, Más, Inicios rápidos, Guías para desarrolladores, Webhooks, Casos de uso, Otros, Contribuciones.
+- [French (246 pages)](https://docs.firecrawl.dev/_llms/fr.txt): v2, v1.
+- [French / v2 (246 pages)](https://docs.firecrawl.dev/_llms/fr/v2.txt): Documentation, SDKs, Référence de l’API, Créer avec l’IA.
+- [French / v2 / Documentation (136 pages)](https://docs.firecrawl.dev/_llms/fr/v2/documentation.txt): Prise en main, Points de terminaison de base, Plus, Démarrages rapides, Guides développeur, Webhooks, Cas d'utilisation, Autres, Contribuer.
+- [Japanese (246 pages)](https://docs.firecrawl.dev/_llms/ja.txt): v2, v1.
+- [Japanese / v2 (246 pages)](https://docs.firecrawl.dev/_llms/ja/v2.txt): ドキュメント, SDK, APIリファレンス, AIで構築.
+- [Brazilian Portuguese (246 pages)](https://docs.firecrawl.dev/_llms/pt-br.txt): v2, v1.
+- [Brazilian Portuguese / v2 (246 pages)](https://docs.firecrawl.dev/_llms/pt-br/v2.txt): Documentação, SDKs, Referência da API, Desenvolva com IA.
+- [Brazilian Portuguese / v2 / Documentação (136 pages)](https://docs.firecrawl.dev/_llms/pt-br/v2/documentacao.txt): Primeiros passos, Endpoints principais, Mais, Guias de início rápido, Guias para desenvolvedores, Webhooks, Casos de uso, Outros, Como contribuir.
+- [Chinese (246 pages)](https://docs.firecrawl.dev/_llms/zh.txt): v2, v1.
+- [Chinese / v2 (246 pages)](https://docs.firecrawl.dev/_llms/zh/v2.txt): 文档, SDK, API 参考, 使用 AI 构建.
+This documentation is built and hosted on [Mintlify](https://mintlify.com), a developer documentation platform.

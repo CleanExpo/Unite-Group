@@ -5,31 +5,8 @@ Sign in
 Search
 Sign in
 Sign up
-firecrawl
-/
-firecrawl
-Public
-Notifications
-You must be signed in to change notification settings
-Fork
-9.7k
-Star
-177k
-Releases: firecrawl/firecrawl
-Release list
-Previous Next
-Jump to release
-Firecrawl v2.11.0
-Firecrawl v2.10
-v2.9.0
-v2.8.0
-v2.7.0
-v2.6.0
-v2.5.0 - The World's Best Web Data API
-v2.4.0
-v2.3.0
-v2.2.0
-Previous Next
+Repository navigation
+Releases
 Firecrawl v2.11.0
 Firecrawl v2.11.0
 Latest
@@ -107,6 +84,7 @@ Full Changelog : v2.10...v2.11.0
 Assets
 2
 Loading
+7 people reacted
 Firecrawl v2.10
 Firecrawl v2.10
 Compare
@@ -174,7 +152,7 @@ Full Changelog : v2.9.0...v2.10
 Assets
 2
 Loading
-35 people reacted
+36 people reacted
 v2.9.0
 v2.9.0
 Compare

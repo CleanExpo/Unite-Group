@@ -1,40 +1,75 @@
 > ## Documentation Index
 > Fetch the complete documentation index at: https://exa.ai/docs/llms.txt
 > Use this file to discover all available pages before exploring further.
+> ## Agent Instructions
+> The Exa API is served at https://api.exa.ai. Authenticate with `Authorization: Bearer $EXA_API_KEY` (or `x-api-key: $EXA_API_KEY`); create keys at https://dashboard.exa.ai/api-keys?utm_source=docs&utm_medium=docs&utm_campaign=markdown_instructions. Every way an agent can get access to Exa is described at https://exa.ai/auth.md.
+> Prefer the official SDKs, `exa-py` (`pip install exa-py`) and `exa-js` (`npm install exa-js`); both read `EXA_API_KEY` from the environment.
+> Tool-using agents can call Exa without writing code through the hosted MCP server at https://mcp.exa.ai/mcp, or install the Exa agent skill with `npx skills add exa-labs/agent-skills` (skill file: https://exa.ai/docs/skill.md).
+> The OpenAPI specs at https://exa.ai/docs/exa-spec.yaml and https://exa.ai/docs/team-management-spec.yaml are the source of truth for request and response schemas.
 # Changelog
 > Product updates and announcements from Exa.
-<Update
-label="August 2026"
-description={
-<div className="changelog-month-index">
-<div><a href="#dynamic-highlights-research-preview">Dynamic Highlights (research preview)</a></div>
-</div>
-}
-rss={{
-title: "August 2026",
-description: "Dynamic Highlights is a research preview that returns the most useful information across a result set for agents and RAG."
-}}
->
+**November 13, 2026**
+## Exa Search in the EU
+Exa Search is now available in the European Union.
+[Talk to sales →](https://exa.ai/contact/sales) · [Read the announcement →](https://exa.ai/blog/eu-data-residency)
+**October 29, 2026**
+## Monitors v2
+Monitors now cost \$2 / 1k requests, down from \$15, and deliver fewer, more relevant updates. Existing monitors keep working with no code changes.
+* **Full index coverage**: monitors search the entire Exa index, including places, podcasts, and product listings.
+* **Stricter filtering**: each run drops pages the monitor has already returned, then keeps only pages that are relevant, come from a legitimate source, add new information, and match the event's timing.
+* **Structured output**: each run returns a summary, or JSON matching your `outputSchema`, with sources and confidence in `output.grounding`.
+[Read the Monitors guide →](https://exa.ai/docs/monitors/quickstart.md) · [Read the announcement →](https://exa.ai/blog/monitors-v2)
+**October 29, 2026**
+## Exa Podcasts
+Exa's index now includes 3.2 million podcast episodes from 119,000 shows, with full transcripts. New episodes are added soon after they air.
+* **Structured results**: show and episode titles, publisher, description, hosts and guests, publish date, duration, and the full transcript with speaker labels.
+* **No extra cost**: podcast results are available on every endpoint at no additional charge. Ask for podcast content in the query.
+[Explore search data →](https://exa.ai/docs/search/data/overview.md) · [Try it in the dashboard →](https://dashboard.exa.ai/playground/search?q=podcast%20episodes%20where%20founders%20discuss%20pricing%20mistakes\&utm_source=docs\&utm_medium=docs\&utm_campaign=changelog) · [Read the announcement →](https://exa.ai/blog/podcast-search)
+**October 19, 2026**
+## Lite search, recommended search types, and search warnings
+The search types we recommend are now `lite`, `auto`, and `deep`, and `/search` tells developers when a request doesn't do what they expect.
+`lite` is a new search type for latency- and cost-sensitive projects. Set `type: "lite"` on `/search`.
+* **Pricing**: \$4 / 1k requests with up to 10 results, plus \$1 / 1k results above 10.
+* **Cached content**: `lite` serves page content from Exa's cache and never fetches a page live.
+* **A focused parameter set**: query, result count, highlights and text, categories (including `company` and `people`), domain and published-date filters, location, and moderation. The guide lists every supported parameter. A parameter `lite` does not support returns a `400` that names it, so an option never silently fails to apply.
+`fast`, `instant`, and `deep-reasoning` are legacy and keep working at their current prices. Each has an alternative for new requests:
+* **`instant`**: use `lite`.
+* **`fast`**: use `lite`, which runs the same search as `fast`, or `auto` when the request needs a parameter `lite` does not support.
+* **`deep-reasoning`**: use `deep`, or [Exa Agent](https://exa.ai/docs/agent/quickstart.md) for long-running research, list building and multi-hop enrichment.
+Search responses now explain themselves, to you and to your agent:
+* **Warnings**: the `warnings` array flags request fields that have no effect, such as `startCrawlDate`, and says what to send instead.
+* **Notices**: the `notices` array tells the model reading the results how they were produced, such as when no page matched a `site:` operator and the search ran without it.
+* **SDK support**: `exa-py` and `exa-js` 2.26.0 log each warning once, so ignored fields surface during development. Their web search tools pass notices to the model with the results.
+* **Deprecated options flagged**: TypeScript marks ignored options as `@deprecated`, and Python raises a `DeprecationWarning` before the request is sent.
+[Read the Lite guide →](https://exa.ai/docs/search/quickstart.md#lite) · [Read about warnings and notices →](https://exa.ai/docs/search/best-practices.md#warnings-and-notices) · [Configure SDK warnings →](https://exa.ai/docs/sdks/quickstart.md#warnings)
+**October 5, 2026**
+## Exa Places
+Exa's index now includes 211 million places worldwide, such as restaurants, shops, hotels, healthcare providers, museums, and parks.
+* **Structured data**: names, categories, addresses, coordinates, opening hours, operating status, phone numbers, websites, and ratings.
+* **Location-aware**: Exa reads the location in the query and returns places in that area.
+* **No extra cost**: places are available on every endpoint at no additional charge.
+[Read the Sports, Weather & Places guide →](https://exa.ai/docs/search/data/sports-weather-places.md) · [Read the announcement →](https://exa.ai/blog/places-search)
+**September 24, 2026**
+## Agent Ultra
+Agent Ultra is Exa Agent's highest-effort mode, built for large list building, deep multi-source research, and criteria that are hard to verify. Set `effort: "ultra"` on a run.
+* **Metered**: billed at standard Agent usage rates, up to a default \$20 per run. Set `budget.maxCostDollars` to change the cap.
+* **Time budget**: set `budget.maxDurationSeconds` (5 minutes to 3 hours) and the run wraps up with what it has found by then.
+* **Stop early**: `POST /agent/runs/{id}/stop` ends a run and keeps the results gathered so far.
+[Read the Agent Ultra guide →](https://exa.ai/docs/agent/agent-ultra.md)
+**September 17, 2026**
+## Exa Snapshot (research preview)
+Exa Snapshot returns results from the web as it was at a datetime you choose, drawn from stored page versions spanning two decades. Use it to backtest agents and prediction models, and to run reproducible evals that pages published later can't leak into.
+* **Search**: set `contents.snapshotAsOf` on `/search`.
+* **Contents**: set `snapshotAsOf` on `/contents`.
+[Read the Snapshot guide →](https://exa.ai/docs/search/snapshot.md) · [Read the announcement →](https://exa.ai/blog/exa-snapshot)
+**August 28, 2026**
 ## Dynamic Highlights (research preview)
 Dynamic Highlights selects excerpts across the complete result set instead of treating each page independently. It gives more of the shared context budget to useful sources and gives less context to sources that only repeat information already returned.
 * **Single-turn RAG**: about 49% better token efficiency and 2.4% higher downstream quality with Exa Auto across coding and general QA evaluations.
 * **Agents**: about 30% fewer tokens across complete agent trajectories and 1% higher quality across BrowseComp, WideSearch, and internal company and people evaluations.
 Requests that set `dynamic: true` require the `Exa-Beta: dynamic-highlights-2026-08-28` header.
-[Read the Dynamic Highlights guide →](/docs/reference/contents-api-guide)
-</Update>
-<Update
-label="July 2026"
-description={
-<div className="changelog-month-index">
-<div><a href="#publication-research">Publication research</a></div>
-<div><a href="#exa-agent-and-exa-connect-in-mcp">Exa Agent and Exa Connect in MCP</a></div>
-</div>
-}
-rss={{
-title: "July 2026",
-description: "Expanded publication research with 350M publications, richer organization and people results, and a public retrieval benchmark. Plus Exa Agent and Exa Connect in MCP."
-}}
->
+[Read the Dynamic Highlights guide →](https://exa.ai/docs/contents/quickstart.md)
+**July 23, 2026**
 ## Publication research
 We significantly expanded and improved research over academic publications.
 * **350M publications**: search across an index of 350 million publications.
@@ -44,80 +79,51 @@ We significantly expanded and improved research over academic publications.
 * **New `publication` search category**: query scholarly results with `category: "publication"`, which replaces the `research paper` category.
 * **Deprecated categories**: the `pdf`, `github`, and `tweet` search categories are being deprecated.
 * **`startCrawlDate` / `endCrawlDate`**: deprecated parameters are now ignored for all teams while remaining accepted for compatibility.
-Query it via the API with the `publication` [search category](/docs/reference/search-api-guide), or [try it in the dashboard →](https://dashboard.exa.ai/playground/search?type=instant).
+Query it via the API with the `publication` [search category](https://exa.ai/docs/search/quickstart.md), or [try it in the dashboard →](https://dashboard.exa.ai/playground/search?type=instant\&utm_source=docs\&utm_medium=docs\&utm_campaign=changelog).
+**July 1, 2026**
 ## Exa Agent and Exa Connect in MCP
 Exa Agent is now available within Exa MCP. Use it from Claude, Cursor, or any other MCP client when the task needs more than a single search call.
 Enable the Agent tool with `https://mcp.exa.ai/mcp?tools=agent_run`, then call `agent_run` to run the agent through completion and return its output.
 Exa Connect data sources are available through the Agent flow, so you can attach premium data partners when a run needs more than web search alone.
-[Read the Exa MCP guide →](/docs/reference/exa-mcp) · [Read the Exa Agent guide →](/docs/reference/agent-api-guide) · [Announcement tweet →](https://x.com/ExaAILabs/status/2072389192458592672)
-</Update>
-<Update
-label="June 2026"
-description={
-<div className="changelog-month-index">
-<div><a href="#introducing-exa-agent">Introducing Exa Agent</a></div>
-<div><a href="#introducing-exa-connect">Introducing Exa Connect</a></div>
-</div>
-}
-rss={{
-title: "June 2026",
-description: "Introducing Exa Agent and Exa Connect, a new class of frontier web research and partner-data workflows accessible via API."
-}}
->
+[Read the Exa MCP guide →](https://exa.ai/docs/get-started/exa-mcp.md) · [Read the Exa Agent guide →](https://exa.ai/docs/agent/quickstart.md) · [Announcement tweet →](https://x.com/ExaAILabs/status/2072389192458592672)
+**June 24, 2026**
+## Introducing Exa Connect
+Exa Connect gives Exa Agent live access to the world's public and private data. It launched with Similarweb, Fiber.ai, Baselayer, Financial Datasets, Affiliate.com, Particle, Jinko, and Additional Partners. You attach them via `dataSources` on `POST /agent/runs`.
+[Read the Exa Connect guide →](https://exa.ai/docs/agent/connect/overview.md) · [Announcement tweet →](https://x.com/ExaAILabs/status/2069842203577651283)
+**June 16, 2026**
 ## Introducing Exa Agent
 We released a new class of frontier web research agents that are accessible via API.
 Exa Agent API supports parameters including a natural-language query, `effort` mode, `outputSchema` for structured outputs, and `input.data` to build upon an existing dataset.
-[Read the Exa Agent API guide →](/docs/reference/agent-api-guide)
-## Introducing Exa Connect
-Exa Connect gives Exa Agent live access to the world's public and private data. It launched with Similarweb, Fiber.ai, Baselayer, Financial Datasets, Affiliate.com, Particle, Jinko, and Additional Partners. You attach them via `dataSources` on `POST /agent/runs`.
-[Read the Exa Connect guide →](/docs/reference/agent-api/connect/overview) · [Announcement tweet →](https://x.com/ExaAILabs/status/2069842203577651283)
-</Update>
-<Update
-label="April 2026"
-description={
-<div className="changelog-month-index">
-<div><a href="#api-deprecation-notice">API Deprecation Notice</a></div>
-</div>
-}
-rss={{
-title: "April 2026",
-description: "API deprecation notice: legacy fields, parameters, and the /research endpoint removed."
-}}
->
+[Read the Exa Agent API guide →](https://exa.ai/docs/agent/quickstart.md)
+**April 28, 2026**
+## Exa on Google Cloud
+Exa is available on Google Cloud in two places.
+* **Grounding with Exa Web Search**: ground Gemini responses on Gemini Enterprise Agent Platform in fresh Exa results. It is in Private Preview. Enable Exa as a grounding source in your project, then pass it as a tool on your Gemini call.
+* **Exa Agent in Gemini Enterprise**: add Exa from the Agent Marketplace in your Gemini Enterprise tenant to run web research, find similar pages, and pull page contents.
+[Set up Grounding with Exa →](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/grounding/grounding-with-exa) · [Read the announcement →](https://exa.ai/blog/exa-google-cloud)
+**April 1, 2026**
 ## API Deprecation Notice
 We retired a few legacy items from the Exa API:
 * **`/research` endpoint**: replaced by `/search` with `type: "deep-reasoning"`.
 * **`resolvedSearchType` and `highlightScores` (response fields)**: returned `null` from April 15, removed May 1.
 * **`startCrawlDate` / `endCrawlDate` (deprecated request parameters)**: silently ignored from April 15.
-[Migrate to Deep search →](/docs/reference/search)
-</Update>
-<Update
-label="March 2026"
-description={
-<div className="changelog-month-index">
-<div><a href="#introducing-exa-monitors">Introducing Exa Monitors</a></div>
-<div><a href="#exa-deep-revamp">Exa Deep Revamp</a></div>
-<div><a href="#exa-pricing-update">Exa Pricing Update</a></div>
-</div>
-}
-rss={{
-title: "March 2026",
-description: "Exa Monitors launch, Exa Deep revamp with structured outputs, and a pricing update."
-}}
->
+[Migrate to Deep search →](https://exa.ai/docs/reference/search.md)
+**March 30, 2026**
 ## Introducing Exa Monitors
 Monitors run Exa searches on a schedule and deliver results to your webhook, deduplicated against previous runs so you only get new content.
 * **Track topics over time**: competitor news, funding rounds, regulatory changes, research papers.
 * **Structured results**: return plain text or typed JSON via `outputSchema`.
 * **Flexible scheduling**: run on an interval (minimum 1 hour) or trigger manually.
-[Read the Monitors API guide →](/docs/reference/monitors-api-guide)
+[Read the Monitors API guide →](https://exa.ai/docs/monitors/quickstart.md)
+**March 4, 2026**
 ## Exa Deep Revamp
 Exa Deep is faster, cheaper, and now supports structured outputs with field-level grounding.
 * **New `deep-reasoning` type** for higher-effort tasks (12-50s); `deep` runs in 4-12s.
 * **20% lower price** for regular `deep` search.
 * **Structured outputs** via `outputSchema`, with `output.content` and `output.grounding` (field-level citations and confidence) in the response.
 See the [Exa Pricing Update](#exa-pricing-update) below for full pricing.
-[Read the Search API reference →](/docs/reference/search)
+[Read the Search API reference →](https://exa.ai/docs/reference/search.md)
+**March 3, 2026**
 ## Exa Pricing Update
 We simplified and lowered pricing. Contents for the first 10 search results are now included for free, and the new pricing applies automatically with no action needed.
 * **Search with contents**: \$7 per 1k requests (10 results, text + highlights included); \$1 per 1k additional results.
@@ -125,221 +131,100 @@ We simplified and lowered pricing. Contents for the first 10 search results are 
 * **Exa Deep**: \$12 per 1k requests; **Deep (Reasoning)** \$15 per 1k.
 * **Contents endpoint**: \$1 per 1k pages per content type.
 [View current pricing →](https://exa.ai/pricing)
-</Update>
-<Update
-label="February 2026"
-description={
-<div className="changelog-month-index">
-<div><a href="#introducing-exa-instant-search">Introducing Exa Instant Search</a></div>
-<div><a href="#highlights-content-freshness-and-mcp-updates">Highlights, content freshness, and MCP updates</a></div>
-</div>
-}
-rss={{
-title: "February 2026",
-description: "Exa Instant Search launch, plus highlights, content freshness, and MCP updates."
-}}
->
+**February 5, 2026**
 ## Introducing Exa Instant Search
 Exa Instant is our fastest search type, combining improved neural search quality with sub-150ms latency. Enable it with `type="instant"`.
 * **Built for real-time**: chat apps, voice AI, coding agents, autocomplete, and live suggestions.
 * **State-of-the-art quality** at the lowest latency we offer.
-[Read the Search API guide →](/docs/reference/search-api-guide) · [Try it in the dashboard →](https://dashboard.exa.ai/playground/search?type=instant)
+[Read the Search API guide →](https://exa.ai/docs/search/quickstart.md) · [Try it in the dashboard →](https://dashboard.exa.ai/playground/search?type=instant\&utm_source=docs\&utm_medium=docs\&utm_campaign=changelog)
+**February 2, 2026**
 ## Highlights, content freshness, and MCP updates
 Three improvements to content extraction and access:
 * **`maxCharacters` for highlights**: now the preferred way to control highlight length. `numSentences` and `highlightsPerUrl` are deprecated.
 * **`maxAgeHours` for content freshness**: age-based control replacing boolean `livecrawl` (`0` always crawls, `-1` cache-only, `24` crawls if older than 24h).
 * **Exa MCP free tier**: try it unauthenticated at 3 QPS and 150 calls/day; add an API key for full access.
-[Content freshness docs →](/docs/reference/livecrawling-contents) · [Exa MCP →](/docs/reference/exa-mcp)
-</Update>
-<Update
-label="January 2026"
-description={
-<div className="changelog-month-index">
-<div><a href="#introducing-exa-company-search">Introducing Exa Company Search</a></div>
-</div>
-}
-rss={{
-title: "January 2026",
-description: "Exa Company Search launch with a fine-tuned retrieval model and entity-matching pipeline."
-}}
->
+[Content freshness docs →](https://exa.ai/docs/contents/quickstart.md#content-freshness) · [Exa MCP →](https://exa.ai/docs/get-started/exa-mcp.md)
+**January 21, 2026**
 ## Introducing Exa Company Search
 Company search now uses a fine-tuned retrieval model and entity-matching pipeline. Use `type="auto"`, `category="company"`.
 * **Accurate across attributes**: industry, geography, funding stage, and employee count.
 * **Structured entity data**: results return typed company info (workforce, HQ, financials, web traffic).
 * **Use cases**: sales prospecting, market research, and supply chain workflows.
-[Read the Company Search docs →](/docs/reference/verticals/company) · [Read the benchmark blog →](https://exa.ai/blog/company-search-benchmarks)
-</Update>
-<Update
-label="December 2025"
-description={
-<div className="changelog-month-index">
-<div><a href="#introducing-exa-people-search">Introducing Exa People Search</a></div>
-</div>
-}
-rss={{
-title: "December 2025",
-description: "Exa People Search launch with 1B+ indexed profiles; the 'linkedin' category is replaced by 'people'."
-}}
->
+[Read the Companies & People Search docs →](https://exa.ai/docs/search/data/companies-people.md) · [Read the benchmark blog →](https://exa.ai/blog/company-search-benchmarks)
+**December 19, 2025**
 ## Introducing Exa People Search
 People search now spans 1B+ public profiles via a hybrid retrieval system. The `linkedin` category is replaced by the new `people` category.
 * **Broader coverage**: profiles across the whole web, not just LinkedIn.
 * **Better accuracy**: fine-tuned embeddings for role, skill, and company queries.
 * **Use cases**: sales, recruiting, and market research.
-[Read the People Search docs →](/docs/reference/verticals/people) · [Read the benchmark blog →](https://exa.ai/blog/people-search-benchmark)
-</Update>
-<Update
-label="November 2025"
-description={
-<div className="changelog-month-index">
-<div><a href="#js-sdk-highlights-restored">JS SDK: highlights restored</a></div>
-<div><a href="#new-deep-search-type">New Deep Search Type</a></div>
-<div><a href="#added-language-filtering">Added Language Filtering</a></div>
-</div>
-}
-rss={{
-title: "November 2025",
-description: "JS SDK highlights restored, the new Deep search type, and default language filtering."
-}}
->
+[Read the Companies & People Search docs →](https://exa.ai/docs/search/data/companies-people.md) · [Read the benchmark blog →](https://exa.ai/blog/people-search-benchmark)
+**November 26, 2025**
 ## JS SDK: highlights restored
 Highlights are back in the JavaScript SDK as of `exa-js` v2.0.11, returning key sentences with relevance scores. Pass `highlights: true` or `highlights: { maxCharacters, query }` in search and contents calls.
-[Read the JavaScript SDK docs →](/docs/sdks/javascript-sdk)
+[Read the JavaScript SDK docs →](https://exa.ai/docs/sdks/quickstart.md)
+**November 20, 2025**
 ## New Deep Search Type
 Exa Deep finds better results by running multiple searches at once and returning high-quality context for each result. Enable it with `type="deep"`.
 * **Query expansion**: send one query and we generate variations, or supply your own with `additionalQueries`.
 * **Parallel search and smart ranking** across your query and all variations.
 * **Detailed summaries** for each result.
-[Read the Search API reference →](/docs/reference/search)
+[Read the Search API reference →](https://exa.ai/docs/reference/search.md)
+**November 5, 2025**
 ## Added Language Filtering
 Exa now detects your query language and returns results only in that language. Enabled by default for all users, with no setup required.
-[Read the Search API guide →](/docs/reference/search-api-guide)
-</Update>
-<Update
-label="October 2025"
-description={
-<div className="changelog-month-index">
-<div><a href="#sdk-changes-highlights-removed-and-contents-returned-by-default">SDK changes: highlights removed and contents returned by default</a></div>
-</div>
-}
-rss={{
-title: "October 2025",
-description: "Major SDK changes: contents returned by default, highlights removed, and use_autoprompt deprecated."
-}}
->
+[Read the Search API guide →](https://exa.ai/docs/search/quickstart.md)
+**October 28, 2025**
 ## SDK changes: highlights removed and contents returned by default
 A major SDK version with breaking changes:
 * **Contents by default**: search now includes page contents; opt out for faster searches.
 * **Highlights removed from SDKs**: later restored in the JS SDK; see [JS SDK: highlights restored](#js-sdk-highlights-restored).
 * **`use_autoprompt` deprecated**: removed from all API responses.
-[Read the Python SDK docs →](/docs/sdks/python-sdk)
-</Update>
-<Update
-label="August 2025"
-description={
-<div className="changelog-month-index">
-<div><a href="#domain-path-filter-support">Domain Path Filter Support</a></div>
-</div>
-}
-rss={{
-title: "August 2025",
-description: "includeDomains and excludeDomains now support URL path filtering and subdomain wildcards."
-}}
->
+[Read the Python SDK docs →](https://exa.ai/docs/sdks/quickstart.md)
+**August 4, 2025**
 ## Domain Path Filter Support
 `includeDomains` and `excludeDomains` now support finer targeting:
 * **Path-specific filtering**: e.g. `exa.ai/blog` or `linkedin.com/company`.
 * **Subdomain wildcards**: e.g. `*.substack.com`.
 Useful for scoping searches to blogs, product catalogs, or directories.
-[Read the Search API reference →](/docs/reference/search)
-</Update>
-<Update
-label="July 2025"
-description={
-<div className="changelog-month-index">
-<div><a href="#geolocation-filter-support">Geolocation Filter Support</a></div>
-<div><a href="#new-fast-search-type">New Fast Search Type</a></div>
-<div><a href="#score-deprecation-in-auto-search">Score Deprecation in Auto Search</a></div>
-</div>
-}
-rss={{
-title: "July 2025",
-description: "Geolocation filtering, the new Fast search type, and score deprecation in Auto search."
-}}
->
+[Read the Search API reference →](https://exa.ai/docs/reference/search.md)
+**July 30, 2025**
 ## Geolocation Filter Support
 The new `userLocation` parameter biases results toward a user's region, passed as an [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code (e.g. `"us"`, `"fr"`). Useful for multi-regional apps, regional-language content, and local discovery.
-[Read the Search API reference →](/docs/reference/search)
+[Read the Search API reference →](https://exa.ai/docs/reference/search.md)
+**July 29, 2025**
 ## New Fast Search Type
 Exa Fast uses streamlined search models with p50 latency below 425ms. Enable it with `type="fast"`.
 * **Same Exa index** of high-quality content as neural search.
 * **Full parameter compatibility** with other search types.
 * **Built for** fast web grounding, agentic workflows, and low-latency products.
-[Read the Search API guide →](/docs/reference/search-api-guide) · [Try it in the dashboard →](https://dashboard.exa.ai/playground/search?q=blog%20post%20about%20AI\&filters=%7B%22text%22%3A%22true%22%2C%22type%22%3A%22fast%22%2C%22livecrawl%22%3A%22never%22%7D)
+[Read the Search API guide →](https://exa.ai/docs/search/quickstart.md) · [Try it in the dashboard →](https://dashboard.exa.ai/playground/search?q=blog%20post%20about%20AI\&filters=%7B%22text%22%3A%22true%22%2C%22type%22%3A%22fast%22%2C%22livecrawl%22%3A%22never%22%7D\&utm_source=docs\&utm_medium=docs\&utm_campaign=changelog)
+**July 21, 2025**
 ## Score Deprecation in Auto Search
 A new Auto search architecture can no longer produce meaningful relevance scores, so the `score` field is being removed from Auto search results.
 * **Auto search**: no longer returns `score`; results are already ranked by relevance.
 * **Neural search**: scores are unchanged. Set `type="neural"` if you depend on them.
-[Read the Search API reference →](/docs/reference/search)
-</Update>
-<Update
-label="June 2025"
-description={
-<div className="changelog-month-index">
-<div><a href="#markdown-contents-as-default">Markdown Contents as Default</a></div>
-<div><a href="#new-livecrawl-option-preferred">New Livecrawl Option: Preferred</a></div>
-</div>
-}
-rss={{
-title: "June 2025",
-description: "Markdown content as the default format, and the new 'preferred' livecrawl option."
-}}
->
+[Read the Search API reference →](https://exa.ai/docs/reference/search.md)
+**June 23, 2025**
 ## Markdown Contents as Default
 All endpoints now return clean markdown by default, which is better for LLMs, RAG, and general text processing. No action needed.
 * **`includeHtmlTags=false` (default)**: content processed into clean markdown.
 * **`includeHtmlTags=true`**: raw HTML without markdown processing.
 Either way, boilerplate like ads and navigation is stripped.
-[Read the Contents docs →](/docs/reference/contents-retrieval)
+[Read the Contents docs →](https://exa.ai/docs/contents/quickstart.md)
+**June 7, 2025**
 ## New Livecrawl Option: Preferred
-<Warning>
-Historical entry: the `livecrawl` string parameter is now deprecated. For new integrations, use `maxAgeHours` with `livecrawlTimeout`. See [Content Freshness](/docs/reference/livecrawling-contents).
-</Warning>
-The deprecated `livecrawl: "preferred"` option attempts a fresh crawl but falls back to cached content when crawling fails (unlike `"always"`, which errors). Ideal for production apps that want fresh content without failing on temporarily unavailable sites.
-[Read the Content Freshness docs →](/docs/reference/livecrawling-contents)
-</Update>
-<Update
-label="May 2025"
-description={
-<div className="changelog-month-index">
-<div><a href="#contents-endpoint-status-changes">Contents Endpoint Status Changes</a></div>
-</div>
-}
-rss={{
-title: "May 2025",
-description: "The /contents endpoint now returns per-URL status information instead of HTTP error codes."
-}}
+> [!WARNING]
 >
+> Historical entry: the `livecrawl` string parameter is now deprecated. For new integrations, use `maxAgeHours` with `livecrawlTimeout`. See [Content Freshness](https://exa.ai/docs/contents/quickstart.md#content-freshness).
+The deprecated `livecrawl: "preferred"` option attempts a fresh crawl but falls back to cached content when crawling fails (unlike `"always"`, which errors). Ideal for production apps that want fresh content without failing on temporarily unavailable sites.
+[Read the Content Freshness docs →](https://exa.ai/docs/contents/quickstart.md#content-freshness)
+**May 22, 2025**
 ## Contents Endpoint Status Changes
 `/contents` now returns a per-URL `statuses` field instead of a single HTTP error, so you can handle each URL's outcome individually. The endpoint only errors on internal issues.
 * **`status`**: `"success"` or `"error"` per URL.
 * **`error.tag`**: e.g. `CRAWL_NOT_FOUND`, `CRAWL_TIMEOUT`, `SOURCE_NOT_AVAILABLE`, with an `httpStatusCode`.
-[Read the error codes reference →](/docs/reference/error-codes)
-</Update>
-<Update
-label="December 2024"
-description={
-<div className="changelog-month-index">
-<div><a href="#auto-search-as-default">Auto search as Default</a></div>
-</div>
-}
-rss={{
-title: "December 2024",
-description: "Auto search is now the default search type, routing each query to the best search method."
-}}
->
+[Read the error codes reference →](https://exa.ai/docs/admin/error-codes.md)
+**December 11, 2024**
 ## Auto search as Default
 Auto search is now the default, automatically routing each query to the best search method. No action needed; set `type="neural"` to keep the previous behavior.
-[Learn about Exa's search types →](/docs/reference/search-api-guide)
-</Update>
+[Learn about Exa's search types →](https://exa.ai/docs/search/quickstart.md)

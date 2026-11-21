@@ -5,33 +5,10 @@ Sign in
 Search
 Sign in
 Sign up
-NousResearch
-/
-hermes-agent
-Public
-Notifications
-You must be signed in to change notification settings
-Fork
-49.7k
-Star
-242k
-Releases: NousResearch/hermes-agent
-Release list
-Previous Next
-Jump to release
-Hermes Agent v0.21.0 (v2026.8.31)
-Hermes Agent v0.20.6 (v2026.8.27)
-Hermes Agent v0.20.5 (v2026.8.19)
-Hermes Agent v0.20.4 (2026.8.18)
-Hermes Agent v0.20.3 (2026.8.16.2)
-Hermes Agent v0.20.2 (2026.8.16)
-Hermes Agent v0.20.1 (2026.8.13)
-Hermes Agent v0.20.0 (2026.8.3)
-Hermes Agent v0.19.1 (v2026.7.30)
-Hermes Agent v0.19.0 (2026.7.20) — The Quicksilver Release
-Previous Next
-Hermes Agent v0.21.0 (v2026.8.31)
-Hermes Agent v0.21.0 (v2026.8.31)
+Repository navigation
+Releases
+Hermes Agent v0.23.3
+Hermes Agent v0.23.3
 Latest
 Latest
 Compare
@@ -41,236 +18,392 @@ Filter
 View all tags
 teknium1
 released this
-31 Aug 19:29
-v2026.8.31
-29112be
-Hermes Agent v0.21.0 (v2026.8.31)
-Release Date: August 31, 2026
-Since v0.20.0: ~5,800 commits · ~2,475 merged PRs · ~5,680 files changed · ~869,000 insertions · ~135,000 deletions · ~2,100 issues closed · 760+ contributors
-The Pantheon Release. v0.20.0 made Hermes the herald — he spoke, and he carried word to other agents. In v0.21.0 the gods assemble. Bot Mode ships built into the desktop app: a society of named agents with their own faces and group chats, where your bots talk to each other — and to you — like a team, not a toolbox. Around that spine: cron jobs gained memory and continuity so scheduled agents actually learn between runs, subagents can be steered live mid-flight, the MCP surface became a real command center, and the agent can now drive the desktop's own browser. This release rolls up everything from the v0.20.1–v0.20.6 infrastructure patch tags — those windows are fully documented here.
-✨ Highlights
-Bot Mode — your agents become a society, built in — Bot Mode is now a bundled, default-on part of the desktop app: every agent profile gets a name, a deterministic avatar face (with randomize/lock controls), and a place in a shared roster. Create Discord-style group chats where multiple bots and you talk in one room, @-mention any bot from the composer, and give rooms names and pictures. Before, "multi-agent" meant plumbing; now it looks like a chat app full of coworkers. ( #87886 , #88243 , #89386 , #96726 — @teknium1 , @OutThisLife , @dokterdok )
-hermes peer — bot-to-bot DMs between your agents — Any Hermes agent can now message any other by handle, across profiles and gateways, from the CLI or from inside a conversation. Ask your research bot to hand findings to your coding bot and get the reply back where you can read it. Replies land in each agent's canonical Bot Chat, so conversations between agents are durable and inspectable, not fire-and-forget. ( #88725 , #88178 , #91487 — @teknium1 )
-Cron jobs that remember — Scheduled jobs stopped being goldfish. Cron agents now load and update persistent memory like every other agent, continuity=true carries each run's output into the next (so a monitor can dedupe against what it already reported), every job gets a durable notepad scratchpad, monitor-mode jobs skip the LLM entirely when nothing changed, and cron output can land in a bot's canonical Bot Chat — where the bot actually responds. Your 9am briefing job now knows what it told you yesterday. ( #91447 , #80774 , #81139 , #81138 , #91487 — @teknium1 , @smwbev )
-Steer your subagents while they run — delegate_task gained live orchestration: list running children, steer one mid-flight with a course correction, or stop it early and keep the partial result. Add optional JSON-schema validation on child outputs, per-delegation cost surfaced in results, and raised defaults (250 iterations, 10 concurrent children) — delegation went from fire-and-pray to actually managed parallel work. ( #85232 , #81144 , #81142 , #86506 , #86745 — @teknium1 )
-The MCP command center — MCP servers and the catalog merged into one coherent desktop page with drag-in "paste anything" import, background health checks that nudge you to re-auth before a tool call fails, a fleet cost/usage overlay showing schema token estimates and 30-day usage per server, and hermes:// deep links that install an MCP server with explicit confirmation. Managing twenty MCP servers used to be config-file archaeology; now it's a dashboard. ( #87525 , #87572 , #87576 , #87579 , #87581 — @teknium1 )
-A CLI power wave — Ctrl+P opens a fuzzy command palette, the /model picker filters as you type, /status shows reasoning mode, pending approvals, and context usage, and the status bar can display live cache-hit %, latency, and tokens/sec with per-field toggles. Plus: a global emergency stop, session pin/unpin, rotating task-oriented composer placeholders — and Ghostty-level terminal pets , because a companion should have a companion. ( #90730 , #90717 , #90745 , #98250 , #98282 , #97666 — @teknium1 , and salvaged community work)
-The agent drives the desktop's browser — The in-app browser stopped being a window the agent could only look at: Hermes now navigates, clicks, and reads it directly, and pages can be popped out to your system browser with full link context menus. Ask it to walk a docs site or debug a web app and watch it happen inside your own app. ( #90197 , #89366 — @OutThisLife , @ethernet8023 )
-Six new providers and a model catalog wave — Meta Model API (Muse Spark) arrives as a built-in provider, alongside CommandCode, Tencent TokenPlan, Nebius Token Factory, Ramp Router, and Actual Computer. The catalogs picked up GLM-5.3-Flash, qwen3.8-max/flash, Gemini 3.7 Flash, MiniMax M3 free, and Nemotron 3.5 Lightning — and model_overrides lets you patch any model's context window or pricing yourself without waiting on a release. ( #88565 , #88308 , #97917 , #97916 , #97915 , #85560 — @teknium1 and community)
-Security hardening across the board — Protected agent-instruction files (AGENTS.md, skills, memory stores) now always require write approval so a prompt-injected agent can't quietly rewrite its own standing orders. A deep redaction sweep closed secret-leak gaps across terminal errors, .env file reads, checkpoints, and ACP logs; the approval system learned Windows destructive commands; and macOS permission grants finally survive updates via a stable TCC signing identity. ( #81152 , #80965 , #84428 , #95091 — @teknium1 and community)
-🏗️ Core Agent & Architecture
-Providers & Models
-New providers: Actual Computer inference ( #79644 , salvage of #26491 ), CommandCode with GOAT/Pro/Max plans ( #88308 , salvage of #32909 ), Meta Model API (Muse Spark) as a built-in provider plugin ( #88565 ), Tencent TokenPlan ( #97917 ), Nebius Token Factory ( #97916 ), and Ramp Router ( #97915 ).
-Model catalog wave: qwen3.8-max and qwen3.8-flash ( #78024 , #96979 ), Gemini 3.7 Flash ( #85526 ), GLM-5.3-Flash across OpenRouter/Nous/z.ai/OpenCode ( #95621 , #96293 ), MiniMax M3 + Inkling free SKUs ( #96264 ), Nemotron 3.5 Lightning ( #84645 ), Meta Muse Spark 1.2 ( #88600 ).
-Per-model metadata overrides via model_overrides config — patch context windows, pricing, or capabilities for any model without waiting on a release ( #85560 ).
-Data-training-tier warnings — a unified selection-guard registry warns you across every picker surface when a model trains on your data ( #85917 ).
-Pip-installed model providers discovered via entry points — third parties can ship providers as packages ( #85504 , salvage ...
+20 Nov 00:34
+Immutable
+release. Only release title and notes can be modified.
+v0.23.3
+caafe53
+Hermes Agent v0.23.3
+Release Date: November 19, 2026
+Patch release. This tag rolls up the ~370 PRs merged since v0.23.2 into a stable release for the GitHub release (CLI and installers), the Microsoft Store app, Docker and Hermes Cloud. Full curated notes for this window ship with v0.24.0.
+About this release
+Measured at commit caafe5389ae , the window since v0.23.2 contains 1,657 non-merge commits across 3,948 changed files (+222,379 / −96,154), 370 merged PRs and 60 closed issues .
+Also in the window, undocumented here on purpose: one prompt-cache lifecycle controller (warming through long tool runs, compaction of idle chats before the 1h cache expires, Nous Portal on the full 1h lifecycle, prompt_caching.cache_ttl defaulting to auto ), compaction that archives the tool results it drops, the proactive tool-result prune on by default, a one-question first-run CLI setup with the free tier included, GPT-6.2 Astra and Sol (+ Pro) on OpenRouter and Nous Portal, a "Waiting on teammates" strip above Bot Chat composers, the Linux AppImage agent payload run from a stable per-build copy, the storage layer split behind a persistence interface with its SQLite backend, dependency security bumps (oauthlib, opentelemetry, tornado), and a large batch of new plugin-catalog entries.
+Full curated release notes for this window ship with v0.24.0 , which will document everything from v0.23.0 onward — highlights, feature areas, and complete contributor credits. Nothing in this window is skipped.
+Updating
+Microsoft Store app: updates through the Store.
+Desktop app installed from the installer (.exe / .dmg): no change in this release; it updates with the next bundled release.
+CLI: hermes update , or re-run the installer one-liner.
+Docker / Hermes Cloud: nousresearch/hermes-agent:stable (or :latest ).
+Full Changelog : v0.23.2...v0.23.3
+Assets
+3
+Loading
+30 people reacted
+Hermes Agent canary v0.23.3+canary.20261120T064609Z
+Hermes Agent canary v0.23.3+canary.20261120T064609Z
+Pre-release
+Pre-release
+Compare
+Choose a tag to compare
+Sorry, something went wrong.
+Filter
+View all tags
+github-actions
+released this
+20 Nov 07:49
+Immutable
+release. Only release title and notes can be modified.
+v0.23.3+canary.20261120T064609Z
+32dbc1d
+Hermes Agent v0.23.3+canary.20261120T064609Z (v0.23.3+canary.20261120T064609Z)
+Release Date: November 20, 2026
+Downloads
+Hermes Desktop
+OS
+Architecture
+Download
+macOS
+Apple Silicon (M-series)
+DMG
+Windows
+x86 (64-bit)
+MSIX
+Windows
+ARM (arm64 / aarch64)
+MSIX
+Native install/chat smoke
+Download availability is independent of smoke status. Each result covers all native legs in that format group. Linux AppImages and unsigned Store envelopes are not install-smoked. No-upload dry tags have no download handoff and are not smoke-qualified.
+Packages
+Smoke status
+macOS DMG + ZIP (arm64)
+Passed
+Windows MSIX (arm64)
+Passed
+Windows MSIX (x64)
+Passed
+✨ Features
+Plugin-catalog): add memrack (memory rack provider) - v0.11.1 ( 94688a1e ) — @Kesuek
+Plugin-catalog): add swarm-studio plugin ( c66486b2 ) — @Pukujan
+Catalog): add deapi ( 61271811 ) — @dawidope
+OneHaus to the plugin catalog ( a8603f0c ) — @Im5tu
+Plugin-catalog: add hermes-lectern 0.5.0 ( b6dc9576 ) — @Fiction000
+Plugin-catalog): add composer-predictions desktop plugin ( 62d8501b ) — @xuhuawork
+Plugin-catalog): add hermes-atlas-evolution plugin ( 0f1f0c67 ) — @sesantanajr
+Catalog: add hermes-officecraft ( bb205c1f ) — @KosmGit
+Plugin-catalog): add hermes-program-status ( 45b7feb5 ) — @sicruse
+Hermes Personal Task Manager 1.0.0 to plugin catalog ( f3f5f676 ) — @RudiFreeman
+Plugin-catalog): add labelqueue plugin ( 5c255555 ) — @AbigailDavised
+Plugin-catalog): add blindboxshop plugin ( e2874c9e ) — @AbigailDavised
+Catalog): add optiq-cloud-provider ( 7f224710 ) — @optiq-bot
+Plugin-catalog: add merageo (meraGEO AI Visibility) ( c0dd733d ) — @Sandeep85Das
+Plugin-catalog: add twitchboard ( 013fb28b ) — @hlplanet
+Plugin-catalog): update whiteboard to 0.1.10 ( 9687ea50 ) — @Adolanium
+Plugin-catalog): kanzo-board 0.1.2 (re-pin to ec708e8) ( 9732f084 ) — @0sahil
+Plugin-catalog): add kanzo-board plugin ( 7eb86e49 ) — @0sahil
+Plugin-catalog): add cobrain (shared Markdown memory, remote MCP) ( f0e1c529 ) — @alessandromoretti90
+Plugin-catalog entry for web-forage ( ae2fc3df ) — @aldemaroc
+Catalog: add iacg-desk + iacg-board (IaC Genius CE) ( 32410ab4 ) — @RajaRenga
+Plugin-catalog): rename flowcanvas to arachne-flow and pin 1.1.0 (b15bd0f4) ( 77458ec9 ) — @EmotionalThrifty
+Plugin-catalog): add promptli-comms plugin ( 6ca80e15 ) — @promptli-dev
+Catalog): add Gnani Prisma STT and Timbre TTS ( fb69c331 ) — @ANAMASGARD
+Plugin-catalog: add cover banner image for global-business-culture ( b6d8d734 ) — @pswong661-eng
+Plugin-catalog): update worktable plugin to 0.1.6 ( 8e7bc622 ) — @obkaro
+Catalog: add Context Tracker ( 6748b53a ) — @mu1ze
+Plugin-catalog): herm-t3s 0.1.2 ( 98837af3 ) — @seanflynnfilm
+Plugin-catalog): herm-t3s 0.1.1 (snooze hides) ( 80936550 ) — @seanflynnfilm
+Plugin-catalog): add herm-t3s ( 1fd59c91 ) — @seanflynnfilm
+Plugin-catalog: add ctxprune ( 9ee8b6cd ) — @riceharvest
+Plugin-catalog): add eksis ( 6ce0bec5 ) — @yusupsupriyadi
+Catalog): update OpenMail to 0.3.0 with inbox drafts ( d0ee9276 ) — @KOnaitis
+Plugin-catalog): add doubleword-provider ( bdee8dac ) — @jaedmunt
+Plugin-catalog): add Novada MCP ( 95ac0767 ) — @Novada-proxy
+Plugin-catalog): add spanish-top-tech-companies plugin ( 5bc7d893 ) — @pugarte7
+Hermes-pushover-deliverables ( 67b8c60f ) — @Jessy-Boo
+Plugin-catalog): add meeting-ai ( 11550f28 ) — @meeting-ai
+Plugin-catalog): add meeting-ai ( af4bbaff ) — @meeting-ai
+Catalog: add geo-analyzer-mcp entry ( 622dc4ab ) — @clance1
+Plugin-catalog: add meragpt (meraGPT Decider) ( cf8b3b08 ) — @Sandeep85Das
+Plugin-catalog): add mahjonghandbook plugin ( 9bee9adc ) — @AbigailDavised
+Plugin-catalog): pin layersift to 953903d ( 03598d76 ) — @rodricksz4h5
+Plugin-catalog): add layersift ( 4f64be68 ) — @rodricksz4h5
+Plugin-catalog): update hermes-voice-lab to 0.5.0 ( 1ce21740 ) — @Adolanium
+Plugin-catalog): update hermes-osint-map to 0.5.0 ( d0daf535 ) — @Adolanium
+Catalog): add kosa8 Cloud terminal backend ( c552ac5d ) — @drvt69talati
+Plugin-catalog): update sheets to 0.1.10 ( 9219fc34 ) — @Adolanium
+Plugin-catalog): add testerswap plugin ( c30a706f ) — @sohhamm
+Plugin-catalog): bump Planeja+ to 1.0.9 ( d64fb9b5 ) — @hendrykcosta75
+Treg-jobs to the plugin catalog ( 93728bd0 ) — @YAN-XBT
+Plugin-catalog): pin each::labs to 0.4.3 ( 72d92ff3 ) — @tiptophelmet
+Plugin-catal...
 Read more
 Contributors
-assimovt, dhanesh, and 196 other contributors
+jnorthrup, claude, and 138 other contributors
 Assets
-2
+3
 Loading
-112 people reacted
-Hermes Agent v0.20.6 (v2026.8.27)
-Hermes Agent v0.20.6 (v2026.8.27)
+10 people reacted
+Hermes Agent canary v0.23.2+canary.20261119T064637Z
+Hermes Agent canary v0.23.2+canary.20261119T064637Z
+Pre-release
+Pre-release
 Compare
 Choose a tag to compare
 Sorry, something went wrong.
 Filter
 View all tags
-teknium1
+github-actions
 released this
-27 Aug 12:06
-v2026.8.27
-5fc308a
-Hermes Agent v0.20.6 (v2026.8.27)
-Release Date: August 27, 2026
-Patch release. This tag rolls up the ~525 PRs merged since v0.20.5 into a stable tagged release for downstream consumers (Docker images, hosted deployments, fresh installs).
-About this release
-Since v0.20.5 (v2026.8.19, tagged August 21), this window landed ~1,313 commits across ~1,557 files (+177,113 / −21,682) — ~525 merged PRs including consent-gated real-profile browsing (use your default Chromium profile for local browsing, with Windows close-with-approval flow); the desktop Browser getting its own OS window plus a managed SSH remote-update engine and fleet profile rail; a large remote MCP catalog expansion (50+ live-verified vendor-hosted servers incl. Cloudflare, Grafana Cloud, Better Stack, Railway); TTL result caching for web_search/web_extract; lean-tail compression as the default; multi-query tool_search with stemming; opt-in OS-keychain encryption for stored secrets (no more per-launch macOS Keychain prompts); updaters pausing gateways over the control socket instead of tree-killing them; image/package-managed installs refusing unsafe in-place updates ( #91277 Phase 3); cron durable-incident acks and clearer code-skew failures; Slack link-unfurl controls; shared Docker container identities; pluggable terminal environment backends; and new models across the pickers (GLM-5.3-Flash, MiniMax M3 free, MiniMax H3 Max video).
-Full curated release notes for this window will ship with v0.21.0 , which will document everything from v0.20.0 onward — highlights, feature areas, and complete contributor credits. Nothing in this window is skipped.
-Updating
-hermes update from an existing install
-Fresh install: curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
-Full Changelog : v2026.8.19...v2026.8.27
+19 Nov 07:54
+Immutable
+release. Only release title and notes can be modified.
+v0.23.2+canary.20261119T064637Z
+fe8b920
+Hermes Agent v0.23.2+canary.20261119T064637Z (v0.23.2+canary.20261119T064637Z)
+Release Date: November 19, 2026
+Downloads
+Hermes Desktop
+OS
+Architecture
+Download
+macOS
+Apple Silicon (M-series)
+DMG
+Windows
+x86 (64-bit)
+MSIX
+Windows
+ARM (arm64 / aarch64)
+MSIX
+Native install/chat smoke
+Download availability is independent of smoke status. Each result covers all native legs in that format group. Linux bundles are disabled; unsigned Store envelopes are not install-smoked. No-upload dry tags have no download handoff and are not smoke-qualified.
+Packages
+Smoke status
+macOS DMG + ZIP (arm64)
+Passed
+Windows MSIX (arm64)
+Passed
+Windows MSIX (x64)
+Passed
+✨ Features
+Remedigenius to the plugin catalog ( a66bd08e ) — @RajaRenga
+Compression): cache-expiry compaction summarises on the conversation's warm prefix ( 4adb21a6 )
+🔧 Improvements
+Caching): prompt_cache_lifecycle becomes a package ( 58d6946d )
+🐛 Bug Fixes
+Compression): clean up failed exclusive archives ( 6a5cee05 ) — @100yenadmin
+Terminal): keep session exports under noclobber; make two test files host-independent ( 8a5207ef )
+Search_files): honour an inline (?i) prefix on the grep fallback ( ba0ccdaa )
+Gateway): release the failed accept frame before retry ( e42af44d ) — @BearHuddleston
+Gateway): retry peer resets reported during accept submission ( 5416cd59 ) — @BearHuddleston
+Gateway): skip the accept guard when the private hook is unavailable ( db77e377 ) — @BearHuddleston
+Desktop): match gateway units that spell the copy path systemd-quoted ( 6f929bf8 ) — @BearHuddleston
+Prompt-cache): a managed local model's unload is counted from when its reply finished ( 0e8e4216 )
+Caching): a clock saved before the two-spec rules restores as the OpenAI spec ( c5a01770 )
+Caching): a queued cache-edge job skips a re-routed key; response usage adds under the totals lock ( 43979ca1 )
+Tui): a session cap disabled mid-sweep stops the cap loop ( b5960c8f )
+Compression): the tool results inside the summary window are archived before the summary replaces them ( ced11ca7 )
+Compression): warm summary names its window by replayed position, writes no new cache entry, runs only when cheaper; large chats need growth before re-compacting ( ac42c246 )
+Caching): auto keeps the source tier and clamps per send; malformed prompt_caching never breaks startup; 1h writes over a 5m prefix price at 1h ( 2828b82f )
+Gateway): cache-expiry compaction claims the session, binds its profile scope, runs per-session jobs, reaches detached chats ( 6f4aa5e1 )
+Compression): warm-prefix summary honours compression cancellation and explicit refusals ( 512d8765 )
+📚 Documentation
+Website): file-tool instructions in developer guide; regenerate skill pages ( 928c7180 )
+Skills): read, search and write files with the file tools in bundled skills ( 56ddecf4 )
+Agents): point AGENTS.md lookups at search_files instead of grep/rg ( 5710d64a )
+🧪 Tests
+Gateway): pin that the process record is built before the control listener opens ( fe8b920c )
+Windows): reap the pipe server when the readiness wait itself fails ( 055f3918 )
+Windows): two live tests stop failing at random under load ( 49f87e3f )
+Gateway): trim the receipt restore tests to their invariants ( 35c059ac )
+🏗️ Infrastructure
+Docker): only pull-request builds use the Blacksmith layer cache ( 8a938f60 ) — @c2h5oh
+📦 Other Changes
+Remedigenius: re-pin to CE main b35dac3 (0.9.3) — marketplace review fixes ( 63ff0a5c ) — @RajaRenga
+Re-pin-entry-to-main-commit-27e980a ( 3341917c ) — @RajaRenga
+👥 Contributors
+Thank you to everyone who contributed to this release!
+@BearHuddleston (8 commits)
+@kshitijk4poor (7 commits)
+@unsupportedpastels (5 commits)
+@RajaRenga (3 commits)
+@100yenadmin (1 commit)
+@c2h5oh (1 commit)
+Full Changelog : v0.23.2+canary.20261118T064620Z...v0.23.2+canary.20261119T064637Z
+Contributors
+c2h5oh, RajaRenga, and 4 other contributors
 Assets
-2
+3
 Loading
-84 people reacted
-Hermes Agent v0.20.5 (v2026.8.19)
-Hermes Agent v0.20.5 (v2026.8.19)
+13 people reacted
+Hermes Agent canary v0.23.2+canary.20261118T064620Z
+Hermes Agent canary v0.23.2+canary.20261118T064620Z
+Pre-release
+Pre-release
 Compare
 Choose a tag to compare
 Sorry, something went wrong.
 Filter
 View all tags
-teknium1
+github-actions
 released this
-21 Aug 12:16
-v2026.8.19
-fcbd107
-Hermes Agent v0.20.5 (v2026.8.19)
-Release Date: August 19, 2026
-Patch release. This tag rolls up the ~323 PRs merged since v0.20.4 into a stable tagged release for downstream consumers (Docker images, hosted deployments, fresh installs).
-About this release
-Since v0.20.4 (v2026.8.18, tagged August 18), this window landed ~746 commits across ~1,250 files (+111,500 / −20,701) — ~323 merged PRs including Bot Mode group-room threads, foldable conversation summaries, blob-face avatars, and PDF/file attachments with drag & drop; the keyless web tier (5-vendor free rotation with ring failover, web search on fresh installs with zero keys); a CLI polish wave (fuzzy /model picker, Ctrl+P command palette, richer /status); execution-discipline and runtime stall guards from the Composio eval findings; hermes update receipts and fleet --plan verification; hermes worktree list/prune ; the opencode-free zero-auth provider; multi-question clarify; desktop perf work (paint-first Bot Mode hydration, compositor spinners, React Compiler in both renderers); and cron jobs gaining persistent memory and per-job reasoning effort.
-Full curated release notes for this window will ship with v0.21.0 , which will document everything from v0.20.0 onward — highlights, feature areas, and complete contributor credits. Nothing in this window is skipped.
-Updating
-hermes update from an existing install
-Fresh install: curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
-Full Changelog : v2026.8.18...v2026.8.19
-Assets
-2
-Loading
-87 people reacted
-Hermes Agent v0.20.4 (2026.8.18)
-Hermes Agent v0.20.4 (2026.8.18)
-Compare
-Choose a tag to compare
-Sorry, something went wrong.
-Filter
-View all tags
-teknium1
-released this
-18 Aug 07:26
-v2026.8.18
-e624e9f
-Hermes Agent v0.20.4 (v2026.8.18)
-Release Date: August 18, 2026
-Patch release. This tag rolls up the ~74 PRs merged since v0.20.3 into a stable tagged release for downstream consumers (Docker images, hosted deployments, fresh installs).
-About this release
-Since v0.20.3 (v2026.8.16.2, tagged August 17), this window landed ~146 commits across ~265 files (+21,697 / −2,217) — ~74 merged PRs including the desktop glass/translucency surface work (matte glass, frost picker, macOS pre-select), the tabbed SESSIONS|BOTS sidebar with per-bot hide/unhide, Bot Mode group-chat fixes (long-running member turns, Markdown rendering, cross-machine routing), NVIDIA SkillEvaluator Tier 1 advisory scanning on skill installs (license + security checks), cron media-send hardening (configurable timeout, manual-run attachments, missed-fire surfacing), SessionDB event-loop-thread and contention fixes, hermes update parked-branch honesty, and kanban native OS notifications.
-Full curated release notes for this window will ship with v0.21.0 , which will document everything from v0.20.0 onward — highlights, feature areas, and complete contributor credits. Nothing in this window is skipped.
-Updating
-hermes update from an existing install
-Fresh install: curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
-Full Changelog : v2026.8.16.2...v2026.8.18
-Assets
-2
-Loading
-68 people reacted
-Hermes Agent v0.20.3 (2026.8.16.2)
-Hermes Agent v0.20.3 (2026.8.16.2)
-Compare
-Choose a tag to compare
-Sorry, something went wrong.
-Filter
-View all tags
-teknium1
-released this
-17 Aug 18:43
-v2026.8.16.2
-7339f5f
-Hermes Agent v0.20.3 (v2026.8.16.2)
-Release Date: August 16, 2026
-Patch release. This tag rolls up the ~125 PRs merged since v0.20.2 into a stable tagged release for downstream consumers (Docker images, hosted deployments, fresh installs).
-About this release
-Since v0.20.2 (v2026.8.16, tagged earlier today), this window landed ~250 commits across ~461 files (+42,613 / −1,641) — ~125 merged PRs including the MCP 2.x SDK migration and 2026-07-28 stateless protocol support, the bundled Bot Mode (hermes-bots) plugin with the core teammate protocol, the CommandCode provider plugin, subprocess Python runtime ownership hardening (PYTHONHOME/PYTHONPATH isolation), Cua Driver 0.20 runtime contracts for computer use, kanban worktree/dispatch fixes, cron continuity flags, desktop remote-gateway headers and connection self-healing, cron scheduler self-heal (EMFILE recovery, stale-claim reconciliation, wedged-job re-arm), session handoff data-loss fixes, plus a wave of ports from the ecosystem scout slate (plugin install security scanning, /worktree, /rollback hand-edit preservation, UTF-16 file reads, Gemini 3 tool-call ID preservation, and more).
-Full curated release notes for this window will ship with v0.21.0 , which will document everything from v0.20.0 onward — highlights, feature areas, and complete contributor credits. Nothing in this window is skipped.
-Updating
-hermes update from an existing install
-Fresh install: curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
-Full Changelog : v2026.8.16...v2026.8.16.2
-Assets
-2
-Loading
-42 people reacted
-Hermes Agent v0.20.2 (2026.8.16)
-Hermes Agent v0.20.2 (2026.8.16)
-Compare
-Choose a tag to compare
-Sorry, something went wrong.
-Filter
-View all tags
-teknium1
-released this
-16 Aug 17:33
-v2026.8.16
-df4b651
-Hermes Agent v0.20.2 (v2026.8.16)
-Release Date: August 16, 2026
-Patch release. This tag rolls up the ~397 PRs merged since v0.20.1 into a stable tagged release for downstream consumers (Docker images, hosted deployments, fresh installs).
-About this release
-Since v0.20.1 (v2026.8.13, tagged August 13), this window landed ~967 commits across ~1,279 files (+128,522 / −7,622) — ~397 merged PRs of fixes and improvements spanning the desktop app (multi-gateway Connections registry, profile-scoped refreshes, MCP health checks and deep links), the CLI (Windows update probes, Kitty keyboard protocol, chat -c hardening), the gateway (persisted model routes, /loop completion, Telegram DM topics), prompt caching for LiteLLM Claude on the OpenAI wire, cron hardening, auth resolution through profile scopes, and installer robustness on both Linux and Windows.
-Full curated release notes for this window will ship with v0.21.0 , which will document everything from v0.20.0 onward — highlights, feature areas, and complete contributor credits. Nothing in this window is skipped.
-Updating
-hermes update from an existing install
-Fresh install: curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
-Full Changelog : v2026.8.13...v2026.8.16
-Assets
-2
-Loading
-54 people reacted
-Hermes Agent v0.20.1 (2026.8.13)
-Hermes Agent v0.20.1 (2026.8.13)
-Compare
-Choose a tag to compare
-Sorry, something went wrong.
-Filter
-View all tags
-teknium1
-released this
-13 Aug 20:37
-v2026.8.13
-f80f453
-Hermes Agent v0.20.1 (v2026.8.13)
-Release Date: August 13, 2026
-Patch release. This tag rolls up the ~656 PRs merged since v0.20.0 into a stable tagged release for downstream consumers (Docker images, hosted deployments, and anyone installing from the latest tag).
-About this release
-Since v0.20.0 (August 3), this window landed 1,444 commits across ~656 merged PRs , touching 2,172 files (+233,872 / −75,244), and closed ~481 issues . It is a broad stabilization-and-fixes rollup spanning the desktop app, gateway platforms, installers, tool system, and provider catalogs.
-Full curated release notes for this window will ship with v0.21.0 , which will document everything from v0.20.0 onward — highlights, feature areas, and complete contributor credits. Nothing in this window is skipped.
-Updating
-Existing installs: hermes update
-Fresh install: see the installer one-liner in the README
-Full Changelog : v2026.8.3...v2026.8.13
-Assets
-2
-Loading
-89 people reacted
-Hermes Agent v0.20.0 (2026.8.3)
-Hermes Agent v0.20.0 (2026.8.3)
-Compare
-Choose a tag to compare
-Sorry, something went wrong.
-Filter
-View all tags
-teknium1
-released this
-03 Aug 16:57
-v2026.8.3
-This tag was signed with the committer’s verified signature .
-teknium1
-Teknium
-SSH Key Fingerprint: x9xNOpeJhoEAY2gWhmWHZROC3QF3VjOEbmNo9vQ8y2A
-Verified
-Learn about vigilant mode .
-3c27eb6
-Hermes Agent v0.20.0 (v2026.8.3)
-Release Date: August 3, 2026
-Since v0.19.0: ~3,650 commits · ~1,400 merged PRs · ~5,200 files changed · ~559,000 insertions · ~405,000 deletions · ~1,200 issues closed · 650+ contributors
-The Herald Release. Hermes is the herald of the gods, and this release makes him one in earnest: he speaks (real-time conversational voice with streaming TTS, barge-in, on-device wake words, and hands-free control across the CLI, desktop, and every audio-capable gateway platform), he carries word to other agents (A2A v1.0), he announces events to your systems (signed outbound webhooks), and he cites his sources (grounded research with verifiable citations and fact-checking). Around that spine: the desktop app became a platform (artifacts with live preview, a plugin SDK, quick-entry from anywhere, multiple windows), the CLI got a wave of power commands ( ! shell mode, /init , /diff , /context , /focus ), compression got smarter and gentler, and the tools themselves now recover from their own failures instead of making the model guess. This release rolls up everything from the v0.19.1 infrastructure patch tag — that window is fully documented here.
-✨ Highlights
-Talk to Hermes — streaming, conversational voice with barge-in — Voice mode used to mean: speak, wait for the whole reply to generate, then listen to one long audio file. Now Hermes speaks clause-by-clause as the response streams, you can interrupt it mid-sentence by just talking (it stops, listens, and the model is told you cut in), and busy-aware silence detection means it doesn't talk over you. This works in CLI voice mode, on the desktop, and through gateway adapters. Talking to Hermes finally feels like a conversation, not a voicemail exchange. ( #69511 , #73862 , #74223 , #74000 , #69602 — @teknium1 , @OutThisLife )
-Wake words and hands-free control — Say your own open-vocabulary wake phrase ("hey Hermes", or anything you pick) and Hermes starts listening — detection runs on-device, so no audio leaves your machine while it waits. Multi-profile voice routing means different wake words can reach different profiles, and saying "stop" ends the voice chat on every surface without touching the keyboard. Your terminal is now something you can talk to from across the room. ( #70509 , #73106 , #73933 — @teknium1 )
-Voice on every platform — Send a voice note to Hermes on WhatsApp, Feishu, DingTalk, LINE, QQ, Photon, or Weixin and it's transcribed and answered; auto-TTS replies are delivered platform-aware (opus where platforms want opus, captions attached correctly). STT is now fully configurable — its own hermes tools category, GUI toggles, dashboard dropdowns, unified language resolution so transcripts stop coming back in the wrong language, and OpenAI's gpt-transcribe support. One unified spoken-text preprocessor cleans markdown, code, and URLs out of speech across all TTS providers. ( #73515 , #73508 , #73910 , #73513 , #73067 — @teknium1 )
-Research you can trust — grounded citations with fact-checking — The new grounded-citations skill makes Hermes produce research where every claim is backed by a verifiable source: quotes are matched against the actual page text (not hallucinated), citations link to the exact evidence, and a fact-checking mode turns the same machinery on any document or claim you hand it — it tells you what checks out, what doesn't, and what couldn't be verified. If you use Hermes for research, this is the difference between "sounds right" and "provably sourced." ( #71698 , #77104 — @teknium1 )
-Outbound webhooks — Hermes pushes events to your systems — Until now, integrating with Hermes meant polling or listening on a platform. Now Hermes pushes signed lifecycle events (session activity, turn completions, tool events) to any HTTP endpoint you register — with HMAC signatures so your receiver can verify authenticity. Wire Hermes into your CI, your home automation, your dashboards, or any service that speaks HTTP, with no polling loop. ( #69406 — @teknium1 )
-The desktop app becomes a platform — artifacts, plugin SDK, quick entry — Hermes desktop now renders artifacts : versioned cards with sandboxed live preview in a right-rail viewer, so generated HTML/apps run safely next to the chat. A real plugin SDK landed with Kanban as its founding plugin, ctx.download for handing users files, floating pane placement, and multiple GUI windows. A global-hotkey quick-entry window captures a thought into any session from anywhere in your OS. The desktop stopped being a chat client and started being a workbench. ( #72345 , #61173 , #74413 , #72315 , #68259 , #73143 — @OutThisLife , @teknium1 )
-Hermes speaks Agent-to-Agent — A2A v1.0 — A new bundled plugin implements the Agent-to-Agent protocol, so Hermes can discover, talk to, and be driven by other A2A-compatible agents. This closes issue #514 — one of the oldest open feature requests in the repo. If you're building multi-agent systems with heterogeneous stacks, Hermes now has a standard wire protocol for joining them. ( #77109 — @teknium1 )
-CLI power-user wave — !command runs a shell command instantly without spending a model turn. /init scans your project and generates (or updates) an AGENTS.md . /diff shows staged/all/session changes from any surface, /context breaks down exactly what's filling your context window, /focus gives you a reduced-output view with hidden-line recovery, and Ctrl+S stashes a half-written prompt into a browsable panel. Plus hermes import-agent migrates your Claude Code or Codex CLI setup into Hermes in one command. ( #72257 , #72178 , #72240 , #72242 , #72302 , #72262 , #72190 — @teknium1 , several salvaging long-standing community PRs)
-Correct the agent mid-turn — redirects — If Hermes is heading the wrong way, you no longer have to /stop and re-explain. Type a correction while it works and the active turn is redirected: work in flight is preserved, the original prompt is kept, and the agent course-corrects with your new guidance. Paired with double-ESC draft discard and a composer undo stack, steering feels like editing, not restarting. ( #63104 , #72339 , #74736 — @OutThisLife )
-Tools that fix themselves — A sweep of self-recovery upgrades means the agent wastes far fewer turns on tool friction: truncated terminal output spills to a file the agent can read back, patch detects already-applied edits and diagnoses whitespace mismatches, write_file verifies content on disk, searches that match nothing probe for near-misses and recover, and common failure classes come back with actionable hints. The default tool-calling iteration limit also jumped 90 → 500 — long autonomous runs stopped hitting an artificial wall. ( #77041 , #76998 , #77024 , #77055 , #77011 , #76992 , #72176 — @teknium1 )
-Compression that respects your conversation — Context compression got a deep overhaul: proactive tool-result pruning for large-window models, per-turn micro-compaction that amortizes the cost instead of one giant pause, a guaranteed N-user-message tail so recent conversation always survives, progress-aware timeouts that stop punishing slow summary models, and ghost-skill defense so a pruned skill can never silently haunt a session. Thresholds are now configurable per-model and in absolute tokens. Long sessions stay coherent and stop stalling. ( #70254 , #75345 , #70250 , ...
+18 Nov 07:55
+Immutable
+release. Only release title and notes can be modified.
+v0.23.2+canary.20261118T064620Z
+f7e2898
+Hermes Agent v0.23.2+canary.20261118T064620Z (v0.23.2+canary.20261118T064620Z)
+Release Date: November 18, 2026
+Downloads
+Hermes Desktop
+OS
+Architecture
+Download
+macOS
+Apple Silicon (M-series)
+DMG
+Windows
+x86 (64-bit)
+MSIX
+Windows
+ARM (arm64 / aarch64)
+MSIX
+Native install/chat smoke
+Download availability is independent of smoke status. Each result covers all native legs in that format group. Linux bundles are disabled; unsigned Store envelopes are not install-smoked. No-upload dry tags have no download handoff and are not smoke-qualified.
+Packages
+Smoke status
+macOS DMG + ZIP (arm64)
+Passed
+Windows MSIX (arm64)
+Passed
+Windows MSIX (x64)
+Passed
+✨ Features
+Models): support GPT-6.2 Astra and Sol ( 786314ce ) — @vortexopenclaw
+Image_gen): GPT Image 2.6 Flare and Sunburst join the FAL catalog ( 8f2c6064 )
+Plugin-catalog: add barrier-shield, chaos-takens, eigen ( 4841eebc ) — @arjunbagga-xyz
+Plugin-catalog: add axiom (Neural-Symbolic Conservation-Law Verifier & SMT Ce) ( 2bff853a ) — @arjunbagga-xyz
+Hermes-safeguard plugin configuration ( 781cc939 ) — @robberdom
+Catalog: add safari plugin ( 1addeb7b ) — @Thorballer
+Plugin-catalog): add relatedb-memory ( 7a324936 ) — @loheander
+Catalog): add Ukrainian language pack for Hermes Agent ( 593f35c6 ) — @angusvka-spec
+Plugin-catalog): add scansift ( 97b95eea ) — @rodricksz4h5
+Plugin-catalog): add covsift ( 73b0fc6e ) — @rodricksz4h5
+Session_rules): pure session rules shared by callers and backends ( 5bf76580 ) — @yoniebans
+Persistence): housekeeping and maintenance operations ( 84035b4c ) — @yoniebans
+Persistence): worker execution and delegation ledger operations ( d333146d ) — @yoniebans
+Persistence): gateway routing and delivery operations ( db2296e1 ) — @yoniebans
+Persistence): session authority and binding operations ( 516f3c31 ) — @yoniebans
+Persistence): conversation storage operations ( f1fd5674 ) — @yoniebans
+Persistence): the storage interface: core records, errors, profile scope and awaitable view ( 4a66e4b1 ) — @yoniebans
+Plugin-catalog): add sound-cut ( ac071094 ) — @TakeshiTGAL
+Plugin-catalog): add lazybird ( 5d1a1f2b ) — @elyssiaamani
+Plugin-catalog): bump policy-backtester to 0.5.3 (c2a15a2) ( d30b0a2f ) — @noviceadam666
+Plugin-catalog: add hermes-voice-gateway ( b8702d10 ) — @SRai22
+Plugin-catalog): elm 0.4.0-preview (auto mode, /elm private) ( 8e02eb48 ) — @Miawd3
+Plugin-catalog: add hermes-axiom-coach 0.1.0 ( 98ff066e ) — @percyhendrux123-prog
+Plugin-catalog): update worktable plugin to 0.1.4 ( 6e0877da ) — @obkaro
+Plugin-catalog): add sleek ( 262b063e ) — @stefanofa
+Plugin-catalog): add music-listener (community) ( 09bc3b02 ) — @JPeetz
+Plugin-catalog): add proactive-continuity plugin ( 1bb1f4ed ) — @iknowterry
+Hermes-baikal to the plugin catalog ( b0ba2b52 ) — @tedlefter
+Hermes-regress plugin catalog entry ( 87b55995 ) — @harishkotra
+Plugin-catalog: re-pin glide to 5421c70a (CI-built dist with review fixes); mark gateway-method features inactive; add /fleet and /intel ( 3ee103f8 ) — @kvnloo
+Plugin-catalog): pin glide 4bc0b5f (fresh-install e2e green on GitHub runners) ( ae7704a4 ) — @kvnloo
+Plugin-catalog): pin glide d486f0c (documents live helper lanes; code identical to 68d9675) ( 978eb4bb ) — @kvnloo
+Plugin-catalog): pin glide 68d9675 (live helper lanes, rebuilt bundle) ( e8019229 ) — @kvnloo
+Plugin-catalog): pin glide ccfcd91 and describe /glide focus ( 92eaa1e6 ) — @kvnloo
+Plugin-catalog): describe glide fully and pin dc2b19a ( b9ff1ba1 ) — @kvnloo
+Plugin-catalog): add glide (Tern UI + /glide in one install) ( c592a441 ) — @kvnloo
+Plugin-catalog): bump reset-rescue to 0.2.0 ( f65041a9 ) — @bwoliveira
+Plugin-catalog: add barrier-shield (Continuous Control-Barrier Function (CBF) Quadrati) ( f28259a8 ) — @arjunbagga-xyz
+Plugin-catalog: add transducer (Ultrasonic FMCW Sonar & Vibrometer) ( d5a08e01 ) — @arjunbagga-xyz
+Plugin-catalog: add system-one 0.3.2 ( 6e023dd5 ) — @salismt
+Catalog): update Apparent to 0.4.0 with recording handoff ( 6c1410b2 ) — @simonvanlaak
+Catalog): refresh live-video with a title, images and 1.3.8 ( 0119f900 ) — @dacheah
+Plugin-catalog): add alphagrowth plugin ( 7a05fc61 ) — @ardey26
+Plugin-catalog: add 2pr (2pr.io LinkedIn MCP connector) ( 9d8d504e ) — @midovislam
+Panoptes to the plugin catalog ( b91f0563 ) — @huwhitememes
+Plugin-catalog: add token-stats ( 7454a90a ) — @amitamit10
+Plugin-catalog): add marcora ( beacfd43 ) — @ccromp
+Plugin-catalog): add aigrow model provider ( 6580089b ) — @guglielmo-io
+Plugin-catalog): add twinpost ( 044a6baf ) — @MelMayssonOwen
+Catalog: add aipg-community (AI Power Grid mode...
 Read more
 Contributors
-iRonin, b, and 197 other contributors
+jnorthrup, madsb, and 131 other contributors
 Assets
-2
+3
 Loading
-177 people reacted
-Hermes Agent v0.19.1 (v2026.7.30)
-Hermes Agent v0.19.1 (v2026.7.30)
+10 people reacted
+Hermes Agent canary v0.23.2+canary.20261117T064624Z
+Hermes Agent canary v0.23.2+canary.20261117T064624Z
+Pre-release
+Pre-release
+Compare
+Choose a tag to compare
+Sorry, something went wrong.
+Filter
+View all tags
+github-actions
+released this
+17 Nov 07:54
+Immutable
+release. Only release title and notes can be modified.
+v0.23.2+canary.20261117T064624Z
+40d1e95
+Hermes Agent v0.23.2+canary.20261117T064624Z (v0.23.2+canary.20261117T064624Z)
+Release Date: November 17, 2026
+Downloads
+Hermes Desktop
+OS
+Architecture
+Download
+macOS
+Apple Silicon (M-series)
+DMG
+Windows
+x86 (64-bit)
+MSIX
+Windows
+ARM (arm64 / aarch64)
+MSIX
+Native install/chat smoke
+Download availability is independent of smoke status. Each result covers all native legs in that format group. Linux bundles are disabled; unsigned Store envelopes are not install-smoked. No-upload dry tags have no download handoff and are not smoke-qualified.
+Packages
+Smoke status
+macOS DMG + ZIP (arm64)
+Passed
+Windows MSIX (arm64)
+Passed
+Windows MSIX (x64)
+Passed
+✨ Features
+Plugin-catalog): add opendockit plugin ( 3cf52227 ) — @hyeonsang010716
+🔧 Improvements
+Teams): move the Microsoft Graph auth and client into the teams_pipeline plugin ( 40d1e95f ) — @alt-glitch
+Agent): six checkpoint files move from tools/ to agent/checkpoints/ ( 458a0046 ) — @alt-glitch
+🐛 Bug Fixes
+Update-check): the passive check's git ls-remote dies with the CLI ( 60503775 )
+Desktop): an adopted reply drops its late tail by stream offset, in raw form ( e87a591d )
+🧪 Tests
+Update-check): fill the child script's SHA with replace, not % (ruff UP031) ( 631e406f )
+👥 Contributors
+Thank you to everyone who contributed to this release!
+@BearHuddleston (8 commits)
+@alt-glitch (2 commits)
+@SHL0MS (2 commits)
+@kvnloo (1 commit)
+@hyeonsang010716 (1 commit)
+Full Changelog : v0.23.1+canary.20261116T070005Z...v0.23.2+canary.20261117T064624Z
+Contributors
+kvnloo, alt-glitch, and 3 other contributors
+Assets
+3
+Loading
+15 people reacted
+Hermes Agent v0.23.2
+Hermes Agent v0.23.2
 Compare
 Choose a tag to compare
 Sorry, something went wrong.
@@ -278,75 +411,307 @@ Filter
 View all tags
 teknium1
 released this
-30 Jul 23:45
-v2026.7.30
-This tag was signed with the committer’s verified signature .
-teknium1
-Teknium
-SSH Key Fingerprint: x9xNOpeJhoEAY2gWhmWHZROC3QF3VjOEbmNo9vQ8y2A
-Verified
-Learn about vigilant mode .
-cc4cab2
-Hermes Agent v0.19.1 (v2026.7.30)
-Release Date: July 30, 2026
-Patch release. This tag rolls up the ~1,000+ PRs merged since v0.19.0 into a stable tagged release for downstream consumers (Docker images, hosted deployments, fresh installs).
+16 Nov 20:59
+Immutable
+release. Only release title and notes can be modified.
+v0.23.2
+ae2a81c
+Hermes Agent v0.23.2
+Release Date: November 16, 2026
+Patch release. This tag rolls up the ~1,989 PRs merged since v0.23.1 into a stable release for the GitHub release (CLI and installers), the Microsoft Store app, Docker and Hermes Cloud. Full curated notes for this window ship with v0.24.0.
 About this release
-Since v2026.7.20 (v0.19.0, July 20): ~2,789 commits · ~4,748 files changed · ~442,000 insertions · ~392,300 deletions on main . This window is dominated by bug-fix and salvage waves across the gateway, voice subsystem, desktop app, and installer, plus continued platform work (Buzz/Nostr channel, FLUX3 video generation and delivery, Telegram media reliability, voice-mode regressions).
-Full curated release notes for this window will ship with v0.20.0 , which will document everything from v0.19.0 onward — highlights, feature areas, and complete contributor credits. Nothing in this window is skipped.
+Measured at commit ae2a81ccc00 , the window since v0.23.1 contains 7,918 non-merge commits across 5,211 changed files (+239,733 / −22,788), 1,989 merged PRs and 940 closed issues .
+Also in the window, undocumented here on purpose: durable subagents that survive a gateway restart or crash and can be continued on their own conversation, one prompt-cache clock per session, hermes fallback check for fallback-chain readiness, hermes update --force to stop gateways at once instead of draining, one-time browser_vault codes entered from Telegram and Discord, opt-in shared Telegram DM threads, the Gemini Interactions API by default for Gemini 3 and later plus Gemini 4 Carbon, fast mode for Claude Mythos 5.2, per-job cron options ( wrap_response , a fresh thread per run), new plugin APIs ( ctx.fork_session , ctx.redact_text() , ctx.register_idle_task ), compatibility shims so updates work across module moves, a slimmer macOS bundle that installs Chromium on first use, and a large batch of new plugin-catalog entries.
+Full curated release notes for this window ship with v0.24.0 , which will document everything from v0.23.0 onward — highlights, feature areas, and complete contributor credits. Nothing in this window is skipped.
+Fixed in the release candidate
+Desktop chats created by an August build with a bare custom provider can send again after updating ( #156545 ).
+A Desktop or TUI reply that streamed beside a todo or memory call now settles instead of leaving the Stop button up ( #156553 ).
+A crash mid-stream on Telegram and other edit-streaming chats no longer shows a duplicate "Recovered reply"; a word holding a key prefix mid-word ( program_id ) is shown on time again ( #156546 ).
+Desktop no longer loses or scrambles what you type while it starts and resumes your last chat ( #156615 , #156642 ).
+After a reconnect mid-reply, Desktop shows the reply once and in full, attachments included ( #156611 ).
+In the Webapp, opening Hermes Cloud agents while this install isn't signed in to Nous Portal now tells you to sign in to Nous Portal instead of sending you to the Webapp login ( #156652 ).
+Exiting the CLI while its startup update check is waiting on GitHub no longer leaves git running ( #156616 ).
+Security
+Fixes GHSA-p22p-9ph6-gmrh ( CVE-2026-130164 , High): when Bot Desktop runs inside a docker or ssh terminal backend, its screen env file is now allowlisted and validated, and values from a backend-hosted screen are no longer merged into processes started on the agent machine ( #154487 ).
 Updating
-hermes update
-# or fresh install:
-curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
-Full Changelog : v2026.7.20...v2026.7.30
+Microsoft Store app: updates through the Store.
+Desktop app installed from the installer (.exe / .dmg): no change in this release; it updates with the next bundled release.
+CLI: hermes update , or re-run the installer one-liner.
+Docker / Hermes Cloud: nousresearch/hermes-agent:stable (or :latest ).
+Full Changelog : v0.23.1...v0.23.2
 Assets
-2
+3
 Loading
-101 people reacted
-Hermes Agent v0.19.0 (2026.7.20) — The Quicksilver Release
-Hermes Agent v0.19.0 (2026.7.20) — The Quicksilver Release
+51 people reacted
+Hermes Agent canary v0.23.1+canary.20261116T070005Z
+Hermes Agent canary v0.23.1+canary.20261116T070005Z
+Pre-release
+Pre-release
 Compare
 Choose a tag to compare
 Sorry, something went wrong.
 Filter
 View all tags
-teknium1
+github-actions
 released this
-20 Jul 18:35
-v2026.7.20
-This tag was signed with the committer’s verified signature .
-teknium1
-Teknium
-SSH Key Fingerprint: x9xNOpeJhoEAY2gWhmWHZROC3QF3VjOEbmNo9vQ8y2A
-Verified
-Learn about vigilant mode .
-3ef6bbd
-This commit was created on GitHub.com and signed with GitHub’s verified signature .
-GPG key ID: B5690EEEBB952194
-Verified
-Learn about vigilant mode .
-Hermes Agent v0.19.0 (v2026.7.20)
-Release Date: July 20, 2026
-Since v0.18.0: ~2,245 commits · ~1,065 merged PRs · ~2,465 files changed · ~300,000 insertions · ~36,000 deletions · ~3,300 issues closed · 450+ community contributors
-The Quicksilver Release. Hermes is the messenger god, and this window we made him move like it. First-turn time-to-first-token dropped ~80% on every platform , reasoning streams live by default, the desktop app got a ~20-PR speed overhaul (14× faster streaming markdown, virtualized diffs, snappy session switching), and the TUI renders markdown incrementally. Around that speed spine: you can now manage your Nous subscription without leaving the terminal , plug Bitwarden and 1Password straight into Hermes, let smart approvals judge flagged commands for you by default, watch your subagents work live , and trust that a finished response survives a gateway crash thanks to a durable delivery ledger. This release also rolls up everything from the v0.18.1 and v0.18.2 infrastructure patch tags — those windows are fully documented here.
-✨ Highlights
-Hermes got dramatically faster — first token in a fraction of the time — Cold-start "Initializing agent..." used to eat ~4.3 seconds before your first turn even reached the model; it's now ~0.9s, an ~80% cut that applies to the CLI, gateway, TUI, desktop, and cron alike. Round 2 attacked what you see while waiting: reasoning models now stream their thinking live by default (no more staring at a spinner for 30 seconds), and the response box paints per token instead of per line. If Hermes ever felt like it took a deep breath before answering, that breath is gone. ( #59332 , #59389 — @teknium1 )
-The desktop app speed wave — 20+ targeted perf PRs — Long replies used to cost 14× more CPU in the markdown splitter than they do now; giant diffs froze the review pane until we virtualized it; switching sessions thrashes layout no more. Streaming no longer re-renders the sidebar and every tool row per token, profile backends pre-warm on hover intent, and boot-hidden panes mount at idle instead of on the cold-start critical path. The net effect: the desktop app feels like a native app under load, even with huge transcripts and busy agents. ( #67154 , #67818 , #65898 , #66033 , #66747 , #67742 and more — @OutThisLife )
-Manage your Nous plan from the terminal — /subscription and /topup — Changing your subscription used to mean a trip to the billing website. Now /subscription opens a full flow right in the TUI or classic CLI: see your plan and remaining allowance, preview exactly what an upgrade costs ("Pay $46.30 & upgrade now") or when a downgrade takes effect, and apply it — with scheduled-change banners and undo. The desktop app got a matching billing settings tab. Your wallet never has to leave the keyboard. ( #51639 , #61054 , #61067 — @alt-glitch )
-Smart approvals are now the default — When Hermes wants to run a flagged command, an LLM reviewer now assesses it independently instead of asking you to approve every single one — and each verdict covers only that exact command, so a later command matching the same pattern gets its own review. Combined with the new user-defined deny rules (which block commands even under yolo mode) and /deny <reason> (which tells the agent why you refused so it course-corrects), day-to-day approval fatigue drops sharply without giving up control. ( #62661 , #59164 , #54518 — @teknium1 )
-Plug your password manager into Hermes — Bitwarden & 1Password secret sources — API keys no longer have to live in a plaintext .env . A new pluggable SecretSource interface lets Hermes fetch secrets from Bitwarden and 1Password ( op:// references) at load time, with multiple vaults enabled simultaneously, deterministic precedence, conflict warnings, and per-variable provenance. This consolidated eleven competing community PRs into one orchestrated interface — future vault providers drop in as plugins. ( #59498 — @teknium1 , 1Password provider salvaged from @hwrdprkns )
-Watch your subagents work — live transcripts + durable background delegation — delegate_task dispatches now return live transcript files you can tail -f the moment the subagents launch: every tool call, result, and streamed reply, one human-readable log per child. And background delegation completions are now durable — if the process restarts mid-run, results are restored and delivered through an ownership-checked ledger instead of vanishing. Fan out a fleet, watch any worker live, and never lose the results. ( #67479 , #63494 — @teknium1 )
-A finished answer can no longer be lost — the delivery-obligation ledger — If the gateway died between generating your response and confirming the platform actually delivered it, that answer used to be silently gone (and you'd paid for the turn). Final responses are now recorded in a durable ledger in state.db around the platform send and redelivered on the next boot — closing a P1 silent-loss window for Telegram, Discord, Slack, and every other channel. ( #67181 — @teknium1 )
-One gateway, many profiles — profile-based message routing — A single multiplexed gateway sharing one bot token can now route specific guilds, channels, or threads to different profiles — each with fully isolated config, skills, memory, and secrets. Point your work Discord server at the work profile and your hobby server at personal , from one bot. A second multiplex hardening wave means one misconfigured profile can no longer take down the whole gateway. ( #64835 salvaging @Burgunthy , #65700 , #60589 — @teknium1 , @benbarclay + six salvaged contributors)
-New providers and the newest frontier models — Fireworks AI and DeepInfra land as first-class providers (Fireworks with cost estimation and a #2 slot in the provider picker), Upstage Solar joins via salvage, and the model catalogs picked up GPT-5.6 (Sol/Terra/Luna + Pro variants, wired end-to-end across every route) , grok-4.5 (GA) , moonshotai/kimi-k3 , claude-fable-5 / claude-sonnet-5 , and GA tencent/hy3 — plus LM Studio JIT model loading for local setups. ( #62593 , #63969 , #61616 — @kshitijk4poor completing @rob-maron 's #61578 , #60887 , #65913 , #64541 , #65472 )
-Crank the thinking to max — new reasoning effort tiers and per-model control — Reasoning effort gained max and ultra levels (GPT-5.6 and Codex's top tiers), selectable everywhere from the CLI to the desktop, with sane clamping on providers with smaller scales. You can now also pin per-model reasoning-effort overrides in config, set per-slot effort in MoA presets (your advisors think hard, your synthesizer stays fast), and per-task effort for auxiliary models. Thinking depth is now a dial, not a global switch. ( #62650 , #64458 , #64631 , #64597 — @teknium1 )
-Your sessions, your data — export everything — hermes sessions export now writes Markdown, Quarto, HTML, prompt-only, and even Hugging Face-ready trace formats, with the full filter surface (age, workspace, platform), an opt-in --redact secret-scrubbing pass, and compacted-session lineage stitched into one logical export. Pair with the new prune filters and bulk archive to keep your session store tidy. Your conversation history is a real dataset now, not a black box. ( #60186 salvaging @web3blind , #60492 , #60507 , #59327 — @teknium1 )
-Security hardening round — This window closed a long list of credential-surface gaps: Vertex credentials scoped away from subprocess env and through profile secret scopes, media/vision/image-gen local-file reads routed through one shared credential-read guard, a webhook body-size-cap sweep across every aiohttp server, bot-token redaction in Telegram transport errors, Fireworks token prefixes added to the redactor, six P1 bro...
+16 Nov 07:59
+Immutable
+release. Only release title and notes can be modified.
+v0.23.1+canary.20261116T070005Z
+aa6d201
+Hermes Agent v0.23.1+canary.20261116T070005Z (v0.23.1+canary.20261116T070005Z)
+Release Date: November 16, 2026
+Downloads
+Hermes Desktop
+OS
+Architecture
+Download
+macOS
+Apple Silicon (M-series)
+DMG
+Windows
+x86 (64-bit)
+MSIX
+Windows
+ARM (arm64 / aarch64)
+MSIX
+Native install/chat smoke
+Download availability is independent of smoke status. Each result covers all native legs in that format group. Linux bundles are disabled; unsigned Store envelopes are not install-smoked. No-upload dry tags have no download handoff and are not smoke-qualified.
+Packages
+Smoke status
+macOS DMG + ZIP (arm64)
+Passed
+Windows MSIX (arm64)
+Passed
+Windows MSIX (x64)
+Passed
+🐛 Bug Fixes
+Code-health): packaged-imports models namespace packages; AGENTS.md names its exceptions ( aa6d201d ) — @alt-glitch
+Agent): generic tool deadline no longer clips a tool's own timeout ( e1ac37eb ) — @huanshan5195
+Redact): mask an .npmrc auth value that only starts with a ${VAR} reference ( 81fd6d89 ) — @c2h5oh
+Plugin-catalog): commonly-hermes-plugin re-pinned; its server asks before writes ( 467b8f7d ) — @lilyshen0722
+Security): mask passwords in DB URL query strings ( 5b3168ea ) — @thejesh23
+Approval): read git option substitutions nested up to four levels as one word ( 234bd742 ) — @c2h5oh
+📦 Other Changes
+Review: trim deadline-floor tests to the two runner invariants; slim the registry guard ( ec931428 )
+Port from lobehub/lobehub#20735 : run in a usable directory when the terminal cwd is gone, and say so ( #20735 )
+👥 Contributors
+Thank you to everyone who contributed to this release!
+@BearHuddleston (81 commits)
+@unsupportedpastels (3 commits)
+@foma-agent (2 commits)
+@c2h5oh (2 commits)
+@alt-glitch (1 commit)
+@liuhao1024 (1 commit)
+@huanshan5195 (1 commit)
+@Sora-bluesky (1 commit)
+@nolanchic (1 commit)
+@Sahilvishnaliya (1 commit)
+@lilyshen0722 (1 commit)
+@thejesh23 (1 commit)
+@kouyichi (1 commit)
+@djagya (1 commit)
+Full Changelog : v0.23.1+canary.20261115T064406Z...v0.23.1+canary.20261116T070005Z
+Contributors
+c2h5oh, djagya, and 12 other contributors
+Assets
+3
+Loading
+13 people reacted
+Hermes Agent canary v0.23.1+canary.20261115T064406Z
+Hermes Agent canary v0.23.1+canary.20261115T064406Z
+Pre-release
+Pre-release
+Compare
+Choose a tag to compare
+Sorry, something went wrong.
+Filter
+View all tags
+github-actions
+released this
+15 Nov 07:52
+Immutable
+release. Only release title and notes can be modified.
+v0.23.1+canary.20261115T064406Z
+d1b46d7
+Hermes Agent v0.23.1+canary.20261115T064406Z (v0.23.1+canary.20261115T064406Z)
+Release Date: November 15, 2026
+Downloads
+Hermes Desktop
+OS
+Architecture
+Download
+macOS
+Apple Silicon (M-series)
+DMG
+Windows
+x86 (64-bit)
+MSIX
+Windows
+ARM (arm64 / aarch64)
+MSIX
+Native install/chat smoke
+Download availability is independent of smoke status. Each result covers all native legs in that format group. Linux bundles are disabled; unsigned Store envelopes are not install-smoked. No-upload dry tags have no download handoff and are not smoke-qualified.
+Packages
+Smoke status
+macOS DMG + ZIP (arm64)
+Passed
+Windows MSIX (arm64)
+Passed
+Windows MSIX (x64)
+Passed
+✨ Features
+Plugin "dosbox-mcp" ( 4c02a304 ) — @shakeyourbunny
+Hermes-eye-memory to the plugin catalog ( e71d2da7 ) — @isthatananya
+Plugin-catalog): add permission-tiers (f5f6183) ( c2779be8 ) — @imperator-clawdius
+Plugin-catalog): add neuralwatt-provider ( 5dcd3b55 ) — @ptaranat
+QMD Workspaces to plugin catalog ( 09adb261 ) — @lad75020
+Catalog): add Asset Curator ( 36890962 ) — @dev-willbird1936
+Catalog: add video-xray (video analysis workbench) ( 57c44c75 ) — @LuuMoss
+Plugin-catalog): bump ascii-worlds to 1.4.0 (pipes and thirteen character habitats) ( 56a81b86 ) — @dudicslevente
+Catalog): update vibe-relay to 0.4.0 ( 8f0e84b1 ) — @trenthalden
+Plugin-catalog): progression 1.2.0 (flag a chat or subagent waiting for input) ( 9f75669b ) — @agent-local
+Plugin-catalog): add progression 1.1.0 ( aa952a4b ) — @agent-local
+Plugin-catalog: add munito-provider ( fe7be3f9 ) — @alexeyeryshev
+Catalog): add datacircle ( abb7a08b ) — @waynehamadi
+Plugin-catalog): update inkly description and pin ( 16d4c88d ) — @jeevships
+Plugin-catalog): add inkly ( 42158087 ) — @jeevships
+Plugin-catalog: add luminary (self-hosted memory provider) ( 1f4a6b50 ) — @alertxsto
+Plugin-catalog): add locksift ( bc7e3a1b ) — @rodricksz4h5
+Plugin-catalog): add hermes-slots ( 2efda391 ) — @tuancookiez-hub
+Plugin-catalog): add plansift ( 93df87ca ) — @rodricksz4h5
+Plugin-catalog): bump valun to 0.6.2 (hermes valun profile: public vouches) ( 6f94da3d ) — @fitzss
+Plugin-catalog: add softhalo-usage ( a90850b7 ) — @ahujat
+Plugin-catalog): add Apple Health Data adapter ( 5703eed4 ) — @krumjahn
+Slaide to plugin catalog ( 7ad17bd7 ) — @Lugier
+Plugin-catalog): update data to 0.1.8 ( 6b4be069 ) — @Adolanium
+Plugin-catalog): add us-filings ( 66cefccf ) — @TakeshiTGAL
+Plugin-catalog): bump modelscout to 0.3.11 ( 61fadb96 ) — @iknowterry
+Hermes-hostd plugin configuration ( 0e62767c ) — @violetSoftware
+Hive.yaml plugin configuration file ( a636863f ) — @MFaiqKhan
+Plugin-catalog: add own-compute (Plugin Hackathon entry) ( 686949c4 ) — @Siioh
+Plugin-catalog: add verifiable-math-kernel (v1.0.2) ( 016a5999 ) — @pCwOrM
+Catalog): add Meridian plugin ( 4e40848e ) — @unifyWeb3
+Plugin-catalog: add code-assurance-engine v0.1.0 (pin 0a502a3) ( 66caf62b ) — @Sahil-SS9
+PrintWatch 0.4.0: add Bambu Lab adapter (new SHA pin) ( 226d4994 ) — @clawsyndicate
+PrintWatch to the plugin catalog ( a57a1154 ) — @clawsyndicate
+Catalog): update cardworthscanner catalog to standard format and pin b45c23ed10e2f96b37c3029353bc72929fe6e91b ( d9d6f8e5 ) — @AbigailDavised
+Catalog): add cardworthscanner tcg pricing and psa grading roi plugin ( 115df299 ) — @AbigailDavised
+Catalog): pin taofind to c4b6551382f4ceed5cecea6b1219d86153f86615 ( dff46735 ) — @AbigailDavised
+Add taofind to plugin-catalog ( 4c036e27 ) — @AbigailDavised
+Catalog): pin chinamedvisit to 95ac3a638798a9ff02447478128dfbf9311990ab ( 8e7a0505 ) — @AbigailDavised
+Add chinamedvisit to plugin-catalog ( 59d6fe1e ) — @AbigailDavised
+Plugin-catalog): add train-ultra plugin ( 5191eb36 ) — @wadewegner
+Plugin-catalog): add resortlife ( dde8b4f4 ) — @raidwaleed
+Plugin-catalog: add year-wrapped ( cca65e14 ) — @MadeByBrain
+Catalog): add screenshot and update look-at-this pin ( 4554c6f7 ) — @Elshayib
+Catalog: add look-at-this v0.2.1 ( 40be9e57 ) — @Elshayib
+Plugin-catalog): update super-agent to 0.2.2 ( 8fbbf0d4 ) — @JerryLiu369
+Plugin-catalog): bump stoa to 0.18.0 ( 1c79d269 ) — @jarrett-del
+Plugin-catalog): bump stoa to 0.16.0 ( 9b2b9ec8 ) — @jarrett-del
+Plugin-catalog: pin hermes-action-bar to c848d74 (new settings screenshot) ( 3fb1b707 ) — @fquresh
+Catalog: add a cover image for vibeleak-atlas ( 549b5db0 ) — @abundantbeing
+Catalog: add a cover image for trophy-room ( 91980996 ) — @abundantbein...
 Read more
 Contributors
-DavidMetcalfe, gnodet, and 195 other contributors
+aantix, jnorthrup, and 150 other contributors
 Assets
-4
+3
 Loading
-167 people reacted
-Previous 1 2 3 4 Next
+11 people reacted
+Hermes Agent canary v0.23.1+canary.20261114T064334Z
+Hermes Agent canary v0.23.1+canary.20261114T064334Z
+Pre-release
+Pre-release
+Compare
+Choose a tag to compare
+Sorry, something went wrong.
+Filter
+View all tags
+github-actions
+released this
+14 Nov 07:46
+Immutable
+release. Only release title and notes can be modified.
+v0.23.1+canary.20261114T064334Z
+422ad18
+Hermes Agent v0.23.1+canary.20261114T064334Z (v0.23.1+canary.20261114T064334Z)
+Release Date: November 14, 2026
+Downloads
+Hermes Desktop
+OS
+Architecture
+Download
+macOS
+Apple Silicon (M-series)
+DMG
+Windows
+x86 (64-bit)
+MSIX
+Windows
+ARM (arm64 / aarch64)
+MSIX
+Native install/chat smoke
+Download availability is independent of smoke status. Each result covers all native legs in that format group. Linux bundles are disabled; unsigned Store envelopes are not install-smoked. No-upload dry tags have no download handoff and are not smoke-qualified.
+Packages
+Smoke status
+macOS DMG + ZIP (arm64)
+Passed
+Windows MSIX (arm64)
+Passed
+Windows MSIX (x64)
+Passed
+Full Changelog : v0.23.1+canary.20261113T064447Z...v0.23.1+canary.20261114T064334Z
+Assets
+3
+Loading
+14 people reacted
+Hermes Agent canary v0.23.1+canary.20261113T064447Z
+Hermes Agent canary v0.23.1+canary.20261113T064447Z
+Pre-release
+Pre-release
+Compare
+Choose a tag to compare
+Sorry, something went wrong.
+Filter
+View all tags
+github-actions
+released this
+13 Nov 08:06
+Immutable
+release. Only release title and notes can be modified.
+v0.23.1+canary.20261113T064447Z
+7172596
+Hermes Agent v0.23.1+canary.20261113T064447Z (v0.23.1+canary.20261113T064447Z)
+Release Date: November 13, 2026
+Downloads
+Hermes Desktop
+OS
+Architecture
+Download
+macOS
+Apple Silicon (M-series)
+DMG
+Windows
+x86 (64-bit)
+MSIX
+Windows
+ARM (arm64 / aarch64)
+MSIX
+Native install/chat smoke
+Download availability is independent of smoke status. Each result covers all native legs in that format group. Linux bundles are disabled; unsigned Store envelopes are not install-smoked. No-upload dry tags have no download handoff and are not smoke-qualified.
+Packages
+Smoke status
+macOS DMG + ZIP (arm64)
+Passed
+Windows MSIX (arm64)
+Passed
+Windows MSIX (x64)
+Passed
+Full Changelog : v0.23.1+canary.20261112T064528Z...v0.23.1+canary.20261113T064447Z
+Assets
+3
+Loading
+16 people reacted
+Previous 1 2 3 4 5 6 Next
 Previous Next

@@ -1,6 +1,100 @@
 Changelog · Apify Skip to content
 Changelog
 What's new at Apify?
+Nov 16, 2026
+A new way to use Apify with Server Actors
+New
+API
+Actor
+Console
+A new way to use Apify with Server Actors
+Server Actors are now available in Apify Store. They send web data back for every request, with no run to start. Many Actors you already use work this way, because their creators turned it on. For developers, each Server Actor   works like any API. Send an HTTP request to its server URL and get the data in the response.
+Why it matters
+Send many requests at once. Server Actors labeled Multi-tenant run on the creator’s account and serve all their users. Your requests don’t use your concurrent-run limits. You pay only the Actor's prices, like per search.
+Works in apps, agents, and workflows. Call Server Actors from your app, connect AI agents through the Apify MCP server   , or add an HTTP request step in your workflow automation tool.
+Get the answer you need. An AI agent can check a live page mid-conversation, or an app can look up a profile or a set of reviews when a user needs it.
+Try Server Actors
+Browse Server Actors in Apify Store   . Open an Actor's Server tab to try a request.
+For Actor creators
+Want your Actor to work this way too? Enable the server interface, formerly Actor Standby, in your Actor's Settings tab, or start from a Server Actor template. Charge per event to earn from users on paid plans. Read how to develop Server Actors   .
+Roman Roštár
+Product Manager
+Oct 30, 2026
+Apify Store API: new search backend and breaking changes
+New
+API
+Actor
+On November 15,  GET /v2/store  in the Apify API moves to a new search backend. This includes calls through apify-client . The Apify MCP server already uses the new backend.
+Search ranks Actors by how well they match the query and returns one page of the closest matches. Responses also drop fields that added noise to agent context. Both changes can break existing integrations.
+The path, the  search  parameter, and the  { data: { items, total, count, offset, limit, desc } }  response envelope stay the same.
+When you pass a  search  query
+Listing without  search  keeps paging and accurate totals. With  search :
+One page only, with a maximum of 100 items.   limit  is capped at 100 (it was 1,000),  offset  is ignored without an error, and there's no second page. Filter your results with  category ,  username , or  pricingModel  instead of paging.
+total  and  count  change meaning.  Both now equal the number of items returned, not the number of matches. A loop that fetches until  offset >= total  stops after one request.
+New ranking.  The order and the set of results differ from before. For authenticated calls, ranking is personalized to your account. Results are cached for 5 minutes.
+All calls
+sortBy  is ignored.  The API still accepts it without an error, but it has no effect. Search results come back by relevance, and listings without  search  come back in Apify Store order. Sort on your side if you need a specific order.
+category  values changed.   category  now takes comma-separated category IDs, case-insensitive, and an Actor must match all of them. Old keys such as  SOCIAL_MEDIA  still work, and an unknown value returns a  400  error. Categories are assigned automatically from a larger list, so the same category can return different Actors than before.
+Item fields changed
+{
+- "actorReviewRating" : 4.7 ,
+- "actorReviewCount" : 370 ,
+- "bookmarkCount" : 2298 ,
++ "isVerified" : true ,
++ "readmeSummary" : "Extract data from TikTok videos…" ,
+"stats" : {
+"totalUsers" : 369123 ,
+"actorReviewRating" : 4.7 ,
+"actorReviewCount" : 370 ,
+- "bookmarkCount" : 2298 ,
+- "totalBuilds" : 3831 ,
+- "publicActorRunStats30Days" : { … }
+}
+}
+Removed from the top level:  bookmarkCount ,  actorReviewCount , and  actorReviewRating
+Removed from  stats :  bookmarkCount ,  publicActorRunStats30Days ,  totalBuilds ,  totalMetamorphs , and  lastRunStartedAt
+Ratings stay in  stats.actorReviewRating  and  stats.actorReviewCount
+Added:  isVerified  and  readmeSummary
+categories  returns the new category IDs
+currentPricingInfo  contains only  pricingModel , plus event prices for pay-per-event Actors
+Missing  title ,  description , and  readmeSummary  values are now empty strings ( '' )
+pictureUrl ,  userPictureUrl ,  userFullName ,  notice ,  badge ,  isWhiteListedForAgenticPayments ,  stats.totalRuns ,  stats.totalUsers7Days ,  stats.totalUsers30Days , and  stats.totalUsers90Days  may be absent
+Agent format.  With  responseFormat=agent ,  stats.bookmarkCount  is removed.  stats  now contains  totalUsers ,  actorReviewRating , and  actorReviewCount .
+Filters. pricingModel and allowsAgenticUsers can lag behind recent pricing changes until the owner next edits the Actor. includeInputSchema=true still caps limit at 10.
+Migration checklist
+Replace paging through search results with filters: category , username , or pricingModel . You get up to 100 items on one page.
+Expect total to equal the items returned when you use search , not all matches.
+Sort results on your side instead of with sortBy .
+Check your category values against the new category IDs.
+Read ratings from stats , and remove any use of bookmarkCount and the other removed fields.
+See the GET /v2/store API reference   for every parameter and field, or contact support   with questions.
+Marek Mouček
+Product Manager
+Oct 16, 2026
+Build and debug Actors with new Apify MCP tools
+New
+Your AI agent can now build your Actors, read their build logs, and check their runs through the Apify MCP server. It can also list your Actors and read their source files.
+Why it matters
+You can build and debug Actors where you code, without switching to Apify Console.
+How it works
+Select the tools: The new tools aren't in the default tool set. List them in your server URL along with the defaults, add the URL to your MCP client, and approve access when Apify asks you to sign in.
+Find the Actor: The agent lists your Actors and reads the source files of the one you're working on.
+Build and run: The agent builds the Actor, checks the build, and runs it.
+Debug: When a build or run fails, the agent reads the build or run log to find the cause.
+For anything without its own tool, the agent can look up and read data through the Apify API with tools in the api category: apify-api-search , apify-api-details , and apify-api-read .
+Get started
+Set up your client in the MCP configurator   .
+Patrik Braborec
+Product Manager
+Oct 6, 2026
+Find Actors by use case with new Store categories
+New
+Console
+Actor
+Actors are now grouped by use case, including Generate leads , Track products & prices , and Brand monitoring . Filter by industry, output type, target site, or Actor type, such as MCP server or open source. Apify assigns the categories. Publishers have nothing to update. Read how the categories work   .
+Less scrolling through thousands of Actors. Browse Store categories   .
+Marek Mouček
+Product Manager
 Sep 3, 2026
 Create an Actor with a Git repo in a few clicks
 New
@@ -24,50 +118,6 @@ If you don't want Git, Create without Git is still there: Clone locally or Host 
 Learn more
 The new feature is live for everyone, on every plan. Open actor.new   , and see for yourself. Or get the latest version of the Apify CLI and run apify create in your terminal. Read more   about the new flow in the blog post.
 Patrik Braborec
-Product Manager
-Jul 21, 2026
-Apify AI (beta) is live. Describe what you need and get results
-New
-Console
-Actor
-Until now, finding the right Actor on Apify Store meant browsing, comparing, and filling out long input forms before you knew if it was the one you needed.
-Apify AI fixes that. Ask in plain English from the search bar on Apify Store or in the Dashboard widget. It picks the right Actor, fills in the inputs, runs it, and returns the dataset for you.
-Read more  
-Marek Mouček
-Product Manager
-Jun 26, 2026
-Pay for Apify Actors with x402
-New
-Actor
-API
-AI agents can now run and pay for eligible Apify Actors in USDC on the Base   network. No Apify account, billing, or API key required. Payments use the open x402 protocol   and settle at the time of request, over both Apify MCP server and the Apify API.
-The fastest and easiest way is to use Coinbase Agentic Wallet CLI   :
-npx awal
-npx skills add coinbase/agentic-wallet-skills
-To get started, give this skill to your agent: apify.it/x402-awal .
-If you're building Actors, you can review the eligibility criteria   to make sure yours can accept agentic payments. For more information, see the docs   and blog post   .
-Roman Roštár
-Product Manager
-Jun 25, 2026
-New Actor creation flow
-New
-Actor
-Creating Actors on Apify is now easier. The creation flow guides you to the most relevant template based on what you want to build and your preferred language. You get to the right template faster, without choice overload.
-If you're an experienced Actor developer, you can still browse the full template list by clicking Browse all templates in the top-right corner.
-Patrik Braborec
-Product Manager
-Jun 24, 2026
-Publish tasks for your Actor to get more users
-New
-As an Actor creator, you can now publish tasks. It's a new way to get your Actor found on Apify Store. Each published task gets its own page on Apify Store, indexed by search engines and readable by AI agents. That means more ways for people to find your Actor, beyond just the main Actor page. This has two key benefits:
-Shows visitors a concrete, ready-to-run example of how to use your Actor
-Drives organic traffic by targeting specific, long-tail search queries
-The key is naming your tasks around what users actually search for. For example, RAG Web Browser has three published tasks:
-Web search to markdown - targets users looking for markdown-formatted output
-RAG: search a specific website - showcases the site input parameter
-Web Fetch Tool for AI Agent - highlights the Actor's web fetch capability
-Publish a task now: https://docs.apify.com/platform/actors/publishing/publish-task  
-Martin Sabo
 Product Manager
 Show more changes
 We're making the web more programmable.

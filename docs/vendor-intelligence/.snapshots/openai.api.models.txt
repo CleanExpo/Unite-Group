@@ -1,8 +1,11 @@
 All models | OpenAI API
 For the complete documentation index, see llms.txt . Markdown versions of documentation pages are available by appending
 .md to the page URL.
-ChatGPT Start searching API Dashboard
+ChatGPT
 Try ChatGPT
+Language
+Loading languages…
+Theme
 Search the API docs
 Search docs
 Suggested
@@ -11,14 +14,16 @@ Primary navigation
 Search docs
 Suggested
 responses create reasoning_effort realtime prompt caching
-Overview Models Agents Tools Voice & Audio Production API reference
-Overview Models Agents Tools Voice & Audio Production API reference Models
+Overview Models Agents Tools Audio & voice Production API reference
+Docs Models
 Get started
 Quickstart
-Using GPT-6 Astra
+Using GPT-6.2
 Key concepts
+API credits for ChatGPT subscribers
 Core concepts
 Responses API
+Decisions API
 Conversation state
 Background mode
 Streaming
@@ -32,6 +37,9 @@ Counting tokens
 SDKs and CLI
 OpenAI SDK
 OpenAI CLI
+Cloud providers
+Amazon Bedrock
+Google Cloud
 Resources
 Changelog
 Deprecations
@@ -47,14 +55,11 @@ Evals Getting started
 Working with evals
 Prompt optimizer
 External models
-Best practices
 Graders
 Fine-tuning Optimization cycle
 Supervised fine-tuning
 Vision fine-tuning
 Direct preference optimization
-Reinforcement fine-tuning
-RFT use cases
 Best practices
 Assistants API Migration guide
 Model catalog
@@ -75,19 +80,49 @@ Frontend prompting
 Reasoning
 Reasoning models
 Reasoning best practices
-Images and video
+Images
 Images and vision Image input cost calculator
-Image generation
-Video generation
+Image generation Overview
+Image prompting
 Realtime and audio
 Audio and speech
-Overview
+Getting started
 Voice agents
 Specialized models
-Deep research
 Embeddings
 Moderation
+CSAM classifier
+Agents API
+Overview
+Quickstart
+Architecture
+Configuring Agents
+Sessions Run and continue sessions
+Events and items
+Manage sessions
+Scheduled automations
+Automatic review
+Webhooks
+Environments and sandboxes OpenAI-hosted sandboxes
+Self-hosted sandboxes
+Sandbox lifecycle
+Pre-warm sandboxes
+Sandbox security
+Files and artifacts
+Tools and integrations Web search
+Computer use
+Functions
+MCP connections
+Plugins
+Vaults
+Multi-agent
+Observability and usage
+Tracing
+Errors and recovery
+API reference
+Bedrock Managed Agents
 Agents SDK
+Overview
 Quickstart
 Agent definitions
 Models and providers
@@ -109,7 +144,7 @@ Web search
 File search
 Retrieval
 Connect tools and data
-MCP and Connectors
+MCP servers
 Secure MCP Tunnel
 Build tool workflows
 Skills
@@ -118,52 +153,72 @@ Programmatic tool calling
 Async tool calling
 Computer and code
 Shell
-Computer use
+Computer use Integration recipes
+Driver reference
 Apply Patch
-Local shell
 Code interpreter
 Media
 Image generation
-Get started
-Voice agents
-Live translation
-Realtime prompting guide
-Audio
-Audio and speech
-Transcription
-File transcription
-Realtime transcription
-Speech generation
-Connection methods
-WebRTC
-WebSocket
-SIP
-Sessions and operations
+GPT-Live
+Getting started
+Prompting
+Managing sessions
+Delegation and tools
+Migrate to GPT-Live
+Partner integrations
+Realtime API
+Getting started
+Prompting
 Managing conversations
 Voice activity detection
-Realtime with tools
-Webhooks and server-side controls
-Managing costs
+Tools and MCP
+Build with voice
+Voice agents
+Connect voice to Decisions
+Custom voices
+Cost optimization
+Connections
+WebRTC
+WebRTC with WARP
+WebSockets
+Telephony and SIP
+Server-side controls
+Audio processing
+File transcription
+Live transcription
+Live translation
+Text to speech
+Audio in Chat Completions
 Performance and quality
+Keep the prefix unchanged
+Fast mode
+Ultrafast mode
 Latency optimization
 Predicted Outputs
-Fast mode
 Accuracy optimization
+Evaluation
+Evaluation best practices
+Promptfoo
 Cost and throughput
 Cost optimization
-Prompt caching
+Prompt caching Prompt cache diagnostics
 Batch
 Flex processing
+Reserved Tier
 Safety and governance
 Safety best practices
 Red teaming
+Daybreak
 Safety checks Safety classifiers
 Cybersecurity checks
 Misalignment monitoring
+Enforcement notifications
 Under-18 guidance
 CSAM guidance
 Content provenance
 Your data
+Data residency
+Private Safety Processing
 Permissions
 Infrastructure and access
 Terraform provider Overview
@@ -174,10 +229,9 @@ Model, tool, and data controls
 Import and reconciliation
 Private Link
 IP allowlist
+Organization blocking
 Mutual TLS
-Workload identity federation Codex setup
-Federation rules
-Admin API
+Workload identity federation Federation rules
 X.509 certificates
 Kubernetes
 AWS
@@ -186,15 +240,14 @@ Google Cloud
 Oracle Cloud Infrastructure
 GitHub Actions
 SPIFFE
+Idira
 IP egress ranges
-Amazon Bedrock
 Operations
 Rate limits
 Spend limits
 Admin APIs
 Error codes
-Docs Use cases Docs
-Plugins Workspace Agents Commerce Ads Select...
+Docs Overview
 Core concepts
 Plugin architecture
 Skills
@@ -205,6 +258,8 @@ Define tools
 Build
 Build an MCP server
 Add UI to your MCP server (optional)
+Add events to your MCP server (optional)
+Extensions
 Authenticate users
 Build skills
 Package your plugin
@@ -212,6 +267,7 @@ Examples
 Test and publish
 Connect and test your plugin
 Submit and publish
+Submit desktop-only plugins
 Submission error reference
 Conversion specs
 Restaurant reservation spec
@@ -229,20 +285,30 @@ Plugin guidelines
 MCP server review requirements
 Plugin UI reference
 Checkout API reference
-Get started
-Trigger workspace agent runs
-Authenticate with Workspace Agent access tokens
-Guides
-Get started
-Best practices
-File Upload
+Identity
+On your website
+In your ChatGPT plugin
+Account security notification
+ChatGPT plan usage
 Overview
-Products
-API
-Overview
-Feeds
-Products
-Promotions
+UI/UX guidelines
+Registration and sign-in
+Accounts and sessions
+Models and inference
+Codex app-server
+Self-hosted VMs
+Token reference
+Errors and recovery
+Preview limitations
+Commerce Partner Playbook
+Submit product feeds
+Help ensure cloud browser access
+Accept payments
+Build a plugin
+Integrate Sign in with ChatGPT
+Claim your business
+Product feeds · Reference
+Product feed schema
 Measurement
 Measurement Pixel
 Multiple Pixels (Advanced)
@@ -252,31 +318,40 @@ Supported Events
 Advertiser API
 Overview
 API Partner Setup
-Quickstart
-Bulk API
+Campaign Management
+Bidding & Budgets
+Targeting
 Product Feeds
-Delta Feeds API
-Campaign Targeting
-Conversion-Optimized Campaigns
-Custom Audiences
+Hotel Feeds (limited beta)
+Conversion Tracking
+Reporting
+Troubleshooting
+Account Management
 API Reference
 Authentication
 Ad Account
+Audit Logs
 Campaigns
 Ad Groups
 Ads
 Insights
 Files
 Conversion Setup
-Overview Features Configuration Developers Security Administration Use Cases Resources Overview
+Get started
+Trigger workspace agent runs
+Authenticate with Workspace Agent access tokens
+Docs Overview
 Home
 Get started
 Quickstart
 Use ChatGPT
 Get started with Work
+Meet dots
 Import from another agent
 Foundations
 Prompting
+Working with agents
+Model selection
 Personalize ChatGPT
 Skills & Plugins
 Permissions
@@ -287,18 +362,18 @@ Pricing
 Glossary
 Available on
 ChatGPT desktop app
-Remote
+ChatGPT mobile app
 ChatGPT on the web
 Codex CLI
 Codex IDE extension
-Codex cloud
+Codex Cloud
 Releases
 Changelog
 Feature Maturity
 Open Source
 Workflows
 Projects and chats
-Sites
+Build plugins
 Visualizations
 Scheduled tasks
 Long-running work
@@ -309,13 +384,34 @@ Capabilities
 Browser
 Computer use
 Voice
+Composer Predictions
 Plugins
+Sign in with ChatGPT
 Web search
 Image generation
 Image inputs
 Appshots
 Browser extension
 Work with files
+Sites
+Overview
+Create a site
+Data and connections
+Publish and share
+Manage a site
+dots
+Meet dots
+Getting started
+Messaging
+Tasks and memory
+Computers and apps
+Controls
+ChatGPT Space
+Overview
+Getting started
+Pages
+Work with agents
+Collaboration
 Reference
 Commands
 Slash commands
@@ -350,18 +446,18 @@ Code review
 Integrated terminal
 Extend and automate
 Build skills
-Build plugins
 Site tools (WebMCP)
+Annotations Extensibility
 Hooks
 Environments
 Modes
 Local environments
-Cloud environment
 Git worktrees
+Codex Cloud
+Cloud environments
 Build with Codex
 Codex SDK
 App Server
-MCP Server
 GitHub Action
 Non-interactive mode
 Third-party integrations
@@ -378,9 +474,15 @@ Profiles
 Sandboxing
 Auto-review
 Agent approvals & security
-Internet access
 Codex Security
 Overview
+Daybreak Defense Factory Setup
+Findings and fixes
+Import scanner findings
+Security Review
+Improving the threat model
+Notifications
+FAQ
 Codex Security plugin Quickstart
 Run a security scan
 Run a deep scan
@@ -394,78 +496,112 @@ Export and track findings
 Changelog
 Codex Security CLI Quickstart
 Run bulk scans
-Run scans in CI
+CI/CD Overview
+GitHub Actions
 GitLab CI/CD
 Reference
 FAQ
-TypeScript SDK
-Codex Security cloud Setup
-Security Review
-Improving the threat model
-FAQ
+Codex Security SDK
 Cyber safety
 Models & Trusted Access
 Recommended configuration
 Getting started
 Admin rollout guide
-ChatGPT Work
-ChatGPT Work Overview
-ChatGPT Work cloud security
-ChatGPT Work local security
-ChatGPT Work admin FAQ
-ChatGPT Work: usage and cost
-Identity and authentication
+Admin plugin
+Feature Configuration
+Dots
+Space
+Sites
+Teams and Team Tasks
+ChatGPT in Slack and Teams
+Workspace connections
+Local computer access for Work Cloud and dots
+Identity and access
 Authentication overview
-Workload identity
-Personal Access Tokens
-Service accounts
-Workspace access, policy, and models
 Groups and provisioning
+Dynamic groups
 User lifecycle management
 Roles and workspace permissions
-GPTs and Sharing
-Managed configuration
+Personal access tokens
+Service accounts
+Configuration
+Windows app and CLI deployment
+NFS home directories
+Manage app updates
+Managed configuration Desktop browser policies
+Self-host configuration
+Codex security cookbook
+Remote connections
+Workspace model availability
+Advanced deployment
+Amazon Bedrock
+Google Cloud
+GovCloud deployment
+Connect to a gateway
+Roll out a gateway
+ChatGPT EDU
+Education plans
+Higher education setup
+ChatGPT Work
+Overview
+Cloud security
+Local security
+Usage and cost
+Admin FAQ
+Collaboration and sharing
+GPTs and sharing
+Plugins and connections
+Plugin controls
+Import and sync plugins from GitHub
+Skill controls
+Migrate custom GPTs to plugins
+Usage and analytics
+Workspace analytics
+Usage Insights
+Analytics API
+Security and compliance
+Governance
+Agent security
+Safety and security in dots
 Prisma AIRS
 HIPAA configuration
-Workspace model availability
-Plugin and connector controls
-Plugin controls
-Plugin management
-Skill controls
-Usage, governance, and compliance
-Governance
-Admin plugin
-Workspace analytics
-Analytics API
 Compliance API and audit events
-Deployment and model providers
-Manage app updates
-Windows app deployment
-Remote connections
-Amazon Bedrock
 Community
 Codex Ambassadors
 Codex for Students
 Codex for Open Source
-Meetups
+Events
 Blog
 Company blog
 Developer blog
+Collections
+Productivity & Collaboration
+Business Operations
+Data Science
+Web development
+Game development
+Native development
+Production systems
+Security
+Finance
+Sales
+Life Sciences
+Education
 Community
 Codex Ambassadors
 Codex for Students
 Codex for Open Source
-Meetups
+Events
 Blog
 Company blog
 Developer blog
-Showcase Blog Cookbook Learn Community Select...
+Docs Showcase
 Recent
-Architectural visualization with Astra
-Building games with Astra
-Meet Rosalind Workbench: Empowering every scientist to be their own research team
-Automating repetitive work at OpenAI with Codex
-Meet the winners of OpenAI Build Week
+How I stay in the flow with Ultrafast
+Time awareness and async input for personal agents
+Prompting GPT-Live for languages and regional accents
+Securing persistent agents like OpenClaw at OpenAI
+Pushing voice agents further: inside four GPT-Live builds
 Topics
 General
 API
@@ -474,6 +610,7 @@ Audio
 Codex
 Life sciences
 Topics
+Sign-in with ChatGPT
 Agents
 Evals
 Multimodal
@@ -501,42 +638,53 @@ Scaling
 Tools
 Video generation
 Programs
-Codex Ambassadors
+Codex Ambassadors Meet the ambassadors
 Codex for Students
+Student Collective
 Codex for Open Source
 OpenAI for Startups
-Events
-Meetups
 Spaces
+Events
 Developer Forum
 Discord
 Reddit
 X
 API Dashboard
 Try ChatGPT
+Ask AI
 Models
 All models
 Browse models and compare their capabilities.
 Compare models
 Flagship models
 Compare capabilities and specifications.
-GPT-6 Astra
-Our most capable model, built for the hardest end-to-end work
-GPT-5.6 Sol
-Flagship model for complex professional work
-GPT-5.6 Terra
-GPT-5.6 model that balances intelligence and cost
-GPT-5.6 Luna
-GPT-5.6 model optimized for cost-sensitive workloads
+GPT-6.2 Astra
+Our most capable model for your hardest projects, from start to finish.
+GPT-6.2 Sol
+Our go-to model for everyday work, from coding to powering agents at scale.
+GPT-6.1 Terra
+A fast, efficient model for visual reasoning, precise computer use, and clear, natural writing.
+GPT-6 Luna
+Our most efficient model for focused, high-volume tasks.
 Image
 Models for image generation and editing.
-GPT-Image-2
-State-of-the-art image generation model
+GPT-Image-2.6 Sunburst
+Image generation and editing for detailed visual work
+GPT-Image-2.6 Flare
+Image generation and editing for fast iteration
+GPT-Image-2.5 Sunburst
+Our most capable model for image generation and editing
+GPT-Image-2.5 Flare
+Fast, high-quality everyday image generation
 Realtime & audio
 Models for realtime, speech, and audio workflows.
+GPT-Live-1.1
+Full-duplex voice model for multilingual conversations.
+GPT-Live-1
+Our premier model for natural, expressive voice conversations with smooth interruption handling.
 GPT-Realtime-2.1
 Reasoning model with tool use
-GPT-Realtime-2.1 Mini
+GPT-Realtime-2.1 mini
 Reasoning model with tool use
 GPT-Realtime-2
 Reasoning model with tool use
@@ -552,28 +700,15 @@ GPT-Audio-1.5
 The best voice model for audio in, audio out with Chat Completions.
 GPT-Transcribe
 High-accuracy speech-to-text model for file and Realtime input transcription
-GPT-4o Transcribe
-Speech-to-text model powered by GPT-4o
-GPT-4o Mini Transcribe
-Speech-to-text model powered by GPT-4o Mini
-GPT-4o Transcribe Diarize
-Transcription model that identifies who's speaking when
-TTS-1
-Text-to-speech model optimized for speed
-TTS-1 HD
-Text-to-speech model optimized for quality
-Whisper
-General-purpose speech recognition model
-GPT-4o Mini TTS
-Text-to-speech model powered by GPT-4o Mini
 OpenAI Daybreak
 Advanced cyber models for defenders
+GPT-6 Cyber
+Investigate a vulnerability, reproduce it in an authorized test environment, or verify a fix.
 GPT-5.6 Cyber
-Our most advanced cybersecurity model for authorized vulnerability research and security testing.
-Daybreak Red
-An alias for advanced cybersecurity models for authorized vulnerability research and security testing.
-Daybreak Blue
-An alias for flagship general-purpose models with safeguards for defensive cybersecurity work.
+Cybersecurity model for authorized vulnerability research and security testing.
+Life sciences
+Models for life sciences research
+GPT-Rosalind Life sciences reasoning for approved organizations
 Open-weight models
 Open-weight models under a permissive Apache 2.0 license.
 gpt-oss-120b
@@ -590,6 +725,18 @@ text-embedding-ada-002
 Older embedding model
 More models
 Diverse models for a variety of tasks.
+GPT-6 Astra
+A reasoning model for complex coding and professional work.
+GPT-6.1 Sol
+Near-Astra performance for complex work at a lower cost.
+GPT-6 Sol
+Built to power complex coding and agentic workflows.
+GPT-5.6 Sol
+GPT-5.6 flagship model for complex professional work
+GPT-5.6 Terra
+GPT-5.6 model that balances intelligence and cost
+GPT-5.6 Luna
+GPT-5.6 model optimized for cost-sensitive workloads
 GPT-5.5
 A new class of intelligence for coding and professional work.
 GPT-5.5 Pro
@@ -598,182 +745,221 @@ GPT-5.4
 A more affordable model for coding and professional work.
 GPT-5.4 Pro
 Version of GPT-5.4 that produces smarter and more precise responses.
-GPT-5.4 Mini
+GPT-5.4 mini
 Our strongest mini model yet for coding, computer use, and subagents
-GPT-5.4 nano
-Our cheapest GPT-5.4-class model for simple high-volume tasks
-GPT-5.3-Codex
-The most capable agentic coding model to date.
 GPT-5.2
 Previous flagship model for professional work with configurable reasoning effort
 GPT-5.2 Pro
 Previous pro model for professional work that produces smarter and more precise responses.
-GPT-5.1
-The best model for coding and agentic tasks with configurable reasoning effort
-GPT-5
-Previous intelligent reasoning model for coding and agentic tasks with configurable reasoning effort
-GPT-5 Mini
-Strong intelligence for cost sensitive, low latency, high volume workloads
-GPT-5 nano
-Fastest, most cost-efficient version of GPT-5
-GPT-5 Pro
-Version of GPT-5 that produces smarter and more precise responses
-o3-pro
-Version of o3 with more compute for better responses
-o3
-Reasoning model for complex tasks, succeeded by GPT-5
-GPT-4.1
-Smartest non-reasoning model
-GPT-4.1 Mini
-Smaller, faster version of GPT-4.1
 omni-moderation
 Identify potentially harmful content in text and images
-GPT-4o Mini
-Fast, affordable small model for focused tasks
-GPT-4o
-Fast, intelligent, flexible GPT model
+ChatGPT models
+Models used in ChatGPT, not recommended for API use.
+Chat Latest
+Latest Instant model used in ChatGPT
+Show deprecated models Hide deprecated models Deprecated models
+Includes models that have already shut down.
+GPT-Image-2
+Deprecated
+State-of-the-art image generation model
+GPT Image 1.5
+Deprecated
+Our previous image generation model
+chatgpt-image-latest
+Deprecated
+Previous image model used in ChatGPT.
+GPT Image 1
+Shut down
+Retired image generation model
+GPT Image 1 mini
+Deprecated
+A cost-efficient version of GPT Image 1
 GPT-Realtime
 Deprecated
 Model capable of realtime text and audio inputs and outputs
 GPT-Audio
 Deprecated
 For audio inputs and outputs with Chat Completions API
-GPT-5.3 Chat
+GPT-4o Transcribe
 Deprecated
-GPT-5.3 Instant model used in ChatGPT
-GPT-5.2 Chat
+Speech-to-text model powered by GPT-4o
+GPT-4o Mini Transcribe
 Deprecated
-GPT-5.2 model used in ChatGPT
-GPT-5.2-Codex
+Speech-to-text model powered by GPT-4o mini
+GPT-4o Transcribe Diarize
 Deprecated
-Our most intelligent coding model optimized for long-horizon, agentic coding tasks.
-Sora 2
+Transcription model that identifies who's speaking when
+TTS-1
 Deprecated
-Flagship video generation with synced audio
-Sora 2 Pro
+Text-to-speech model optimized for speed
+TTS-1 HD
 Deprecated
-Most advanced synced-audio video generation
-GPT-Image-1.5
+Text-to-speech model optimized for quality
+Whisper
 Deprecated
-Our previous image generation model
-chatgpt-image-latest
-Deprecated
-Previous image model used in ChatGPT.
-GPT-Image-1 Mini
-Deprecated
-A cost-efficient version of GPT Image 1
-GPT-Image-1
-Deprecated
-Our previous image generation model
-o3-deep-research
-Deprecated
-Our most powerful deep research model
-o4-mini-deep-research
-Deprecated
-Faster, more affordable deep research model
-GPT-4.1 nano
-Deprecated
-Fastest, most cost-efficient version of GPT-4.1
-o4-mini
-Deprecated
-Fast, cost-efficient reasoning model, succeeded by GPT-5 Mini
-o1-pro
-Deprecated
-Version of o1 with more compute for better responses
-computer-use-preview
-Deprecated
-Specialized model for computer use tool
-GPT-Realtime Mini
+General-purpose speech recognition model
+GPT-Realtime mini
 Deprecated
 A cost-efficient version of GPT-Realtime
-GPT-Audio Mini
+GPT-Audio mini
 Deprecated
 A cost-efficient version of GPT Audio
-GPT-4o Mini Search Preview
-Deprecated
-Fast, affordable small model for web search
-GPT-4o Search Preview
-Deprecated
-GPT model for web search in Chat Completions
-GPT-4.5 Preview
-Deprecated
-Deprecated large model.
-o3-mini
-Deprecated
-A small model alternative to o3
-o1
-Deprecated
-Previous full o-series reasoning model
-o1-mini
-Deprecated
-A small model alternative to o1
-o1 Preview
-Deprecated
-Preview of our first o-series reasoning model
 GPT-4o Audio
-Deprecated
+Shut down
 GPT-4o models capable of audio inputs and outputs
 GPT-4o Mini Audio
-Deprecated
+Shut down
 Smaller model capable of audio inputs and outputs
-GPT-4o Mini Realtime
-Deprecated
-Smaller realtime model for text and audio inputs and outputs
 GPT-4o Realtime
-Deprecated
+Shut down
 Model capable of realtime text and audio inputs and outputs
-GPT-4 Turbo
+GPT-4o Mini Realtime
+Shut down
+Smaller realtime model for text and audio inputs and outputs
+GPT-4o mini TTS
 Deprecated
+Text-to-speech model powered by GPT-4o mini
+Daybreak Red
+Deprecated
+An alias for advanced cybersecurity models for authorized vulnerability research and security testing.
+Daybreak Blue
+Deprecated
+An alias for flagship general-purpose models with safeguards for defensive cybersecurity work.
+GPT-5.4 nano
+Deprecated
+Our cheapest GPT-5.4-class model for simple high-volume tasks
+GPT-5.3-Codex
+Deprecated
+The most capable agentic coding model to date.
+GPT-5.1
+Deprecated
+The best model for coding and agentic tasks with configurable reasoning effort
+GPT-5
+Deprecated
+Previous intelligent reasoning model for coding and agentic tasks with configurable reasoning effort
+GPT-5 mini
+Deprecated
+Strong intelligence for cost sensitive, low latency, high volume workloads
+GPT-5 nano
+Deprecated
+Fastest, most cost-efficient version of GPT-5
+GPT-5 pro
+Deprecated
+Version of GPT-5 that produces smarter and more precise responses
+o3-pro
+Deprecated
+Version of o3 with more compute for better responses
+o3
+Deprecated
+Reasoning model for complex tasks, succeeded by GPT-5
+GPT-4.1
+Deprecated
+Smartest non-reasoning model
+GPT-4.1 mini
+Deprecated
+Smaller, faster version of GPT-4.1
+GPT-4o mini
+Deprecated
+Fast, affordable small model for focused tasks
+GPT-5.3 Chat
+Shut down
+GPT-5.3 Instant model used in ChatGPT
+GPT-5.2 Chat
+Shut down
+GPT-5.2 model used in ChatGPT
+GPT-5.2-Codex
+Shut down
+Our most intelligent coding model optimized for long-horizon, agentic coding tasks.
+o3-deep-research
+Shut down
+Retired deep research model
+o4-mini-deep-research
+Shut down
+Retired deep research model
+GPT-4.1 nano
+Shut down
+Fastest, most cost-efficient version of GPT-4.1
+o4-mini
+Shut down
+Fast, cost-efficient reasoning model, succeeded by GPT-5 mini
+o1-pro
+Shut down
+Version of o1 with more compute for better responses
+computer-use-preview
+Shut down
+Specialized model for computer use tool
+GPT-4o mini search preview
+Shut down
+Fast, affordable small model for web search
+GPT-4o search preview
+Shut down
+GPT model for web search in Chat Completions
+GPT-4.5 Preview
+Shut down
+Deprecated large model.
+o3-mini
+Shut down
+A small model alternative to o3
+o1
+Shut down
+Previous full o-series reasoning model
+o1-mini
+Shut down
+A small model alternative to o1
+o1-preview
+Shut down
+Preview of our first o-series reasoning model
+GPT-4o
+Deprecated
+Fast, intelligent, flexible GPT model
+GPT-4 Turbo
+Shut down
 An older high-intelligence GPT model
 babbage-002
-Deprecated
+Shut down
 Replacement for the GPT-3 ada and babbage base models
 ChatGPT-4o
-Deprecated
+Shut down
 GPT-4o model used in ChatGPT
 GPT-5.1-Codex
-Deprecated
+Shut down
 A version of GPT-5.1 optimized for agentic coding in Codex.
 GPT-5.1-Codex-Max
-Deprecated
-A version of GPT-5.1-codex optimized for long running tasks.
-GPT-5.1-Codex Mini
-Deprecated
+Shut down
+A version of GPT-5.1-Codex optimized for long running tasks.
+GPT-5.1-Codex-Mini
+Shut down
 Smaller, more cost-effective, less-capable version of GPT-5.1-Codex
 GPT-5-Codex
-Deprecated
+Shut down
 A version of GPT-5 optimized for agentic coding in Codex
 codex-mini-latest
-Deprecated
+Shut down
 Fast reasoning model optimized for the Codex CLI
 davinci-002
-Deprecated
+Shut down
 Replacement for the GPT-3 curie and davinci base models
 GPT-3.5 Turbo
-Deprecated
+Shut down
 Legacy GPT model for cheaper chat and non-chat tasks
 GPT-4
-Deprecated
+Shut down
 An older high-intelligence GPT model
-GPT-4 Turbo Preview
-Deprecated
+GPT-4 Turbo preview
+Shut down
 An older fast GPT model
 GPT-5.1 Chat
-Deprecated
+Shut down
 GPT-5.1 model used in ChatGPT
 GPT-5 Chat
-Deprecated
+Shut down
 GPT-5 model used in ChatGPT
 text-moderation
-Deprecated
+Shut down
 Previous generation text-only moderation model
 text-moderation-stable
-Deprecated
+Shut down
 Previous generation text-only moderation model
-ChatGPT models
-Models used in ChatGPT, not recommended for API use.
-Chat Latest
-Latest Instant model used in ChatGPT
 How we use your data · Deprecated models
 Ask AI
 Docs agent

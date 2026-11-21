@@ -1,395 +1,870 @@
-Understand and count tokens | Gemini API | Google AI for Developers
-Skip to main content
-English
-Deutsch
-Español – América Latina
-Français
-Indonesia
-Italiano
-Polski
-Português – Brasil
-Shqip
-Tiếng Việt
-Türkçe
-Русский
-עברית
-العربيّة
-فارسی
-हिंदी
-বাংলা
-ภาษาไทย
-中文 – 简体
-中文 – 繁體
-日本語
-한국어
-Get API key
-Cookbook
-Community
-Gemini 3.8 Flash is now available. Try it out .
-Home
-Gemini API
-Docs
-Send feedback
-Understand and count tokens
+> ## AI Agent Context
+> - Full documentation index: https://aistudio.google.com/llms.txt
+> - Gemini Docs MCP server (consistent live info): https://gemini-api-docs-mcp.dev
+> - Coding agent skills & setup guide: https://aistudio.google.com/docs/coding-agents.md
+# Understand and count tokens
 Gemini and other generative AI models process input and output at a granularity
-called a token .
-For Gemini models, a token is equivalent to about 4 characters.
-100 tokens is equal to about 60-80 English words.
-About tokens
-Tokens can be single characters like z or whole words like cat . Long words
+called a *token*.
+**For Gemini models, a token is equivalent to about 4 characters.
+100 tokens is equal to about 60-80 English words.**
+## About tokens {% id="about-tokens" %}
+Tokens can be single characters like `z` or whole words like `cat`. Long words
 are broken up into several tokens. The set of all tokens used by the model is
 called the vocabulary, and the process of splitting text into tokens is called
-tokenization .
-When billing is enabled, the cost of a call to the Gemini API is
+*tokenization*.
+When billing is enabled, the [cost of a call to the Gemini API](/docs/pricing) is
 determined in part by the number of input and output tokens, so knowing how to
 count tokens can be helpful.
-Count tokens
+## Count tokens {% id="count-tokens" %}
 All input to and output from the Gemini API is tokenized, including text, image
 files, and other non-text modalities.
 You can count tokens in the following ways:
-Call count_tokens with the input of the request. Returns the total
-number of tokens in the input only . Make this call before sending input
+* **Call `count_tokens` with the input of the request.** Returns the total
+number of tokens in *the input only*. Make this call before sending input
 to check the size of your requests.
-Use the usage on the interaction response. Returns token
-counts for input ( total_input_tokens ), output ( total_output_tokens ),
-thinking ( total_thought_tokens ), cached content
-( total_cached_tokens ), tool use ( total_tool_use_tokens ),
-and total ( total_tokens ).
-Count text tokens
-Python
+* **Use the `usage` on the interaction response.** Returns token
+counts for input (`total_input_tokens`), output (`total_output_tokens`),
+thinking (`total_thought_tokens`), cached content
+(`total_cached_tokens`), tool use (`total_tool_use_tokens`),
+and total (`total_tokens`).
+### Count text tokens {% id="text-tokens" %}
+{% tabs %}
+{% tab label="Python" %}
+```python
 # This will only work for SDK newer than 2.0.0
 from google import genai
-client = genai . Client ()
+client = genai.Client()
 prompt = "The quick brown fox jumps over the lazy dog."
 # Count tokens before sending
-total_tokens = client . models . count_tokens (
-model = "gemini-3.8-flash" ,
-contents = prompt
+total_tokens = client.models.count_tokens(
+model="gemini-4-hydrogen",
+contents=prompt
 )
-print ( "total_tokens:" , total_tokens . total_tokens )
+print("total_tokens:", total_tokens.total_tokens)
 # Get usage from interaction
-interaction = client . interactions . create (
-model = "gemini-3.8-flash" ,
-input = prompt
+interaction = client.interactions.create(
+model="gemini-4-hydrogen",
+input=prompt
 )
-print ( interaction . usage )
-JavaScript
+print(interaction.usage)
+```
+{% /tab %}
+{% tab label="JavaScript" %}
+```javascript
 // This will only work for SDK newer than 2.0.0
-import { GoogleGenAI } from '@google/genai' ;
-const client = new GoogleGenAI ({});
-const prompt = "The quick brown fox jumps over the lazy dog." ;
+import { GoogleGenAI } from '@google/genai';
+const client = new GoogleGenAI({});
+const prompt = "The quick brown fox jumps over the lazy dog.";
 // Count tokens before sending
-const countResponse = await client . models . countTokens ({
-model : "gemini-3.8-flash" ,
-contents : prompt ,
+const countResponse = await client.models.countTokens({
+model: "gemini-4-hydrogen",
+contents: prompt,
 });
-console . log ( countResponse . totalTokens );
+console.log(countResponse.totalTokens);
 // Get usage from interaction
-const interaction = await client . interactions . create ({
-model : "gemini-3.8-flash" ,
-input : prompt ,
+const interaction = await client.interactions.create({
+model: "gemini-4-hydrogen",
+input: prompt,
 });
-console . log ( interaction . usage );
-Java
-import com.google.genai.Client ;
-import com.google.genai.gaos.models.interactions.CreateModelInteraction ;
-import com.google.genai.gaos.models.interactions.Interaction ;
-import com.google.genai.gaos.models.interactions.InteractionsInput ;
-import com.google.genai.gaos.models.interactions.Model ;
-import com.google.genai.gaos.models.interactions.Usage ;
-import com.google.genai.gaos.models.operations.CreateInteractionRequestBody ;
-Client client = new Client ();
+console.log(interaction.usage);
+```
+{% /tab %}
+{% tab label="Java" %}
+```java
+import com.google.genai.Client;
+import com.google.genai.gaos.models.interactions.CreateModelInteraction;
+import com.google.genai.gaos.models.interactions.Interaction;
+import com.google.genai.gaos.models.interactions.InteractionsInput;
+import com.google.genai.gaos.models.interactions.Model;
+import com.google.genai.gaos.models.operations.CreateInteractionRequestBody;
+import com.google.genai.types.CountTokensResponse;
+Client client = new Client();
+String prompt = "The quick brown fox jumps over the lazy dog.";
+// Count tokens before sending
+CountTokensResponse countResponse =
+client.models.countTokens("gemini-4-hydrogen", prompt, null);
+System.out.println("total_tokens: " + countResponse.totalTokens().orElse(0));
+// Get usage from interaction
 CreateModelInteraction params =
-CreateModelInteraction . builder ()
-. model ( Model . of ( "gemini-3.8-flash" ))
-. input ( InteractionsInput . of ( "Calculate tokens for this message." ))
-. build ();
+CreateModelInteraction.builder()
+.model(Model.of("gemini-4-hydrogen"))
+.input(InteractionsInput.of(prompt))
+.build();
 Interaction interaction =
-client . interactions . create ( CreateInteractionRequestBody . of ( params )). interaction (). get ();
-if ( interaction . usage (). isPresent ()) {
-Usage usage = interaction . usage (). get ();
-System . out . println ( "Input tokens: " + usage . totalInputTokens (). orElse ( 0 ));
-System . out . println ( "Output tokens: " + usage . totalOutputTokens (). orElse ( 0 ));
+client.interactions.create(CreateInteractionRequestBody.of(params)).interaction().get();
+System.out.println(interaction.usage().orElse(null));
+```
+{% /tab %}
+{% tab label="Go" %}
+```go
+package main
+import (
+"context"
+"fmt"
+"log"
+"google.golang.org/genai"
+)
+func main() {
+ctx := context.Background()
+client, err := genai.NewClient(ctx, nil)
+if err != nil {
+log.Fatal(err)
 }
-REST
+modelInfo, err := client.Models.Get(ctx, "gemini-4-hydrogen", nil)
+if err != nil {
+log.Fatal(err)
+}
+fmt.Printf("Input token limit: %d\n", modelInfo.InputTokenLimit)
+fmt.Printf("Output token limit: %d\n", modelInfo.OutputTokenLimit)
+}
+```
+{% /tab %}
+{% tab label="REST" %}
+```shell
 # Specifies the API revision to avoid breaking changes when they become default
-curl -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:countTokens" \
--H "x-goog-api-key: $GEMINI_API_KEY " \
+curl -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-4-hydrogen:countTokens" \
+-H "x-goog-api-key: $GEMINI_API_KEY" \
 -H "Content-Type: application/json" \
+-H "Api-Revision: 2026-05-20" \
 -d '{"contents": [{"parts": [{"text": "The quick brown fox."}]}]}'
-Count multi-turn tokens
-Count tokens across conversation history using previous_interaction_id :
-Python
+```
+{% /tab %}
+{% /tabs %}
+### Count multi-turn tokens {% id="multi-turn-tokens" %}
+Count tokens across conversation history using `previous_interaction_id`:
+{% tabs %}
+{% tab label="Python" %}
+```python
 # This will only work for SDK newer than 2.0.0
 # First interaction
-interaction1 = client . interactions . create (
-model = "gemini-3.8-flash" ,
-input = "Hi, my name is Bob"
+interaction1 = client.interactions.create(
+model="gemini-4-hydrogen",
+input="Hi, my name is Bob"
 )
 # Second interaction continues the conversation
-interaction2 = client . interactions . create (
-model = "gemini-3.8-flash" ,
-input = "What's my name?" ,
-previous_interaction_id = interaction1 . id
+interaction2 = client.interactions.create(
+model="gemini-4-hydrogen",
+input="What's my name?",
+previous_interaction_id=interaction1.id
 )
 # Usage includes tokens from both turns
-print ( f "Input tokens: { interaction2 . usage . total_input_tokens } " )
-print ( f "Output tokens: { interaction2 . usage . total_output_tokens } " )
-print ( f "Total tokens: { interaction2 . usage . total_tokens } " )
-JavaScript
+print(f"Input tokens: {interaction2.usage.total_input_tokens}")
+print(f"Output tokens: {interaction2.usage.total_output_tokens}")
+print(f"Total tokens: {interaction2.usage.total_tokens}")
+```
+{% /tab %}
+{% tab label="JavaScript" %}
+```javascript
 // This will only work for SDK newer than 2.0.0
 // First interaction
-const interaction1 = await client . interactions . create ({
-model : "gemini-3.8-flash" ,
-input : "Hi, my name is Bob"
+const interaction1 = await client.interactions.create({
+model: "gemini-4-hydrogen",
+input: "Hi, my name is Bob"
 });
 // Second interaction continues the conversation
-const interaction2 = await client . interactions . create ({
-model : "gemini-3.8-flash" ,
-input : "What's my name?" ,
-previous_interaction_id : interaction1 . id
+const interaction2 = await client.interactions.create({
+model: "gemini-4-hydrogen",
+input: "What's my name?",
+previous_interaction_id: interaction1.id
 });
-console . log ( `Input tokens: ${ interaction2 . usage . total_input_tokens } ` );
-console . log ( `Output tokens: ${ interaction2 . usage . total_output_tokens } ` );
-Java
-import com.google.genai.Client ;
-import com.google.genai.gaos.models.interactions.CreateModelInteraction ;
-import com.google.genai.gaos.models.interactions.Interaction ;
-import com.google.genai.gaos.models.interactions.InteractionsInput ;
-import com.google.genai.gaos.models.interactions.Model ;
-import com.google.genai.gaos.models.interactions.Usage ;
-import com.google.genai.gaos.models.operations.CreateInteractionRequestBody ;
-Client client = new Client ();
-CreateModelInteraction params =
-CreateModelInteraction . builder ()
-. model ( Model . of ( "gemini-3.8-flash" ))
-. input ( InteractionsInput . of ( "Calculate tokens for this message." ))
-. build ();
-Interaction interaction =
-client . interactions . create ( CreateInteractionRequestBody . of ( params )). interaction (). get ();
-if ( interaction . usage (). isPresent ()) {
-Usage usage = interaction . usage (). get ();
-System . out . println ( "Input tokens: " + usage . totalInputTokens (). orElse ( 0 ));
-System . out . println ( "Output tokens: " + usage . totalOutputTokens (). orElse ( 0 ));
+console.log(`Input tokens: ${interaction2.usage.total_input_tokens}`);
+console.log(`Output tokens: ${interaction2.usage.total_output_tokens}`);
+```
+{% /tab %}
+{% tab label="Java" %}
+```java
+import com.google.genai.Client;
+import com.google.genai.gaos.models.interactions.CreateModelInteraction;
+import com.google.genai.gaos.models.interactions.Interaction;
+import com.google.genai.gaos.models.interactions.InteractionsInput;
+import com.google.genai.gaos.models.interactions.Model;
+import com.google.genai.gaos.models.interactions.Usage;
+import com.google.genai.gaos.models.operations.CreateInteractionRequestBody;
+Client client = new Client();
+// First interaction
+CreateModelInteraction params1 =
+CreateModelInteraction.builder()
+.model(Model.of("gemini-4-hydrogen"))
+.input(InteractionsInput.of("Hi, my name is Bob"))
+.build();
+Interaction interaction1 =
+client.interactions.create(CreateInteractionRequestBody.of(params1)).interaction().get();
+// Second interaction continues the conversation
+CreateModelInteraction params2 =
+CreateModelInteraction.builder()
+.model(Model.of("gemini-4-hydrogen"))
+.input(InteractionsInput.of("What's my name?"))
+.previousInteractionId(interaction1.id().orElse(""))
+.build();
+Interaction interaction2 =
+client.interactions.create(CreateInteractionRequestBody.of(params2)).interaction().get();
+// Usage includes tokens from both turns
+if (interaction2.usage().isPresent()) {
+Usage usage = interaction2.usage().get();
+System.out.println("Input tokens: " + usage.totalInputTokens().orElse(0));
+System.out.println("Output tokens: " + usage.totalOutputTokens().orElse(0));
+System.out.println("Total tokens: " + usage.totalTokens().orElse(0));
 }
-Count multimodal tokens
+```
+{% /tab %}
+{% tab label="Go" %}
+```go
+package main
+import (
+"context"
+"fmt"
+"log"
+"google.golang.org/genai"
+"google.golang.org/genai/interactions/models/interactions"
+"google.golang.org/genai/interactions/models/operations"
+)
+func main() {
+ctx := context.Background()
+client, err := genai.NewClient(ctx, nil)
+if err != nil {
+log.Fatal(err)
+}
+prompt := "The quick brown fox jumps over the lazy dog."
+// Count input tokens before sending
+totalTokens, err := client.Models.CountTokens(ctx, "gemini-4-hydrogen", genai.Text(prompt), nil)
+if err != nil {
+log.Fatal(err)
+}
+fmt.Printf("total_tokens: %d\n", totalTokens.TotalTokens)
+// Create the interaction and inspect the returned usage metadata
+res, err := client.Interactions.Create(ctx, operations.CreateInteractionRequest{
+Body: operations.NewCreateInteractionRequestBody(interactions.CreateModelInteraction{
+Model: interactions.Model("gemini-4-hydrogen"),
+Input: interactions.NewInteractionsInput(prompt),
+}),
+})
+if err != nil {
+log.Fatal(err)
+}
+interaction := res.Interaction
+if interaction.OutputText != nil {
+fmt.Println(*interaction.OutputText)
+}
+if interaction.Usage != nil {
+if interaction.Usage.TotalInputTokens != nil {
+fmt.Printf("Input tokens: %d\n", *interaction.Usage.TotalInputTokens)
+}
+if interaction.Usage.TotalOutputTokens != nil {
+fmt.Printf("Output tokens: %d\n", *interaction.Usage.TotalOutputTokens)
+}
+if interaction.Usage.TotalThoughtTokens != nil {
+fmt.Printf("Thought tokens: %d\n", *interaction.Usage.TotalThoughtTokens)
+}
+if interaction.Usage.TotalTokens != nil {
+fmt.Printf("Total tokens: %d\n", *interaction.Usage.TotalTokens)
+}
+}
+}
+```
+{% /tab %}
+{% /tabs %}
+### Count multimodal tokens {% id="multimodal-tokens" %}
 All input to the Gemini API is tokenized, including images, video, and audio.
 Key points about tokenization:
-Images : Images ≤384 pixels in both dimensions count as 258 tokens. Larger
+* **Images**: Images ≤384 pixels in both dimensions count as 258 tokens. Larger
 images are tiled into 768x768 pixel tiles, each counting as 258 tokens.
-Video : 263 tokens per second (applies to static processing). For agentic
+* **Video**: 263 tokens per second (applies to static processing). For agentic
 processing, token usage varies. See
-Video token usage by processing mode .
-Audio : 32 tokens per second
-Image tokens
-Python
+[Video token usage by processing mode](/docs/tokens#video).
+* **Audio**: 32 tokens per second
+#### Image tokens {% id="images" %}
+{% tabs %}
+{% tab label="Python" %}
+```python
 # This will only work for SDK newer than 2.0.0
-uploaded_file = client . files . upload ( file = "path/to/image.jpg" )
+uploaded_file = client.files.upload(file="path/to/image.jpg")
 # Count tokens for image + text
-total_tokens = client . models . count_tokens (
-model = "gemini-3.8-flash" ,
-contents = [ "Tell me about this image" , uploaded_file ]
+total_tokens = client.models.count_tokens(
+model="gemini-4-hydrogen",
+contents=["Tell me about this image", uploaded_file]
 )
-print ( f "Total tokens: { total_tokens } " )
+print(f"Total tokens: {total_tokens}")
 # Generate with image
-interaction = client . interactions . create (
-model = "gemini-3.8-flash" ,
-input = [
-{ "type" : "text" , "text" : "Tell me about this image" },
-{ "type" : "image" , "uri" : uploaded_file . uri , "mime_type" : uploaded_file . mime_type }
+interaction = client.interactions.create(
+model="gemini-4-hydrogen",
+input=[
+{"type": "text", "text": "Tell me about this image"},
+{"type": "image", "uri": uploaded_file.uri, "mime_type": uploaded_file.mime_type}
 ]
 )
-print ( interaction . usage )
-JavaScript
+print(interaction.usage)
+```
+{% /tab %}
+{% tab label="JavaScript" %}
+```javascript
 // This will only work for SDK newer than 2.0.0
-const uploadedFile = await client . files . upload ({
-file : "path/to/image.jpg" ,
-config : { mimeType : "image/jpeg" }
+const uploadedFile = await client.files.upload({
+file: "path/to/image.jpg",
+config: { mimeType: "image/jpeg" }
 });
 // Count tokens
-const countResponse = await client . models . countTokens ({
-model : "gemini-3.8-flash" ,
-contents : [
-{ text : "Tell me about this image" },
-{ fileData : { fileUri : uploadedFile . uri , mimeType : uploadedFile . mimeType } }
+const countResponse = await client.models.countTokens({
+model: "gemini-4-hydrogen",
+contents: [
+{ text: "Tell me about this image" },
+{ fileData: { fileUri: uploadedFile.uri, mimeType: uploadedFile.mimeType } }
 ]
 });
-console . log ( countResponse . totalTokens );
-Java
-import com.google.genai.Client ;
-import com.google.genai.gaos.models.interactions.CreateModelInteraction ;
-import com.google.genai.gaos.models.interactions.Interaction ;
-import com.google.genai.gaos.models.interactions.InteractionsInput ;
-import com.google.genai.gaos.models.interactions.Model ;
-import com.google.genai.gaos.models.interactions.Usage ;
-import com.google.genai.gaos.models.operations.CreateInteractionRequestBody ;
-Client client = new Client ();
+console.log(countResponse.totalTokens);
+```
+{% /tab %}
+{% tab label="Java" %}
+```java
+import com.google.genai.Client;
+import com.google.genai.gaos.models.interactions.CreateModelInteraction;
+import com.google.genai.gaos.models.interactions.ImageContent;
+import com.google.genai.gaos.models.interactions.ImageContentMimeType;
+import com.google.genai.gaos.models.interactions.Interaction;
+import com.google.genai.gaos.models.interactions.InteractionsInput;
+import com.google.genai.gaos.models.interactions.Model;
+import com.google.genai.gaos.models.interactions.TextContent;
+import com.google.genai.gaos.models.operations.CreateInteractionRequestBody;
+import com.google.genai.types.Content;
+import com.google.genai.types.CountTokensResponse;
+import com.google.genai.types.File;
+import com.google.genai.types.Part;
+import com.google.genai.types.UploadFileConfig;
+import java.util.Arrays;
+Client client = new Client();
+File uploadedFile =
+client.files.upload(
+new java.io.File("path/to/image.jpg"),
+UploadFileConfig.builder().mimeType("image/jpeg").build());
+// Count tokens for image + text
+CountTokensResponse countResponse =
+client.models.countTokens(
+"gemini-4-hydrogen",
+Arrays.asList(
+Content.fromParts(
+Part.fromText("Tell me about this image"),
+Part.fromUri(
+uploadedFile.uri().orElse(""), uploadedFile.mimeType().orElse("image/jpeg")))),
+null);
+System.out.println("Total tokens: " + countResponse.totalTokens().orElse(0));
+// Generate with image
 CreateModelInteraction params =
-CreateModelInteraction . builder ()
-. model ( Model . of ( "gemini-3.8-flash" ))
-. input ( InteractionsInput . of ( "Calculate tokens for this message." ))
-. build ();
+CreateModelInteraction.builder()
+.model(Model.of("gemini-4-hydrogen"))
+.input(
+InteractionsInput.ofContent(
+Arrays.asList(
+TextContent.builder().text("Tell me about this image").build(),
+ImageContent.builder()
+.uri(uploadedFile.uri().orElse(""))
+.mimeType(
+ImageContentMimeType.of(uploadedFile.mimeType().orElse("image/jpeg")))
+.build())))
+.build();
 Interaction interaction =
-client . interactions . create ( CreateInteractionRequestBody . of ( params )). interaction (). get ();
-if ( interaction . usage (). isPresent ()) {
-Usage usage = interaction . usage (). get ();
-System . out . println ( "Input tokens: " + usage . totalInputTokens (). orElse ( 0 ));
-System . out . println ( "Output tokens: " + usage . totalOutputTokens (). orElse ( 0 ));
+client.interactions.create(CreateInteractionRequestBody.of(params)).interaction().get();
+System.out.println(interaction.usage().orElse(null));
+```
+{% /tab %}
+{% tab label="Go" %}
+```go
+package main
+import (
+"context"
+"fmt"
+"log"
+"google.golang.org/genai"
+"google.golang.org/genai/interactions/models/interactions"
+"google.golang.org/genai/interactions/models/operations"
+)
+func main() {
+ctx := context.Background()
+client, err := genai.NewClient(ctx, nil)
+if err != nil {
+log.Fatal(err)
 }
-Inline data example:
-Python
+res, err := client.Interactions.Create(ctx, operations.CreateInteractionRequest{
+Body: operations.NewCreateInteractionRequestBody(interactions.CreateModelInteraction{
+Model: interactions.Model("gemini-4-hydrogen"),
+Input: interactions.NewInteractionsInput("Explain the history of the internet in 3 paragraphs."),
+Stream: genai.Ptr(true),
+}),
+})
+if err != nil {
+log.Fatal(err)
+}
+stream := res.InteractionSSEStreamEvent
+defer stream.Close()
+for stream.Next() {
+event := stream.Value()
+if stepDelta := event.GetDataStepDelta(); stepDelta != nil {
+if textDelta := stepDelta.GetDeltaText(); textDelta != nil {
+fmt.Print(textDelta.GetText())
+}
+}
+if completed := event.GetDataInteractionCompleted(); completed != nil {
+usage := completed.Interaction.Usage
+if usage != nil && usage.TotalTokens != nil {
+fmt.Printf("\nTotal tokens: %d\n", *usage.TotalTokens)
+}
+}
+}
+if err := stream.Err(); err != nil {
+log.Fatal(err)
+}
+}
+```
+{% /tab %}
+{% /tabs %}
+**Inline data example:**
+{% tabs %}
+{% tab label="Python" %}
+```python
 # This will only work for SDK newer than 2.0.0
 import base64
-with open ( 'image.jpg' , 'rb' ) as f :
-image_bytes = f . read ()
-interaction = client . interactions . create (
-model = "gemini-3.8-flash" ,
-input = [
-{ "type" : "text" , "text" : "Describe this image" },
+with open('image.jpg', 'rb') as f:
+image_bytes = f.read()
+interaction = client.interactions.create(
+model="gemini-4-hydrogen",
+input=[
+{"type": "text", "text": "Describe this image"},
 {
-"type" : "image" ,
-"data" : base64 . b64encode ( image_bytes ) . decode ( 'utf-8' ),
-"mime_type" : "image/jpeg"
+"type": "image",
+"data": base64.b64encode(image_bytes).decode('utf-8'),
+"mime_type": "image/jpeg"
 }
 ]
 )
-print ( interaction . usage )
-Video tokens
-Python
+print(interaction.usage)
+```
+{% /tab %}
+{% tab label="Java" %}
+```java
+import com.google.genai.Client;
+import com.google.genai.gaos.models.interactions.CreateModelInteraction;
+import com.google.genai.gaos.models.interactions.ImageContent;
+import com.google.genai.gaos.models.interactions.ImageContentMimeType;
+import com.google.genai.gaos.models.interactions.Interaction;
+import com.google.genai.gaos.models.interactions.InteractionsInput;
+import com.google.genai.gaos.models.interactions.Model;
+import com.google.genai.gaos.models.interactions.TextContent;
+import com.google.genai.gaos.models.operations.CreateInteractionRequestBody;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Base64;
+Client client = new Client();
+byte[] imageBytes = Files.readAllBytes(Paths.get("image.jpg"));
+String base64Image = Base64.getEncoder().encodeToString(imageBytes);
+CreateModelInteraction params =
+CreateModelInteraction.builder()
+.model(Model.of("gemini-4-hydrogen"))
+.input(
+InteractionsInput.ofContent(
+Arrays.asList(
+TextContent.builder().text("Describe this image").build(),
+ImageContent.builder()
+.data(base64Image)
+.mimeType(ImageContentMimeType.IMAGE_JPEG)
+.build())))
+.build();
+Interaction interaction =
+client.interactions.create(CreateInteractionRequestBody.of(params)).interaction().get();
+System.out.println(interaction.usage().orElse(null));
+```
+{% /tab %}
+{% /tabs %}
+#### Video tokens {% id="video" %}
+Token calculation for video depends on the processing mode:
+| **Processing mode** | **Frames sampled** | **Tokens per second** | **Tokens for 60s video** |
+| --- | --- | --- | --- |
+| **Static** (default) | 1 FPS (all frames) | ~100 (default low resolution) / ~300 (high resolution) | ~6,000 (default) / ~18,000 (high) |
+| **Agentic** | Dynamic (on demand) | Variable (up to 88% fewer) | Typically 1,500 to 3,000 |
+For details on setting the processing mode, see
+[Agentic video understanding](/docs/video-understanding#agentic-video-understanding).
+{% callout type="note" %}
+For static processing, token calculations assume the default sampling rate of
+1 FPS. If you set a [custom frame rate](/docs/video-understanding?generate-content=true#custom-frame-rate)
+in the GenerateContent API, token usage scales proportionally with the
+configured FPS.
+{% /callout %}
+To check actual token usage for a request, inspect `interaction.usage`. Agentic video tokens are reported across the following fields:
+* **Initial prompt** (video reference + user prompt): `total_input_tokens`
+* **Navigation thinking**: `total_thought_tokens`
+* **Transcript, frames, and audio loaded on demand**: `total_tool_use_tokens`
+* **Final answer**: `total_output_tokens`
+{% tabs %}
+{% tab label="Python" %}
+```python
 # This will only work for SDK newer than 2.0.0
 import time
-video_file = client . files . upload ( file = "path/to/video.mp4" )
-while not video_file . state or video_file . state . name != "ACTIVE" :
-print ( "Processing video..." )
-time . sleep ( 5 )
-video_file = client . files . get ( name = video_file . name )
+video_file = client.files.upload(file="path/to/video.mp4")
+while not video_file.state or video_file.state.name != "ACTIVE":
+print("Processing video...")
+time.sleep(5)
+video_file = client.files.get(name=video_file.name)
 # A 60-second video is approximately 100 * 60 = 6,000 tokens
-total_tokens = client . models . count_tokens (
-model = "gemini-3.8-flash" ,
-contents = [ "Summarize this video" , video_file ]
+total_tokens = client.models.count_tokens(
+model="gemini-4-hydrogen",
+contents=["Summarize this video", video_file]
 )
-print ( f "Total tokens: { total_tokens } " )
+print(f"Total tokens: {total_tokens}")
 # Generate with video
-interaction = client . interactions . create (
-model = "gemini-3.8-flash" ,
-input = [
-{ "type" : "text" , "text" : "Summarize this video" },
-{ "type" : "video" , "uri" : video_file . uri , "mime_type" : video_file . mime_type }
+interaction = client.interactions.create(
+model="gemini-4-hydrogen",
+input=[
+{"type": "text", "text": "Summarize this video"},
+{"type": "video", "uri": video_file.uri, "mime_type": video_file.mime_type}
 ]
 )
-print ( interaction . usage )
-Video token usage by processing mode
-Token usage for video depends on the processing mode:
-Processing mode
-Token calculation
-Typical usage
-Static (default)
-~100 tokens/second by default (low resolution) or ~300 tokens/second (high resolution). All frames sampled at 1 FPS.
-Predictable, proportional to video duration.
-Agentic
-Varies by content complexity. The model loads only the transcript and/or frames and/or audio needed to answer the prompt.
-Up to 88% fewer tokens for long-form content.
-With agentic processing, a 1-hour lecture that would use ~1.08M tokens in
-static mode might use ~108K tokens, depending on the prompt and content.
-To check actual token usage for a request, inspect interaction.usage . Agentic video tokens are reported across the following fields:
-Initial prompt (video reference + user prompt): total_input_tokens
-Navigation thinking : total_thought_tokens
-Transcript, frames, and audio loaded on demand : total_tool_use_tokens
-Final answer : total_output_tokens
-Audio tokens
-Python
+print(interaction.usage)
+```
+{% /tab %}
+{% tab label="Java" %}
+```java
+import com.google.genai.Client;
+import com.google.genai.gaos.models.interactions.CreateModelInteraction;
+import com.google.genai.gaos.models.interactions.Interaction;
+import com.google.genai.gaos.models.interactions.InteractionsInput;
+import com.google.genai.gaos.models.interactions.Model;
+import com.google.genai.gaos.models.interactions.TextContent;
+import com.google.genai.gaos.models.interactions.VideoContent;
+import com.google.genai.gaos.models.interactions.VideoContentMimeType;
+import com.google.genai.gaos.models.operations.CreateInteractionRequestBody;
+import com.google.genai.types.Content;
+import com.google.genai.types.CountTokensResponse;
+import com.google.genai.types.File;
+import com.google.genai.types.FileState;
+import com.google.genai.types.Part;
+import com.google.genai.types.UploadFileConfig;
+import java.util.Arrays;
+Client client = new Client();
+File videoFile =
+client.files.upload(
+new java.io.File("path/to/video.mp4"),
+UploadFileConfig.builder().mimeType("video/mp4").build());
+// Wait for processing
+while (videoFile.state().isPresent()
+&& videoFile.state().get().knownEnum() == FileState.Known.PROCESSING) {
+Thread.sleep(5000);
+videoFile = client.files.get(videoFile.name().orElse(""), null);
+}
+// A 60-second video is approximately 100 * 60 = 6,000 tokens
+CountTokensResponse countResponse =
+client.models.countTokens(
+"gemini-4-hydrogen",
+Arrays.asList(
+Content.fromParts(
+Part.fromText("Summarize this video"),
+Part.fromUri(
+videoFile.uri().orElse(""), videoFile.mimeType().orElse("video/mp4")))),
+null);
+System.out.println("Total tokens: " + countResponse.totalTokens().orElse(0));
+// Generate with video
+CreateModelInteraction params =
+CreateModelInteraction.builder()
+.model(Model.of("gemini-4-hydrogen"))
+.input(
+InteractionsInput.ofContent(
+Arrays.asList(
+TextContent.builder().text("Summarize this video").build(),
+VideoContent.builder()
+.uri(videoFile.uri().orElse(""))
+.mimeType(VideoContentMimeType.of(videoFile.mimeType().orElse("video/mp4")))
+.build())))
+.build();
+Interaction interaction =
+client.interactions.create(CreateInteractionRequestBody.of(params)).interaction().get();
+System.out.println(interaction.usage().orElse(null));
+```
+{% /tab %}
+{% /tabs %}
+#### Audio tokens {% id="audio" %}
+{% tabs %}
+{% tab label="Python" %}
+```python
 # This will only work for SDK newer than 2.0.0
-audio_file = client . files . upload ( file = "path/to/audio.mp3" )
+audio_file = client.files.upload(file="path/to/audio.mp3")
 # A 60-second audio clip is approximately 32 * 60 = 1,920 tokens
-total_tokens = client . models . count_tokens (
-model = "gemini-3.8-flash" ,
-contents = [ "Transcribe this audio" , audio_file ]
+total_tokens = client.models.count_tokens(
+model="gemini-4-hydrogen",
+contents=["Transcribe this audio", audio_file]
 )
-print ( f "Total tokens: { total_tokens } " )
+print(f"Total tokens: {total_tokens}")
 # Generate with audio
-interaction = client . interactions . create (
-model = "gemini-3.8-flash" ,
-input = [
-{ "type" : "text" , "text" : "Transcribe this audio" },
-{ "type" : "audio" , "uri" : audio_file . uri , "mime_type" : audio_file . mime_type }
+interaction = client.interactions.create(
+model="gemini-4-hydrogen",
+input=[
+{"type": "text", "text": "Transcribe this audio"},
+{"type": "audio", "uri": audio_file.uri, "mime_type": audio_file.mime_type}
 ]
 )
-print ( interaction . usage )
-Count system instruction tokens
+print(interaction.usage)
+```
+{% /tab %}
+{% tab label="Java" %}
+```java
+import com.google.genai.Client;
+import com.google.genai.gaos.models.interactions.AudioContent;
+import com.google.genai.gaos.models.interactions.AudioContentMimeType;
+import com.google.genai.gaos.models.interactions.CreateModelInteraction;
+import com.google.genai.gaos.models.interactions.Interaction;
+import com.google.genai.gaos.models.interactions.InteractionsInput;
+import com.google.genai.gaos.models.interactions.Model;
+import com.google.genai.gaos.models.interactions.TextContent;
+import com.google.genai.gaos.models.operations.CreateInteractionRequestBody;
+import com.google.genai.types.Content;
+import com.google.genai.types.CountTokensResponse;
+import com.google.genai.types.File;
+import com.google.genai.types.Part;
+import com.google.genai.types.UploadFileConfig;
+import java.util.Arrays;
+Client client = new Client();
+File audioFile =
+client.files.upload(
+new java.io.File("path/to/audio.mp3"),
+UploadFileConfig.builder().mimeType("audio/mp3").build());
+// A 60-second audio clip is approximately 32 * 60 = 1,920 tokens
+CountTokensResponse countResponse =
+client.models.countTokens(
+"gemini-4-hydrogen",
+Arrays.asList(
+Content.fromParts(
+Part.fromText("Transcribe this audio"),
+Part.fromUri(
+audioFile.uri().orElse(""), audioFile.mimeType().orElse("audio/mp3")))),
+null);
+System.out.println("Total tokens: " + countResponse.totalTokens().orElse(0));
+// Generate with audio
+CreateModelInteraction params =
+CreateModelInteraction.builder()
+.model(Model.of("gemini-4-hydrogen"))
+.input(
+InteractionsInput.ofContent(
+Arrays.asList(
+TextContent.builder().text("Transcribe this audio").build(),
+AudioContent.builder()
+.uri(audioFile.uri().orElse(""))
+.mimeType(AudioContentMimeType.of(audioFile.mimeType().orElse("audio/mp3")))
+.build())))
+.build();
+Interaction interaction =
+client.interactions.create(CreateInteractionRequestBody.of(params)).interaction().get();
+System.out.println(interaction.usage().orElse(null));
+```
+{% /tab %}
+{% /tabs %}
+### Count system instruction tokens {% id="system-instructions" %}
 System instructions are counted as part of the input tokens:
-Python
+{% tabs %}
+{% tab label="Python" %}
+```python
 # This will only work for SDK newer than 2.0.0
-interaction = client . interactions . create (
-model = "gemini-3.8-flash" ,
-input = "Hello!" ,
-system_instruction = "You are a helpful assistant who speaks like a pirate."
+interaction = client.interactions.create(
+model="gemini-4-hydrogen",
+input="Hello!",
+system_instruction="You are a helpful assistant who speaks like a pirate."
 )
 # system_instruction tokens included in total_input_tokens
-print ( f "Input tokens: { interaction . usage . total_input_tokens } " )
-Count tool tokens
+print(f"Input tokens: {interaction.usage.total_input_tokens}")
+```
+{% /tab %}
+{% tab label="Java" %}
+```java
+import com.google.genai.Client;
+import com.google.genai.gaos.models.interactions.CreateModelInteraction;
+import com.google.genai.gaos.models.interactions.Interaction;
+import com.google.genai.gaos.models.interactions.InteractionsInput;
+import com.google.genai.gaos.models.interactions.Model;
+import com.google.genai.gaos.models.operations.CreateInteractionRequestBody;
+Client client = new Client();
+CreateModelInteraction params =
+CreateModelInteraction.builder()
+.model(Model.of("gemini-4-hydrogen"))
+.input(InteractionsInput.of("Hello!"))
+.systemInstruction("You are a helpful assistant who speaks like a pirate.")
+.build();
+Interaction interaction =
+client.interactions.create(CreateInteractionRequestBody.of(params)).interaction().get();
+// system_instruction tokens included in total_input_tokens
+if (interaction.usage().isPresent()) {
+System.out.println(
+"Input tokens: " + interaction.usage().get().totalInputTokens().orElse(0));
+}
+```
+{% /tab %}
+{% /tabs %}
+### Count tool tokens {% id="tools" %}
 Tools (functions, code execution, Google Search) are also counted:
-Python
+{% tabs %}
+{% tab label="Python" %}
+```python
 # This will only work for SDK newer than 2.0.0
 tools = [
 {
-"type" : "function" ,
-"name" : "get_weather" ,
-"description" : "Get current weather" ,
-"parameters" : {
-"type" : "object" ,
-"properties" : {
-"location" : { "type" : "string" }
+"type": "function",
+"name": "get_weather",
+"description": "Get current weather",
+"parameters": {
+"type": "object",
+"properties": {
+"location": {"type": "string"}
 }
 }
 }
 ]
-interaction = client . interactions . create (
-model = "gemini-3.8-flash" ,
-input = "What's the weather in Tokyo?" ,
-tools = tools
+interaction = client.interactions.create(
+model="gemini-4-hydrogen",
+input="What's the weather in Tokyo?",
+tools=tools
 )
-print ( f "Input tokens: { interaction . usage . total_input_tokens } " )
-print ( f "Tool use tokens: { interaction . usage . total_tool_use_tokens } " )
-Context window
-Each Gemini model has a maximum number of tokens it can handle. The context
-window defines the combined limit of input and output tokens.
-Get context window size programmatically
-Python
-# This will only work for SDK newer than 2.0.0
-model_info = client . models . get ( model = "gemini-3.8-flash" )
-print ( f "Input token limit: { model_info . input_token_limit } " )
-print ( f "Output token limit: { model_info . output_token_limit } " )
-JavaScript
-// This will only work for SDK newer than 2.0.0
-const modelInfo = await client . models . get ({ model : "gemini-3.8-flash" });
-console . log ( `Input token limit: ${ modelInfo . inputTokenLimit } ` );
-console . log ( `Output token limit: ${ modelInfo . outputTokenLimit } ` );
-Java
-import com.google.genai.Client ;
-import com.google.genai.gaos.models.interactions.CreateModelInteraction ;
-import com.google.genai.gaos.models.interactions.Interaction ;
-import com.google.genai.gaos.models.interactions.InteractionsInput ;
-import com.google.genai.gaos.models.interactions.Model ;
-import com.google.genai.gaos.models.interactions.Usage ;
-import com.google.genai.gaos.models.operations.CreateInteractionRequestBody ;
-Client client = new Client ();
+print(f"Input tokens: {interaction.usage.total_input_tokens}")
+print(f"Tool use tokens: {interaction.usage.total_tool_use_tokens}")
+```
+{% /tab %}
+{% tab label="Java" %}
+```java
+import com.google.genai.Client;
+import com.google.genai.gaos.models.interactions.CreateModelInteraction;
+import com.google.genai.gaos.models.interactions.Function;
+import com.google.genai.gaos.models.interactions.Interaction;
+import com.google.genai.gaos.models.interactions.InteractionsInput;
+import com.google.genai.gaos.models.interactions.Model;
+import com.google.genai.gaos.models.interactions.Tool;
+import com.google.genai.gaos.models.interactions.Usage;
+import com.google.genai.gaos.models.operations.CreateInteractionRequestBody;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+Client client = new Client();
+Map<String, Object> locationProp = new HashMap<>();
+locationProp.put("type", "string");
+Map<String, Object> properties = new HashMap<>();
+properties.put("location", locationProp);
+Map<String, Object> schema = new HashMap<>();
+schema.put("type", "object");
+schema.put("properties", properties);
+Tool weatherTool =
+Function.builder()
+.name("get_weather")
+.description("Get current weather")
+.parameters(schema)
+.build();
 CreateModelInteraction params =
-CreateModelInteraction . builder ()
-. model ( Model . of ( "gemini-3.8-flash" ))
-. input ( InteractionsInput . of ( "Calculate tokens for this message." ))
-. build ();
+CreateModelInteraction.builder()
+.model(Model.of("gemini-4-hydrogen"))
+.input(InteractionsInput.of("What's the weather in Tokyo?"))
+.tools(Arrays.asList(weatherTool))
+.build();
 Interaction interaction =
-client . interactions . create ( CreateInteractionRequestBody . of ( params )). interaction (). get ();
-if ( interaction . usage (). isPresent ()) {
-Usage usage = interaction . usage (). get ();
-System . out . println ( "Input tokens: " + usage . totalInputTokens (). orElse ( 0 ));
-System . out . println ( "Output tokens: " + usage . totalOutputTokens (). orElse ( 0 ));
+client.interactions.create(CreateInteractionRequestBody.of(params)).interaction().get();
+if (interaction.usage().isPresent()) {
+Usage usage = interaction.usage().get();
+System.out.println("Input tokens: " + usage.totalInputTokens().orElse(0));
+System.out.println("Tool use tokens: " + usage.totalToolUseTokens().orElse(0));
 }
-Find context window sizes on the models page.
-What's next
-Text generation : Generation basics
-Caching : Reduce costs with caching
-Pricing : Understand costs
-Send feedback
-Except as otherwise noted, the content of this page is licensed under the Creative Commons Attribution 4.0 License , and code samples are licensed under the Apache 2.0 License . For details, see the Google Developers Site Policies . Java is a registered trademark of Oracle and/or its affiliates.
-Last updated 2026-09-04 UTC.
+```
+{% /tab %}
+{% /tabs %}
+## Context window {% id="context-window" %}
+Each Gemini model has a maximum number of tokens it can handle.
+* **Gemini 4 models (`gemini-4-carbon`, `gemini-4-argon`, `gemini-4-neon`, and `gemini-4-hydrogen`):** Share a single 1M-token context window (`1,048,576` tokens) across input, thinking, and output tokens. By default, synchronous responses (`background=False`, streaming or non-streaming) are capped at `65,536` output tokens, or you can generate up to `1,048,576` tokens using [long decode](/docs/long-decode). If your input tokens plus `max_output_tokens` exceed 1,048,576 tokens, the API automatically caps the output limit to the remaining space in the context window (`1,048,576` minus your input tokens).
+* **Gemini 3 and 2.5 models:** Use separate input (`1,048,576` tokens) and output (`65,536` tokens) budgets.
+### Get context window size programmatically {% id="get-context-window" %}
+{% tabs %}
+{% tab label="Python" %}
+```python
+# This will only work for SDK newer than 2.0.0
+model_info = client.models.get(model="gemini-4-hydrogen")
+print(f"Input token limit: {model_info.input_token_limit}")
+print(f"Output token limit: {model_info.output_token_limit}")
+```
+{% /tab %}
+{% tab label="JavaScript" %}
+```javascript
+// This will only work for SDK newer than 2.0.0
+const modelInfo = await client.models.get({ model: "gemini-4-hydrogen" });
+console.log(`Input token limit: ${modelInfo.inputTokenLimit}`);
+console.log(`Output token limit: ${modelInfo.outputTokenLimit}`);
+```
+{% /tab %}
+{% tab label="Java" %}
+```java
+import com.google.genai.Client;
+import com.google.genai.types.Model;
+Client client = new Client();
+Model modelInfo = client.models.get("gemini-4-hydrogen", null);
+System.out.println("Input token limit: " + modelInfo.inputTokenLimit().orElse(0));
+System.out.println("Output token limit: " + modelInfo.outputTokenLimit().orElse(0));
+```
+{% /tab %}
+{% tab label="Go" %}
+```go
+package main
+import (
+"context"
+"encoding/base64"
+"fmt"
+"log"
+"os"
+"google.golang.org/genai"
+"google.golang.org/genai/interactions/models/interactions"
+"google.golang.org/genai/interactions/models/operations"
+)
+func main() {
+ctx := context.Background()
+client, err := genai.NewClient(ctx, nil)
+if err != nil {
+log.Fatal(err)
+}
+prompt := "Tell me about this instrument"
+imageBytes, err := os.ReadFile("/path/to/organ.jpg")
+if err != nil {
+log.Fatal(err)
+}
+base64Image := base64.StdEncoding.EncodeToString(imageBytes)
+// Count tokens before creating the interaction
+parts := []*genai.Part{
+genai.NewPartFromText(prompt),
+genai.NewPartFromBytes(imageBytes, "image/jpeg"),
+}
+totalTokens, err := client.Models.CountTokens(ctx, "gemini-4-hydrogen", []*genai.Content{
+genai.NewContentFromParts(parts, genai.RoleUser),
+}, nil)
+if err != nil {
+log.Fatal(err)
+}
+fmt.Printf("Estimated input tokens: %d\n", totalTokens.TotalTokens)
+// Create the multimodal interaction and inspect the usage metadata
+res, err := client.Interactions.Create(ctx, operations.CreateInteractionRequest{
+Body: operations.NewCreateInteractionRequestBody(interactions.CreateModelInteraction{
+Model: interactions.Model("gemini-4-hydrogen"),
+Input: interactions.NewInteractionsInput([]interactions.Content{
+interactions.NewContent(interactions.TextContent{
+Text: prompt,
+}),
+interactions.NewContent(interactions.ImageContent{
+Data: genai.Ptr(base64Image),
+MimeType: interactions.ImageContentMimeTypeImageJpeg.ToPointer(),
+}),
+}),
+}),
+})
+if err != nil {
+log.Fatal(err)
+}
+interaction := res.Interaction
+if interaction.OutputText != nil {
+fmt.Println(*interaction.OutputText)
+}
+if interaction.Usage != nil && interaction.Usage.TotalTokens != nil {
+fmt.Printf("Total tokens billed: %d\n", *interaction.Usage.TotalTokens)
+}
+}
+```
+{% /tab %}
+{% /tabs %}
+Find context window sizes on the [models](/docs/models) page.
+## What's next {% id="whats-next" %}
+* [Text generation](/docs/text-generation): Generation basics
+* [Caching](/docs/caching): Reduce costs with caching
+* [Pricing](/docs/pricing): Understand costs
