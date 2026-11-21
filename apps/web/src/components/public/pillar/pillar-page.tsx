@@ -1,3 +1,4 @@
+import { serializeJsonLd } from '@/app/grow/packages'
 import { PILLARS, SHIPPED_PILLAR, lowestCardPrice, pillarPath, type Pillar } from '@/lib/public-site'
 import { PILLAR_EXTRA } from '@/lib/pillar-extra'
 
@@ -17,9 +18,20 @@ export function PillarPage({ slug }: { slug: Pillar['slug'] }) {
   const copy = PILLAR_CHAPTER[slug]
   const sisters = PILLARS.filter((p) => p.slug !== slug)
   const faqAll = [...pillar.faq, ...extra.extraFaq]
+  // Same array as the visible FAQ below, so the markup and the page cannot drift apart.
+  const faqJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqAll.map((item) => ({
+      '@type': 'Question',
+      name: item.q,
+      acceptedAnswer: { '@type': 'Answer', text: item.a },
+    })),
+  }
 
   return (
     <PublicPageShell>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqJsonLd) }} />
       <SiteNav />
       <main id="main" className={pp.page} data-pillar={slug}>
         <PillarSection tone="hero" labelledBy="pillar-title">

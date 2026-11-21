@@ -398,7 +398,7 @@ export const PILLAR_EXTRA: Record<Pillar['slug'], PillarExtra> = {
       },
       {
         q: 'Do you integrate with my CRM?',
-        a: 'Public conversion focuses on inbox and card hosting today. Deeper CRM sync is roadmap — ask us what is possible now.',
+        a: 'Public conversion focuses on inbox and card hosting today. We do not offer a CRM sync for customers today — ask us what is possible now.',
       },
     ],
     related: [

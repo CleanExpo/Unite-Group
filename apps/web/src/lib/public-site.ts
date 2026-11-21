@@ -62,7 +62,7 @@ export const PILLARS: readonly Pillar[] = [
     faq: [
       {
         q: 'Is this a monthly SEO retainer?',
-        a: 'The Visibility layer is still on the roadmap. When it ships, it will be priced plainly — we will publish it on the pricing page, not hide it in a proposal.',
+        a: 'Visibility is not on sale today, so there is no retainer to buy. Anything we sell is priced plainly on the pricing page, not hidden in a proposal.',
       },
       {
         q: 'Do you guarantee page-one rankings?',
@@ -108,7 +108,7 @@ export const PILLARS: readonly Pillar[] = [
       },
       {
         q: 'Do you build full marketing sites here?',
-        a: 'Broader Experience tooling is coming. For multi-page sites today, see pricing, Grow packages, or ask us on the contact form.',
+        a: 'Not on this page. For multi-page sites, see pricing, Grow packages, or ask us on the contact form.',
       },
       {
         q: 'Are the sample films AI-generated?',
@@ -192,11 +192,11 @@ export const PILLARS: readonly Pillar[] = [
       },
       {
         q: 'Will Intelligence include AI recommendations?',
-        a: 'When it ships, recommendations will cite your real enquiry and page data — not generic tips.',
+        a: 'Not today. Intelligence is not available yet, so nothing is generated for you automatically.',
       },
       {
         q: 'Can I get a report today?',
-        a: 'Ask via the contact form. While Intelligence is coming, we can still talk through what you see in your existing tools.',
+        a: 'Ask via the contact form. Intelligence reports are not available today, but we can talk through what you see in your existing tools.',
       },
     ],
   },
