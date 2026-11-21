@@ -21,7 +21,7 @@ export const HOME_HERO = {
  * Replies are AI-written, so no "human" or "real person" claims (UNI-3315 item 6).
  */
 export const HOME_TRUST_STRIP = {
-  eyebrow: 'Why small businesses pick us',
+  eyebrow: 'Why businesses pick us',
   items: [
     {
       title: 'Prices in Australian dollars',

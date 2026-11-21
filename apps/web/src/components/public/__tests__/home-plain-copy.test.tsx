@@ -25,7 +25,7 @@ const EMOJI = /\p{Extended_Pictographic}/u
 // Jargon the founder flagged, or that a first-time visitor would not know.
 const JARGON = /ticket maze|template number|pick the outcome|orientation|\bAUD\b|proof link|called out|offshore|why teams choose/i
 // Replies are AI; the founder asked for "human" to go. Keep person-claims out of this copy.
-const PERSON = /\b(human|real person|a person|our team reads)\b/i
+const PERSON = /\b(human|real person|a person|real inbox|our team reads)\b/i
 // Unite-Group copy never names Phill's own businesses or their trades.
 const OWN_BUSINESS = /restor|carsi|disaster recovery|nrpg|water damage|mould|training/i
 
@@ -71,6 +71,20 @@ beforeEach(() => vi.clearAllMocks())
 describe('home trust strip and orientation copy (UNI-3316, UNI-3317, UNI-3323)', () => {
   it('reads at about a fifth-grade level, card by card', () => {
     for (const text of BLOCKS) expect(grade(text), text).toBeLessThanOrEqual(6)
+  })
+
+  it('keeps eyebrows and titles short, in short words', () => {
+    const labels = [
+      HOME_TRUST_STRIP.eyebrow,
+      ...HOME_TRUST_STRIP.items.map((i) => i.title),
+      HOME_START.eyebrow,
+      HOME_START.title,
+    ]
+    for (const label of labels) {
+      const words = label.split(/\s+/)
+      expect(words.length, label).toBeLessThanOrEqual(6)
+      for (const w of words) expect(syllables(w), `${label}: ${w}`).toBeLessThanOrEqual(3)
+    }
   })
 
   it('carries no flagged jargon, banned words, emoji, person-claims or own-business names', () => {
