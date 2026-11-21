@@ -20,24 +20,24 @@ export const HOME_TRUST_STRIP = {
   eyebrow: 'Why teams choose us',
   items: [
     {
-      title: 'Australian operator',
-      line: 'AUD pricing, GST called out, and delivery from an Australian company — ABN on the footer, no offshore mystery invoice.',
+      title: 'Clear prices from an Australian company',
+      line: 'You see prices in Australian dollars, with GST shown. Our ABN is in the footer.',
     },
     {
-      title: 'Approve before it goes live',
-      line: 'Every card and public page ships behind a private proof link. Nothing publishes until you say yes.',
+      title: 'You see a proof first',
+      line: 'We send every card and public page as a private proof link first. You can ask for changes before it goes live.',
     },
     {
-      title: 'Direct email, not a ticket maze',
-      line: 'You write to a real inbox. We answer in plain language with the next step, not a template number.',
+      title: 'Plain answers by email',
+      line: 'Email us a question. We reply in plain words and tell you your next step. You do not get a ticket number.',
     },
   ],
 } as const
 
 export const HOME_START = {
-  eyebrow: 'Orientation',
-  title: 'Pick the outcome you need first',
-  lead: 'Five paths into the same system — start with what matters now.',
+  eyebrow: 'Start here',
+  title: 'Start with what you want to get done',
+  lead: 'Pick the step that fits you now. All five lead to one system.',
 } as const
 
 export const HOME_HIGHLIGHTS = {
@@ -62,7 +62,7 @@ export const HOME_TODAY = {
 export const HOME_CARDS = {
   eyebrow: 'Signature product',
   title: 'Living cards',
-  lead: 'Nine opening films in the showroom. Yours ends on your logo.',
+  lead: 'Watch the opening films. Your card ends on your logo.',
 } as const
 
 export const HOME_PILLARS = {

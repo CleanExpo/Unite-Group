@@ -14,11 +14,11 @@ import RootPage from '@/app/page'
 
 // Design-pass gap 05.2 / 05.5: the hero has ONE primary step, and it leads to this chooser.
 const OPTIONS = [
-  { label: 'discover', no: '01', name: 'Discover', href: '/pricing', line: 'Compare Starter, signatures, and card tiers in AUD' },
-  { label: 'diagnose', no: '02', name: 'Diagnose', href: '/solutions/intelligence', line: 'See what Intelligence will summarise when it ships' },
+  { label: 'discover', no: '01', name: 'Discover', href: '/pricing', line: 'See plan and card prices in Australian dollars' },
+  { label: 'diagnose', no: '02', name: 'Diagnose', href: '/solutions/intelligence', line: 'Intelligence will give you a summary when it is ready' },
   { label: 'create', no: '03', name: 'Create', href: '/cards/order', line: 'Order a living video card, from $249' },
-  { label: 'results', no: '04', name: 'Explore results', href: '/cards', line: 'Nine showroom films — yours ends on your logo' },
-  { label: 'talk', no: '05', name: 'Talk', href: '#contact', line: 'One question by email; a human reply with a next step' },
+  { label: 'results', no: '04', name: 'Explore results', href: '/cards', line: 'Watch sample films. Yours ends on your logo.' },
+  { label: 'talk', no: '05', name: 'Talk', href: '#contact', line: 'Ask one question by email. We reply with your next step.' },
 ] as const
 
 const strip = (html: string) => html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
@@ -53,13 +53,13 @@ describe('the start chooser', () => {
     expect(ids.slice(0, 4)).toEqual(['hero', 'trust', 'start', 'today'])
   })
 
-  it('is labelled by a visible h2 "Pick the outcome you need first"', async () => {
+  it('is labelled by a visible h2 "Start with what you want to get done"', async () => {
     const { block } = await chooser()
     const labelled = block.match(/aria-labelledby="([^"]+)"/)?.[1]
     expect(labelled).toBeTruthy()
     const h2 = block.match(new RegExp(`<h2[^>]*id="${labelled}"[^>]*>([\\s\\S]*?)</h2>`))
     expect(h2).not.toBeNull()
-    expect(strip(h2![1])).toBe('Pick the outcome you need first')
+    expect(strip(h2![1])).toBe('Start with what you want to get done')
   })
 
   it('is an ordered list of five links with the exact hrefs, in order', async () => {
