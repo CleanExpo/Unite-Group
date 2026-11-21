@@ -22,7 +22,6 @@ export function LivingCardSection({ offers }: { offers: Offer[] }) {
           {offers.map((offer) => (
             <article key={offer.id} data-card-offer={offer.id} className={offer.recommended ? `${s.card} ${s.recommended}` : s.card}>
               <div className={s.poster}>
-                {/* eslint-disable-next-line @next/next/no-img-element -- same static posters as /cards, no optimiser needed */}
                 <img src={offer.poster} alt={offer.posterAlt} loading="lazy" className={s.posterImg} />
                 {offer.recommended && <span className={s.badge}>Recommended</span>}
               </div>
