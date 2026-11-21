@@ -13,16 +13,21 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import {
+  ACTIONS_BOT,
   CI_WORKFLOW,
   CI_WORKFLOW_FILE,
   DRAFT_MUTATION,
   MAX_SWEEP_PAGES,
   PR_QUERY,
   RECEIPT_CONTEXT,
+  REFUSED_MARKER,
   ciRunsPath,
   commentFor,
+  commentsPath,
   decide,
+  githubClient,
   guardedApi,
+  isDraftRefusal,
   normalisePr,
   run,
   sweepPath,
@@ -419,6 +424,143 @@ test('FAIL LOUD: an event it does not handle is refused, including the pull_requ
   }
 });
 
+// ---------------------------------------------------------------- GitHub refuses the draft (UNI-3345)
+
+/** The exact GraphQL answer GitHub gave on main from 11/11/2026 (run 44877395987). */
+const FORBIDDEN_BODY = {
+  data: { convertPullRequestToDraft: null },
+  errors: [{
+    type: 'FORBIDDEN',
+    path: ['convertPullRequestToDraft'],
+    extensions: { saml_failure: false, ip_allow_list_failure: false },
+    locations: [{ line: 2, column: 3 }],
+    message: 'Resource not accessible by integration',
+  }],
+};
+
+/**
+ * A fake GitHub at the HTTP layer, so the real githubClient builds every error and
+ * isDraftRefusal reads what GitHub actually sends. `refuse` maps PR node id -> the mutation's
+ * [status, body]; `comments` (number -> list) persists between runs; `commentStatus`
+ * (number -> HTTP status) answers a comment POST on that PR, 201 by default.
+ */
+function fakeHttp({ prs, listed: open, refuse = {}, comments = {}, commentStatus = {} }) {
+  const calls = [];
+  const reply = (status, body) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
+  const fetchImpl = async (url, init) => {
+    const path = url.replace('https://api.github.com', '');
+    const body = init.body ? JSON.parse(init.body) : undefined;
+    calls.push({ method: init.method, path, body });
+    if (path === '/graphql') {
+      if (body.query === DRAFT_MUTATION) {
+        const refusal = refuse[body.variables.id];
+        if (refusal) return reply(...refusal);
+        return reply(200, { data: { convertPullRequestToDraft: { pullRequest: { isDraft: true } } } });
+      }
+      return reply(200, { data: prs[body.variables.number] });
+    }
+    if (init.method === 'GET' && path.includes('/actions/')) return reply(200, CI_FINISHED(path));
+    if (init.method === 'GET' && path.includes('/pulls?')) return reply(200, /page=1$/.test(path) ? open : []);
+    const commentsOf = path.match(/^\/repos\/[^/]+\/[^/]+\/issues\/(\d+)\/comments/);
+    if (commentsOf && init.method === 'GET') return reply(200, comments[commentsOf[1]] ?? []);
+    if (commentsOf && init.method === 'POST') {
+      const status = commentStatus[commentsOf[1]] ?? 201;
+      if (status !== 201) return reply(status, { message: 'Resource not accessible by integration' });
+      (comments[commentsOf[1]] ??= []).push({ id: 1, user: { login: ACTIONS_BOT }, body: body.body });
+      return reply(201, { id: 1 });
+    }
+    throw new Error(`unexpected ${init.method} ${path}`);
+  };
+  return { calls, comments, api: githubClient({ token: 'test-token', fetchImpl }) };
+}
+
+/** #1400 (GitHub refuses its draft) and #1407 (drafts normally), both with a failed required check. */
+function refusedSweep({ comments = {}, commentStatus, refusal = [200, FORBIDDEN_BODY] } = {}) {
+  const red = GREEN_CONTEXTS().map((c) => (c.name === 'gitleaks — secret scan (git commits)' ? { ...c, conclusion: 'FAILURE' } : c));
+  return fakeHttp({
+    prs: { 1400: prData({ number: 1400, contexts: red }), 1407: prData({ number: 1407, contexts: red }) },
+    listed: [listed(1400), listed(1407)],
+    refuse: { PR_1400: refusal },
+    comments,
+    commentStatus,
+  });
+}
+
+async function sweepOnce(gh) {
+  const lines = [];
+  const out = await run({ eventName: 'schedule', event: {}, api: gh.api, owner: OWNER, repo: REPO, log: (l) => lines.push(l) });
+  return { out, lines };
+}
+
+const commentPosts = (gh, number) => gh.calls.filter((c) => c.method === 'POST' && c.path === `/repos/${OWNER}/${REPO}/issues/${number}/comments`);
+
+test('FORBIDDEN: a refused draft warns, comments once that the PR is still red, and the sweep goes on (exit 0)', async () => {
+  const gh = refusedSweep();
+  const { out, lines } = await sweepOnce(gh);
+
+  assert.deepEqual(out.map((o) => [o.number, o.action]), [[1400, 'refused'], [1407, 'draft']], 'the PR after the refused one is still judged');
+  assert.equal(out[0].commented, true);
+  assert.ok(lines.some((l) => l.startsWith('::warning ') && l.includes('#1400 is still red and NOT drafted')), lines.join('\n'));
+
+  const posts = commentPosts(gh, 1400);
+  assert.equal(posts.length, 1, 'one comment on the refused PR');
+  const text = posts[0].body.body;
+  assert.ok(!text.includes('\n'), 'comment is one line');
+  assert.ok(text.includes('still red and NOT a draft') && text.includes('gitleaks — secret scan (git commits)') && text.includes(REFUSED_MARKER), text);
+  assert.equal(commentPosts(gh, 1407).length, 1, 'the drafted PR gets its usual comment');
+  assert.match(commentPosts(gh, 1407)[0].body.body, /^Turned back to draft by draft-on-red/);
+});
+
+test('FORBIDDEN: the next sweep warns again but does not post a second comment', async () => {
+  const comments = {};
+  await sweepOnce(refusedSweep({ comments }));
+  const again = refusedSweep({ comments });
+  const { out, lines } = await sweepOnce(again);
+  assert.equal(out[0].action, 'refused');
+  assert.ok(lines.some((l) => l.startsWith('::warning ') && l.includes('#1400')), 'the run still says it, every time');
+  assert.equal(commentPosts(again, 1400).length, 0, 'no second comment');
+  assert.equal(comments[1400].length, 1);
+
+  // A comment that only quotes the marker, from someone else, does not stop the real one.
+  const forged = { 1400: [{ id: 9, user: { login: 'someone' }, body: `look ${REFUSED_MARKER}` }] };
+  const third = refusedSweep({ comments: forged });
+  await sweepOnce(third);
+  assert.equal(commentPosts(third, 1400).length, 1);
+});
+
+test('FORBIDDEN: if GitHub refuses the comment too (403), the run still ends green and says so twice', async () => {
+  const gh = refusedSweep({ commentStatus: { 1400: 403 } });
+  const { out, lines } = await sweepOnce(gh);
+  assert.equal(out[0].action, 'refused');
+  assert.equal(out[0].commented, false);
+  assert.equal(lines.filter((l) => l.startsWith('::warning ')).length, 2, lines.join('\n'));
+  // Any other failed comment write still fails the run.
+  await assert.rejects(sweepOnce(refusedSweep({ commentStatus: { 1400: 500 } })), /500/);
+});
+
+test('FORBIDDEN: only that exact refusal degrades; every other draft failure still fails the run', async () => {
+  const other = (errors) => [200, { data: null, errors }];
+  const cases = {
+    'FORBIDDEN on another field': other([{ ...FORBIDDEN_BODY.errors[0], path: ['mergePullRequest'] }]),
+    'NOT_FOUND': other([{ ...FORBIDDEN_BODY.errors[0], type: 'NOT_FOUND' }]),
+    'FORBIDDEN mixed with another error': other([FORBIDDEN_BODY.errors[0], { type: 'INTERNAL', path: ['convertPullRequestToDraft'] }]),
+    'HTTP 403': [403, { message: 'Resource not accessible by integration' }],
+    'HTTP 502 carrying the same errors': [502, FORBIDDEN_BODY],
+  };
+  for (const [label, refusal] of Object.entries(cases)) {
+    const gh = refusedSweep({ refusal });
+    await assert.rejects(sweepOnce(gh), /GraphQL/, label);
+    assert.equal(commentPosts(gh, 1400).length, 0, label);
+  }
+  assert.equal(isDraftRefusal(new Error('GraphQL 200: [{"type":"FORBIDDEN","path":["convertPullRequestToDraft"]}]')), false, 'the message text alone is never trusted');
+});
+
+test('FORBIDDEN: a comment list that cannot be read fails the run rather than risk a second comment', async () => {
+  const gh = refusedSweep({ comments: { 1400: { message: 'Bad credentials' } } });
+  await assert.rejects(sweepOnce(gh), /did not return a list/);
+  assert.equal(commentPosts(gh, 1400).length, 0);
+});
+
 // ---------------------------------------------------------------- only two writes exist
 
 test('guardedApi lets through only the PR query, the draft mutation, the two PR lists, the CI run list and a comment', async () => {
@@ -430,7 +572,8 @@ test('guardedApi lets through only the PR query, the draft mutation, the two PR 
   await safe.rest('GET', sweepPath(OWNER, REPO, 3));
   await safe.rest('GET', ciRunsPath(OWNER, REPO, HEAD));
   await safe.rest('POST', `/repos/${OWNER}/${REPO}/issues/12/comments`, { body: 'x' });
-  assert.equal(gh.calls.length, 6);
+  await safe.rest('GET', commentsPath(OWNER, REPO, 12, 2));
+  assert.equal(gh.calls.length, 7);
 
   const refused = [
     () => safe.graphql('mutation($id: ID!) { mergePullRequest(input: { pullRequestId: $id }) { clientMutationId } }', {}),
@@ -449,9 +592,12 @@ test('guardedApi lets through only the PR query, the draft mutation, the two PR 
     () => safe.rest('GET', `/repos/${OWNER}/${REPO}/actions/workflows/ci.yml/runs?per_page=100`),
     () => safe.rest('POST', `/repos/${OWNER}/${REPO}/actions/runs/1/rerun`),
     () => safe.rest('POST', ciRunsPath(OWNER, REPO, HEAD), {}),
+    () => safe.rest('GET', `/repos/${OWNER}/${REPO}/issues/12/comments`),
+    () => safe.rest('GET', `/repos/other/repo/issues/12/comments?per_page=100&page=1`),
+    () => safe.rest('PATCH', `/repos/${OWNER}/${REPO}/issues/comments/5`, { body: 'x' }),
   ];
   for (const call of refused) assert.throws(call, /draft-on-red may/);
-  assert.equal(gh.calls.length, 6, 'nothing refused reached the API');
+  assert.equal(gh.calls.length, 7, 'nothing refused reached the API');
 });
 
 test('normalisePr and decide agree with the comment format', () => {

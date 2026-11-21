@@ -37,11 +37,23 @@
  *   1. the GraphQL mutation convertPullRequestToDraft;
  *   2. one issue comment on that PR (POST /repos/{owner}/{repo}/issues/{n}/comments).
  * It never merges, closes, readies, labels, edits or re-runs anything. Any other write
- * throws before it is sent.
+ * throws before it is sent. Its one extra read is that PR's comment list, to post the
+ * refusal comment below only once.
+ *
+ * WHEN GITHUB REFUSES THE DRAFT (UNI-3345). From 11/11/2026 GitHub answered
+ * convertPullRequestToDraft with FORBIDDEN "Resource not accessible by integration" for
+ * some PRs (#1400 and a Dependabot github-actions bump; both edit .github/workflows, which
+ * is the likely reason, not proven). The run used to throw, so main went red every 15
+ * minutes and every PR after the refused one in the sweep went unjudged. The workflow
+ * token is not widened to fix this. Instead, only that exact refusal (every GraphQL error
+ * FORBIDDEN on convertPullRequestToDraft) is reported, not thrown: a ::warning:: on the run
+ * on every sweep, and one comment on the PR saying it is still red and NOT drafted, posted
+ * once per PR (found again by REFUSED_MARKER). If GitHub also refuses that comment with
+ * 403, a second warning says so. The run carries on with the next PR and ends green.
  *
  * FAIL LOUD. A read that fails, a page that is not complete, or required flags that
- * cannot be read all throw. The workflow run then shows red. A failed read must never
- * look like a clean PR.
+ * cannot be read all throw. So does any other failed write. The workflow run then shows
+ * red. A failed read must never look like a clean PR.
  */
 
 import { readFileSync } from 'node:fs';
@@ -78,6 +90,17 @@ export const MAX_SWEEP_PAGES = 10;
 export function sweepPath(owner, repo, page) {
   return `/repos/${owner}/${repo}/pulls?state=open&base=${BASE_BRANCH}&per_page=100&page=${page}`;
 }
+
+/** One page of 100 comments on a PR, read only to find an earlier refusal comment. */
+export function commentsPath(owner, repo, number, page) {
+  return `/repos/${owner}/${repo}/issues/${number}/comments?per_page=100&page=${page}`;
+}
+/** A PR with more comment pages than this fails the run rather than risk a second comment. */
+export const MAX_COMMENT_PAGES = 10;
+/** Marks the one comment posted when GitHub refuses the draft, so it is posted once. */
+export const REFUSED_MARKER = '<!-- draft-on-red:draft-refused -->';
+/** The account GITHUB_TOKEN comments as; only its comments count as an earlier refusal comment. */
+export const ACTIONS_BOT = 'github-actions[bot]';
 
 /** The one Actions read: every CI_WORKFLOW run on one commit (one page of 100). */
 export function ciRunsPath(owner, repo, sha) {
@@ -250,6 +273,70 @@ export function commentFor(pr, gates) {
     `${gates.join('; ')}. Fix it, get GitHub green on the new head, then mark it ready.`;
 }
 
+/** The one-line comment posted once when GitHub refuses to turn a red PR back to draft. */
+export function refusedCommentFor(pr, gates) {
+  return `draft-on-red could not turn this PR back to draft (GitHub refused convertPullRequestToDraft: FORBIDDEN). ` +
+    `It is still red and NOT a draft: required gate red on ${pr.headSha.slice(0, 8)}: ${gates.join('; ')}. ` +
+    `Do not merge it; fix the gate or mark it draft by hand. ${REFUSED_MARKER}`;
+}
+
+/**
+ * Is this error GitHub refusing the draft conversion itself, and nothing else?
+ * True only for a GraphQL answer that came back (HTTP 2xx) whose every error is FORBIDDEN on
+ * convertPullRequestToDraft. A failed request, any other error type or path, or a mix throws
+ * as before.
+ */
+export function isDraftRefusal(err) {
+  const errors = err?.graphqlErrors;
+  return Number.isInteger(err?.status) && err.status >= 200 && err.status < 300
+    && Array.isArray(errors) && errors.length > 0
+    && errors.every((e) => e?.type === 'FORBIDDEN'
+      && Array.isArray(e.path) && e.path.length === 1 && e.path[0] === 'convertPullRequestToDraft');
+}
+
+/** A GitHub Actions workflow command carries one line; escape what would end or forge it. */
+function workflowCommandText(text) {
+  return String(text).replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
+}
+
+/** Has draft-on-red already posted its refusal comment on this PR? Reads every page or throws. */
+export async function hasRefusedComment({ api, owner, repo, number }) {
+  for (let page = 1; page <= MAX_COMMENT_PAGES; page += 1) {
+    const list = await api.rest('GET', commentsPath(owner, repo, number, page));
+    if (!Array.isArray(list)) throw new Error(`listing comments on #${number} (page ${page}) did not return a list`);
+    if (list.some((c) => c?.user?.login === ACTIONS_BOT && String(c?.body ?? '').includes(REFUSED_MARKER))) return true;
+    if (list.length < 100) return false;
+  }
+  throw new Error(`more than ${MAX_COMMENT_PAGES * 100} comments on #${number}; refusing to judge from a partial list`);
+}
+
+/**
+ * GitHub refused to draft a red PR. Say so where it is seen, never as a pass:
+ * a ::warning:: on this run every time, and one comment on the PR (posted once).
+ * Returns whether the PR now carries that comment.
+ */
+async function reportRefusal({ api, owner, repo, pr, gates, log }) {
+  log(`::warning title=draft-on-red: draft refused::${workflowCommandText(
+    `#${pr.number} is still red and NOT drafted: GitHub refused convertPullRequestToDraft (FORBIDDEN). ` +
+      `Red gates on ${pr.headSha.slice(0, 8)}: ${gates.join('; ')}`,
+  )}`);
+  if (await hasRefusedComment({ api, owner, repo, number: pr.number })) {
+    log(`#${pr.number}: refusal comment already on the PR; not posted again`);
+    return true;
+  }
+  try {
+    await api.rest('POST', `/repos/${owner}/${repo}/issues/${pr.number}/comments`, { body: refusedCommentFor(pr, gates) });
+  } catch (err) {
+    if (err?.status !== 403) throw err;
+    log(`::warning title=draft-on-red: comment refused::${workflowCommandText(
+      `#${pr.number}: GitHub also refused the comment (403), so the PR itself does not say it is red`,
+    )}`);
+    return false;
+  }
+  log(`#${pr.number}: refusal comment posted`);
+  return true;
+}
+
 /**
  * Wrap an API client so only the two permitted writes can be sent.
  * `api` is { graphql(query, variables), rest(method, path, body) }.
@@ -259,6 +346,7 @@ export function guardedApi(api, { owner, repo }) {
   const pullsForCommit = new RegExp(`^/repos/${owner}/${repo}/commits/[0-9a-f]{40}/pulls$`);
   const openPullsPage = new RegExp(`^/repos/${owner}/${repo}/pulls\\?state=open&base=${BASE_BRANCH}&per_page=100&page=\\d+$`);
   const ciRunsForCommit = new RegExp(`^/repos/${owner}/${repo}/actions/workflows/ci\\.yml/runs\\?head_sha=[0-9a-f]{40}&per_page=100$`);
+  const commentsPage = new RegExp(`^/repos/${owner}/${repo}/issues/\\d+/comments\\?per_page=100&page=\\d+$`);
   return {
     graphql(query, variables) {
       const isMutation = /^\s*mutation\b/.test(query);
@@ -271,7 +359,7 @@ export function guardedApi(api, { owner, repo }) {
       return api.graphql(query, variables);
     },
     rest(method, path, body) {
-      if (method === 'GET' && (pullsForCommit.test(path) || openPullsPage.test(path) || ciRunsForCommit.test(path))) {
+      if (method === 'GET' && (pullsForCommit.test(path) || openPullsPage.test(path) || ciRunsForCommit.test(path) || commentsPage.test(path))) {
         return api.rest(method, path, body);
       }
       if (method === 'POST' && commentPath.test(path)) return api.rest(method, path, body);
@@ -311,7 +399,11 @@ export async function targetsFor({ eventName, event, api, owner, repo }) {
   throw new Error(`draft-on-red does not handle event ${eventName}`);
 }
 
-/** Run once for one event. Returns the list of outcomes; throws on any failed read or write. */
+/**
+ * Run once for one event. Returns the list of outcomes; throws on any failed read or write,
+ * except GitHub refusing the draft itself (see WHEN GITHUB REFUSES THE DRAFT), which is
+ * reported as action 'refused' and the run goes on to the next PR.
+ */
 export async function run({ eventName, event, api, owner, repo, log = console.log }) {
   const safe = guardedApi(api, { owner, repo });
   const outcomes = [];
@@ -321,7 +413,14 @@ export async function run({ eventName, event, api, owner, repo, log = console.lo
     const ciFinished = await ciFinishedOnHead({ api: safe, owner, repo, sha: target.expectedHeadSha });
     const verdict = decide(pr, { expectedHeadSha: target.expectedHeadSha, ciFinished });
     if (verdict.action === 'draft') {
-      await safe.graphql(DRAFT_MUTATION, { id: pr.id });
+      try {
+        await safe.graphql(DRAFT_MUTATION, { id: pr.id });
+      } catch (err) {
+        if (!isDraftRefusal(err)) throw err;
+        const commented = await reportRefusal({ api: safe, owner, repo, pr, gates: verdict.gates, log });
+        outcomes.push({ number: pr.number, action: 'refused', reason: 'GitHub refused convertPullRequestToDraft (FORBIDDEN); PR is still red and not a draft', gates: verdict.gates, commented });
+        continue;
+      }
       await safe.rest('POST', `/repos/${owner}/${repo}/issues/${pr.number}/comments`, { body: commentFor(pr, verdict.gates) });
       log(`#${pr.number}: turned back to draft (${verdict.gates.join('; ')})`);
     } else {
@@ -333,7 +432,11 @@ export async function run({ eventName, event, api, owner, repo, log = console.lo
   return outcomes;
 }
 
-/** Minimal GitHub client on fetch. Every non-2xx answer, and every GraphQL error, throws. */
+/**
+ * Minimal GitHub client on fetch. Every non-2xx answer, and every GraphQL error, throws.
+ * The thrown error carries `status` (HTTP) and, for GraphQL, `graphqlErrors`, so a caller
+ * can tell one exact refusal apart without reading the message text.
+ */
 export function githubClient({ token, apiUrl = 'https://api.github.com', fetchImpl = fetch }) {
   if (!token) throw new Error('GITHUB_TOKEN is not set');
   const headers = {
@@ -351,7 +454,10 @@ export function githubClient({ token, apiUrl = 'https://api.github.com', fetchIm
       });
       const json = await res.json().catch(() => null);
       if (!res.ok || !json || json.errors) {
-        throw new Error(`GraphQL ${res.status}: ${JSON.stringify(json?.errors ?? json)}`);
+        const err = new Error(`GraphQL ${res.status}: ${JSON.stringify(json?.errors ?? json)}`);
+        err.status = res.status;
+        err.graphqlErrors = Array.isArray(json?.errors) ? json.errors : null;
+        throw err;
       }
       return json.data;
     },
@@ -362,7 +468,11 @@ export function githubClient({ token, apiUrl = 'https://api.github.com', fetchIm
         body: body ? JSON.stringify(body) : undefined,
       });
       const json = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(`${method} ${path} -> ${res.status}: ${JSON.stringify(json)}`);
+      if (!res.ok) {
+        const err = new Error(`${method} ${path} -> ${res.status}: ${JSON.stringify(json)}`);
+        err.status = res.status;
+        throw err;
+      }
       return json;
     },
   };
