@@ -255,6 +255,23 @@
   color: var(--pub-muted);
 }
 
+.compareIncludes {
+  margin: 0 0 18px;
+  padding-left: 1.1rem;
+  list-style: disc;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--pub-ink-soft);
+}
+
+.compareIncludes li + li {
+  margin-top: 4px;
+}
+
+.costsExtra {
+  margin-top: clamp(1.25rem, 3vw, 2rem);
+}
+
 .compareCtas {
   display: flex;
   flex-wrap: wrap;

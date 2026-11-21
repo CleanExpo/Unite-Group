@@ -22,11 +22,21 @@ import m from '@/public/layout/marketing-page.module.css'
 
 import { EditionTile } from './edition-tile'
 import { EDITIONS } from './editions'
-import { CARD_TIERS } from './order/order-view'
+import { CARD_EXTRA_BUSINESS, CARD_TIERS } from './order/order-view'
 import { PAYMENT_ENTITY_LINE } from './payment-entity'
 import p from './showroom-page.module.css'
 import s from './showroom.module.css'
-import { EXCLUSION_FACTS, FAQ_FACTS, HOSTING_FACTS, PRICE_NOTE, TIER_LINES } from './showroom-facts'
+import {
+  COSTS_EXTRA_FACTS,
+  FAQ_FACTS,
+  HOSTING_FACTS,
+  LIMIT_FACTS,
+  PRICE_NOTE,
+  STAFF_CARD_FACTS,
+  TIER_INCLUDES,
+  TIER_LINES,
+  staffCardPricedLine,
+} from './showroom-facts'
 
 export const metadata: Metadata = publicPageMetadata({
   path: '/cards',
@@ -225,6 +235,11 @@ export default function CardsShowroomPage() {
                     </p>
                     <p className={p.compareLine}>{TIER_LINES[tier.id]}</p>
                     <p className={p.compareMeta}>{`${tier.rounds} rounds of changes.`}</p>
+                    <ul className={p.compareIncludes} aria-label={`${tier.name} includes`}>
+                      {TIER_INCLUDES[tier.id].map((fact) => (
+                        <li key={fact}>{fact}</li>
+                      ))}
+                    </ul>
                     <div className={p.compareCtas}>
                       {on ? (
                         <a
@@ -245,6 +260,17 @@ export default function CardsShowroomPage() {
                 )
               })}
             </ul>
+            <div id="costs-extra" className={p.costsExtra}>
+              <h3 className={s.heading}>What costs extra</h3>
+              <ul className={s.list}>
+                {live.length > 0 ? (
+                  <li>{[staffCardPricedLine(CARD_EXTRA_BUSINESS.priceAud), ...STAFF_CARD_FACTS].join(' ')}</li>
+                ) : null}
+                {COSTS_EXTRA_FACTS.map((fact) => (
+                  <li key={fact}>{fact}</li>
+                ))}
+              </ul>
+            </div>
           </div>
         </section>
 
@@ -282,9 +308,9 @@ export default function CardsShowroomPage() {
               </ul>
             </div>
             <div id="exclusions">
-              <h2 className={s.heading}>Not included, and limits</h2>
+              <h2 className={s.heading}>Limits</h2>
               <ul className={s.list}>
-                {EXCLUSION_FACTS.map((fact) => (
+                {LIMIT_FACTS.map((fact) => (
                   <li key={fact}>{fact}</li>
                 ))}
               </ul>
