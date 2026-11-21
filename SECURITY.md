@@ -4,9 +4,9 @@
 
 Please do **not** open a public issue for a security problem.
 
-Report it privately through this repository's **Security** tab using
-**Report a vulnerability**:
-https://github.com/CleanExpo/Unite-Group/security/advisories/new
+Report it privately by email to **contact@unite-group.in** with the subject
+line "Security report: Unite-Group". Do not put details in a public issue,
+pull request or comment.
 
 Include what you found, how to reproduce it, and the impact you expect.
 You will get an acknowledgement within 5 business days.
