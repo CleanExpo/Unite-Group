@@ -20,11 +20,11 @@ export const PILLAR_CHAPTER: Record<Pillar['slug'], PillarChapterCopy> = {
   },
   experience: {
     capabilitiesTitle: 'Three jobs this layer takes on',
-    capabilitiesLead: 'Film, type, and layout that read as your business on the phone in someone’s hand — not a borrowed template.',
+    capabilitiesLead: 'A short film, a private proof, and a card page that reads as your business on the phone in someone’s hand.',
     proofTitle: 'Phone-first, film-first',
-    proofLead: 'Living cards and pages built to open fast and end on your brand.',
-    closeTitle: 'Want the experience layer first?',
-    closeLead: 'Start with a living card while the wider experience stack is on the roadmap.',
+    proofLead: 'Living cards that open on a short film and end on your logo.',
+    closeTitle: 'Ready for a living card?',
+    closeLead: 'Pick an opening film in the showroom, or ask us a question first.',
   },
   conversion: {
     capabilitiesTitle: 'Three jobs this layer takes on',

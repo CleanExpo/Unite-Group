@@ -348,3 +348,18 @@ describe('the compact privacy notice keeps its link outside <summary>', () => {
     expect(notice).toContain('Unite-Group Nexus Pty Ltd')
   })
 })
+
+// UNI-3320: the home pillar tiles carry the same status as the pillar pages. Written out by hand on purpose.
+describe('the home pillar tiles', () => {
+  it('chip Experience and Conversion Live, Visibility and Intelligence Coming', async () => {
+    const html = await signedOut()
+    const expected = { visibility: 'coming', experience: 'live', conversion: 'live', intelligence: 'coming' } as const
+    for (const p of PILLARS) {
+      const marker = `data-track-label="home-pillar-${p.slug}"`
+      expect(html.split(marker), p.slug).toHaveLength(2)
+      const start = html.indexOf(marker)
+      const tile = html.slice(start, html.indexOf('</a>', start)) // a tile holds no nested link
+      expect(tile.match(/data-chip="(live|coming)"/g), p.slug).toEqual([`data-chip="${expected[p.slug]}"`])
+    }
+  })
+})

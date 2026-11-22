@@ -1,5 +1,5 @@
 import { serializeJsonLd } from '@/app/grow/packages'
-import { PILLARS, SHIPPED_PILLAR, lowestCardPrice, pillarPath, type Pillar } from '@/lib/public-site'
+import { PILLARS, isPillarLive, lowestCardPrice, pillarPath, type Pillar } from '@/lib/public-site'
 import { PILLAR_EXTRA } from '@/lib/pillar-extra'
 
 import { PILLAR_CHAPTER } from './pillar-page-copy'
@@ -13,7 +13,7 @@ export function PillarPage({ slug }: { slug: Pillar['slug'] }) {
   const pillar = PILLARS.find((p) => p.slug === slug)
   if (!pillar) throw new Error(`Unknown pillar ${slug}`)
   const extra = PILLAR_EXTRA[slug]
-  const live = slug === SHIPPED_PILLAR
+  const live = isPillarLive(slug)
   const from = lowestCardPrice()
   const copy = PILLAR_CHAPTER[slug]
   const sisters = PILLARS.filter((p) => p.slug !== slug)
@@ -143,7 +143,7 @@ export function PillarPage({ slug }: { slug: Pillar['slug'] }) {
             <PillarHeading
               id="pillar-process"
               label="Process"
-              title="How it works when this layer ships"
+              title={live ? 'How it works' : 'How it works when this layer ships'}
               lead={extra.processLead}
             />
             <ol className={pp.stepFlow}>
@@ -276,7 +276,7 @@ export function PillarPage({ slug }: { slug: Pillar['slug'] }) {
                 }
               />
               <div className={pp.actions}>
-                <a href="/cards" className={pp.btnPrimary} data-track="cta" data-track-label="pillar-conversion-showroom">
+                <a href="/cards" className={pp.btnPrimary} data-track="cta" data-track-label={`pillar-${slug}-showroom`}>
                   See the showroom
                 </a>
                 <a href="/cards/order" className={pp.btnGhost}>
