@@ -3,6 +3,14 @@ import { NextResponse } from 'next/server';
 import { readdir, readFile } from 'fs/promises';
 import { join } from 'path';
 import os from 'os';
+import { requireAdmin } from '@/lib/security/require-admin';
+
+// Client slug -> harness artefacts folder. Only these values are accepted; any
+// other value is refused before the file system is touched (UNI-3520).
+const FOLDER_MAP: Record<string, string> = {
+  'ccw': 'ccw',
+  'ccw-crm': 'ccw',
+};
 
 interface Artefact {
   filename: string;
@@ -31,15 +39,16 @@ function extractTitle(content: string, filename: string): string {
 }
 
 export async function GET(req: Request) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
+
   const url = new URL(req.url);
   const clientSlug = url.searchParams.get('client') ?? 'ccw';
 
-  // Map client slug to harness artefacts folder
-  const FOLDER_MAP: Record<string, string> = {
-    'ccw': 'ccw',
-    'ccw-crm': 'ccw',
-  };
-  const folder = FOLDER_MAP[clientSlug] ?? clientSlug;
+  if (!Object.prototype.hasOwnProperty.call(FOLDER_MAP, clientSlug)) {
+    return NextResponse.json({ error: 'Unknown client' }, { status: 400 });
+  }
+  const folder = FOLDER_MAP[clientSlug];
 
   const artefactsDir = join(os.homedir(), 'Pi-CEO/Pi-Dev-Ops/.harness/artefacts', folder);
 
