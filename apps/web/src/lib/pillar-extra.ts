@@ -246,7 +246,7 @@ export const PILLAR_EXTRA: Record<Pillar['slug'], PillarExtra> = {
     ],
     beforeAfter: {
       withoutLabel: 'Common starting point',
-      withLabel: 'With a living card',
+      withLabel: 'When Experience ships',
       without: ['Paper card in a drawer', 'PDF card attachment', 'Details typed in by hand'],
       with: ['A film you would text a client', 'A QR code that opens your card', 'Save contact in one tap'],
     },

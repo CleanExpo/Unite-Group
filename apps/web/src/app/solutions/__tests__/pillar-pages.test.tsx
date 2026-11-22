@@ -84,6 +84,17 @@ describe('the Experience pillar promises only what is delivered (UNI-3320)', () 
 
 describe('a Coming pillar says it is not live (UNI-3320)', () => {
   it.each((Object.keys(EXPECTED_BADGE) as (keyof typeof EXPECTED_BADGE)[]).filter((slug) => EXPECTED_BADGE[slug] === 'Coming'))(
+    '%s: the process, deliverables and checks sections are scoped to when the layer ships',
+    (slug) => {
+      const html = renderToStaticMarkup(pages[slug]())
+      const heading = (id: string) => strip(html.slice(html.indexOf(`id="${id}"`), html.indexOf('</h2>', html.indexOf(`id="${id}"`))))
+      expect(heading('pillar-deliverables')).toMatch(/when this layer ships/i)
+      expect(heading('pillar-process')).toMatch(/when this layer ships/i)
+      expect(heading('pillar-checks')).toMatch(/when this layer ships/i)
+    },
+  )
+
+  it.each((Object.keys(EXPECTED_BADGE) as (keyof typeof EXPECTED_BADGE)[]).filter((slug) => EXPECTED_BADGE[slug] === 'Coming'))(
     '%s: the status note makes no delivered-today claim',
     (slug) => {
       expect(PILLAR_EXTRA[slug].shipNote).not.toMatch(/\b(delivered|live|available) (today|now)\b/i)
