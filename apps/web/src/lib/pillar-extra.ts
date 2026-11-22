@@ -179,19 +179,19 @@ export const PILLAR_EXTRA: Record<Pillar['slug'], PillarExtra> = {
   },
   experience: {
     shipNote:
-      'Living business cards are delivered today: a short film that ends on your logo, a private proof, then a hosted card page with a QR code and vCard.',
+      'Experience is not live yet. You can order a living card today under Conversion: a private proof, then a hosted card page with your details and a Save contact button. Your film on that page and a QR code for each card are still being built.',
     scope:
       'Experience is how your business feels in the first look: a short film, clear type, and a card page laid out for the phone your customer already holds.',
     scopeDeep:
       'Referrals arrive on phones. If the first thing they open is a PDF, a clip-art card, or a desktop page shrunk down, you lose trust before you speak.',
     scopePillars: [
-      { title: 'Film', body: 'A short opening film that ends on your logo, with a still poster when motion is reduced or autoplay is blocked.' },
+      { title: 'Film', body: 'A short opening film that ends on your logo, with a still poster when motion is reduced or autoplay is blocked. The showroom and the sample card show it today.' },
       { title: 'Phone first', body: 'The card page is laid out for a narrow phone screen first.' },
-      { title: 'One tap', body: 'A QR code opens your card, and Save contact downloads a vCard.' },
+      { title: 'One tap', body: 'Save contact downloads a vCard today. A QR code for each card is coming.' },
     ],
     capabilityDetail: [
       {
-        body: 'Pick an opening film in the showroom. Yours ends on your logo and details, not ours.',
+        body: 'Pick an opening film in the showroom. Yours will end on your logo and details, not ours, and play on your own card page.',
         includes: ['Showroom edition', 'Your logo on the last frame', 'Labelled AI-generated samples'],
       },
       {
@@ -199,8 +199,8 @@ export const PILLAR_EXTRA: Record<Pillar['slug'], PillarExtra> = {
         includes: ['Private proof link', 'Your approval before go-live'],
       },
       {
-        body: 'Every card has a QR code that opens it, and a Save contact button that downloads a vCard.',
-        includes: ['QR code', 'vCard download', 'Hosted card link'],
+        body: 'Every card page has a Save contact button that downloads a vCard. A QR code for each card is coming.',
+        includes: ['vCard download (live)', 'Hosted card link (live)', 'QR code per card (coming)'],
       },
     ],
     searchExamples: [
@@ -253,8 +253,8 @@ export const PILLAR_EXTRA: Record<Pillar['slug'], PillarExtra> = {
     deliverablesRich: [
       { title: 'Opening film', body: 'A short film from the showroom that ends on your logo.' },
       { title: 'Private proof', body: 'A review link you approve before the card goes public.' },
-      { title: 'Hosted card page', body: 'Your card at its own link, laid out for the phone first.' },
-      { title: 'QR code', body: 'Opens your card from print, signage, or a screen.' },
+      { title: 'Hosted card page', body: 'Your card at its own link, laid out for the phone first, with your film playing on it.' },
+      { title: 'QR code', body: 'A code for each card that opens it from print, signage, or a screen.' },
       { title: 'vCard', body: 'Save contact downloads your details to their phone.' },
     ],
     outcomesRich: [

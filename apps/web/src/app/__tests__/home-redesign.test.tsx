@@ -351,9 +351,9 @@ describe('the compact privacy notice keeps its link outside <summary>', () => {
 
 // UNI-3320: the home pillar tiles carry the same status as the pillar pages. Written out by hand on purpose.
 describe('the home pillar tiles', () => {
-  it('chip Experience and Conversion Live, Visibility and Intelligence Coming', async () => {
+  it('chip Conversion Live, and Visibility, Experience and Intelligence Coming', async () => {
     const html = await signedOut()
-    const expected = { visibility: 'coming', experience: 'live', conversion: 'live', intelligence: 'coming' } as const
+    const expected = { visibility: 'coming', experience: 'coming', conversion: 'live', intelligence: 'coming' } as const
     for (const p of PILLARS) {
       const marker = `data-track-label="home-pillar-${p.slug}"`
       expect(html.split(marker), p.slug).toHaveLength(2)
