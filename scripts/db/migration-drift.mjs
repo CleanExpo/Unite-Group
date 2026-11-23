@@ -49,10 +49,21 @@ export function parseLedger(text) {
       }
     }
   } else if (raw.includes('|')) {
+    // `supabase migration list` renders a markdown table (CLI internal/migration/list makeTable, then
+    // glamour's ASCII style): every cell is a code span such as `20260309000000`, an empty cell is
+    // "` `", and outer pipes may or may not be present. The column is found from the header, never
+    // assumed: the Local column lists files on disk, and reading it would compare the files to themselves.
+    const cells = (line) => line.split('|').map((c) => c.trim().replace(/^`+|`+$/g, '').trim());
+    let remote = -1;
     for (const line of raw.split('\n')) {
-      if (!line.includes('|') || /^[\s|+-]+$/.test(line) || /\blocal\b.*\bremote\b/i.test(line)) continue;
-      const cols = line.split('|').map((c) => c.trim());
-      if (cols[1]) entries.push({ version: cols[1], name: null });
+      if (!line.includes('|') || /^[\s|+\-─│┼]+$/.test(line)) continue;
+      if (remote === -1) {
+        if (/\blocal\b.*\bremote\b/i.test(line)) remote = cells(line).findIndex((c) => /^remote$/i.test(c));
+        if (remote === -1) throw new DriftInputError('ledger table has no Local | Remote header before its rows: refusing to guess which column is the database');
+        continue;
+      }
+      const version = cells(line)[remote];
+      if (version) entries.push({ version, name: null });
     }
   } else {
     for (const line of raw.split('\n')) {

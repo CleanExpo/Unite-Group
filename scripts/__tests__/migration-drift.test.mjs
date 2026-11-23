@@ -164,6 +164,25 @@ test('parseLedger reads the CLI table, JSON and name lines to the same versions'
     '   20261119090000 |                | 2026-11-19 09:00:00 ',
   ].join('\n');
   assert.deepEqual(parseLedger(table).map((e) => e.version), ['20260309000000', '001']);
+  // the CLI's own output: code-span cells, "` `" for empty, with or without outer pipes (makeTable + glamour)
+  const markdown = [
+    '|Local|Remote|Time (UTC)|',
+    '|-|-|-|',
+    '|`20260309000000`|`20260309000000`|`2026-03-09 00:00:00`|',
+    '|` `|`001`|`001`|',
+    '|`20261119090000`|` `|`2026-11-19 09:00:00`|',
+  ].join('\n');
+  assert.deepEqual(parseLedger(markdown).map((e) => e.version), ['20260309000000', '001'], 'reads Remote, not Local, with outer pipes');
+  const rendered = [
+    '                                                    ',
+    '    Local            | Remote           | Time (UTC)            ',
+    '  -------------------|------------------|---------------------- ',
+    '    `20260309000000` | `20260309000000` | `2026-03-09 00:00:00` ',
+    '    ` `              | `001`            | `001`                 ',
+    '    `20261119090000` | ` `              | `2026-11-19 09:00:00` ',
+  ].join('\n');
+  assert.deepEqual(parseLedger(rendered).map((e) => e.version), ['20260309000000', '001'], 'reads Remote without outer pipes');
+  assert.throws(() => parseLedger('|`20260309000000`|`20260309000000`|`x`|'), DriftInputError, 'a table with no header is refused');
   assert.deepEqual(parseLedger('[{"version":"20260309000000","name":"a"},"001 b"]').map((e) => e.version), ['20260309000000', '001']);
   assert.deepEqual(parseLedger('20260309000000 a\n001 b').map((e) => e.name), ['a', 'b']);
 });
