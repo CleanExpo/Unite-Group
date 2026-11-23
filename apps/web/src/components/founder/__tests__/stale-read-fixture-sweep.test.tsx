@@ -785,8 +785,29 @@ const STALE_FIXTURES: StaleFixture[] = [
  * candidate population AND be driven through the whole success → failure →
  * success sequence. A surface that stops being discoverable, or whose fixture
  * is quietly removed, is a RED run rather than a quieter green one.
+ *
+ * Written out BY HAND, never derived from STALE_FIXTURES. When it was
+ * `STALE_FIXTURES.map((f) => f.file)`, dropping a fixture shrank both sides of
+ * the closing comparison together and the run stayed green: the ratchet could
+ * not see its own erosion. As a separate literal, a fixture removed from
+ * STALE_FIXTURES is pinned-but-not-exercised (red), and a fixture added without
+ * a pin is exercised-but-not-pinned (red). Add or remove a surface in BOTH
+ * places, in the same change. The source guard below fails if this line goes
+ * back to being computed. [UNI-2510]
  */
-const MUST_SURVIVE_STALE_READ = STALE_FIXTURES.map((f) => f.file)
+const MUST_SURVIVE_STALE_READ: readonly string[] = [
+  'components/command-centre/live-agent-operations/LiveAgentOperationsMap.tsx',
+  'components/command-centre/work-packets/WorkPacketLane.tsx',
+  'app/(founder)/founder/command-centre/QueueBoard.tsx',
+  'components/command-centre/repo-campaigns/RepoCampaignsTile.tsx',
+  'components/command-centre/team-activity/TeamActivityTile.tsx',
+  'app/(founder)/founder/command-centre/InProgressPRsTile.tsx',
+  'components/command-centre/email-accounts/EmailAccountsTile.tsx',
+  'components/command-centre/margot-health/MargotHealthTile.tsx',
+  'components/command-centre/provider-accounts/ProviderAccountsTile.tsx',
+  'components/command-centre/activity/ActivityFeedPanel.tsx',
+  'components/founder/boardroom/TeamPanel.tsx',
+]
 
 describe('No-Invaders: a retained payload must be marked stale and go inert', () => {
   const originalFetch = global.fetch
@@ -1040,6 +1061,32 @@ describe('No-Invaders: a retained payload must be marked stale and go inert', ()
     expect(liveActionsInStaleRegion(host)).toEqual([])
     host.innerHTML = '<div data-stale-read="true"><span role="button">Approve</span></div>'
     expect(liveActionsInStaleRegion(host)).toEqual(['Approve'])
+  })
+
+  it('the ratchet is a hand-written list, not derived from the fixtures it polices', () => {
+    // A derived list and a literal one are identical at run time, so the only
+    // place the difference shows is the source. Read this file's own text and
+    // require the declaration to be an array of plain string literals that does
+    // not mention STALE_FIXTURES. [UNI-2510]
+    const lines = readFileSync(__filename, 'utf8').split('\n')
+    const start = lines.findIndex((l) => l.startsWith('const MUST_SURVIVE_STALE_READ'))
+    expect(start, 'MUST_SURVIVE_STALE_READ declaration not found in the sweep source').toBeGreaterThan(-1)
+    const head = lines[start]
+    expect(head, 'MUST_SURVIVE_STALE_READ must not be computed from STALE_FIXTURES').not.toMatch(/STALE_FIXTURES/)
+    expect(head.trimEnd().endsWith('= ['), 'MUST_SURVIVE_STALE_READ must open an array literal').toBe(true)
+    const end = lines.findIndex((l, i) => i > start && l === ']')
+    expect(end, 'MUST_SURVIVE_STALE_READ array literal is not closed by a bare "]" line').toBeGreaterThan(start)
+    const entries = lines
+      .slice(start + 1, end)
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0)
+    expect(entries.length, 'MUST_SURVIVE_STALE_READ is empty').toBeGreaterThan(0)
+    for (const line of entries) {
+      expect(line, `MUST_SURVIVE_STALE_READ entry is not a plain string literal: ${line}`).toMatch(/^'[^']+',?$/)
+    }
+    expect(entries.length).toBe(MUST_SURVIVE_STALE_READ.length)
+    // No duplicate pins: a duplicate would let one entry stand in for a dropped one.
+    expect(new Set(MUST_SURVIVE_STALE_READ).size).toBe(MUST_SURVIVE_STALE_READ.length)
   })
 
   it('every pinned surface is still in the census population', () => {
