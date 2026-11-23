@@ -1,0 +1,186 @@
+name: Database migrations
+
+# UNI-2757. Merged migration files never reached the production database, so shipped features
+# could not work in production and nothing noticed. This workflow is the missing last step.
+#
+# On a pull request that touches migrations: lint the files, replay every migration on a throwaway
+# local Supabase stack, and run the drift check against that stack. It never touches a remote.
+#
+# On a push to main that touches migrations: one job in the `production-db` GitHub environment.
+# Required reviewers on that environment are the human gate; the founder sets them in repository
+# settings. The job proves it is looking at production, shows the plan, applies, and checks again.
+#
+# All comparison logic lives in scripts/db/migration-drift.mjs and scripts/db/migration-ledger-map.json.
+# Nothing here re-implements it. Runbook: docs/runbooks/db-migrations.md.
+
+on:
+  pull_request:
+    paths:
+      - "apps/web/supabase/migrations/**"
+      - "scripts/db/**"
+      - ".github/workflows/db-migrations.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/web/supabase/migrations/**"
+      - "scripts/db/**"
+      - ".github/workflows/db-migrations.yml"
+  # Re-run after the founder finishes the one-time setup, or after fixing a held file. Still gated by
+  # the production-db environment, and the job refuses to run from any ref but main.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "24"
+  SUPABASE_CLI_VERSION: "2.122.0"
+
+jobs:
+  pr-dry-run:
+    name: Lint and replay migrations (local stack, no remote)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+
+      - name: Drift script and workflow tests
+        run: node --test scripts/__tests__/migration-drift.test.mjs
+
+      - name: Lint migration file names and the ledger map
+        run: node scripts/db/migration-drift.mjs --lint
+
+      # config.toml is gitignored in apps/web/supabase, so a clean checkout has none.
+      - name: Create a local Supabase config
+        run: |
+          if [ ! -f apps/web/supabase/config.toml ]; then
+            supabase init --workdir apps/web
+          fi
+
+      - name: Start a throwaway local stack (applies every migration in order)
+        run: supabase start --workdir apps/web
+
+      - name: Lint the schema on the local stack
+        run: supabase db lint --local --workdir apps/web --fail-on error
+
+      - name: Drift check against the local stack
+        run: |
+          supabase migration list --local --workdir apps/web > local-ledger.txt
+          node scripts/db/migration-drift.mjs --ledger local-ledger.txt --mode report
+
+      - name: Stop the local stack
+        if: always()
+        run: supabase stop --no-backup --workdir apps/web
+
+  apply-production:
+    name: Apply migrations to production
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production-db
+    # One production apply at a time, and never cancel one that has started.
+    concurrency:
+      group: db-migrations-production
+      cancel-in-progress: false
+    env:
+      # Not a secret. Must equal prodProjectRef in scripts/db/migration-ledger-map.json (a test enforces it).
+      PROD_PROJECT_REF: lksfwktwtmyznckodsau
+    steps:
+      # Secrets are given to individual steps, never to the job, so the third-party actions below
+      # never receive them.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # GitHub creates a missing environment with no reviewers the first time a workflow names it, and a
+      # repository or organisation secret of the same name would then satisfy the check below. So the
+      # human gate cannot rest on environment settings alone. This committed switch can only be turned
+      # on by a reviewed, human-merged change.
+      - name: Require the repository arming switch
+        run: node scripts/db/migration-drift.mjs --require-armed
+
+      - name: Require the production secrets
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          missing=""
+          [ -n "$SUPABASE_ACCESS_TOKEN" ] || missing="$missing SUPABASE_ACCESS_TOKEN"
+          [ -n "$SUPABASE_DB_PASSWORD" ] || missing="$missing SUPABASE_DB_PASSWORD"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing secret(s):$missing. Add them to the production-db environment (see docs/runbooks/db-migrations.md). Nothing was applied."
+            exit 1
+          fi
+
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+
+      - name: Create a Supabase config
+        run: |
+          if [ ! -f apps/web/supabase/config.toml ]; then
+            supabase init --workdir apps/web
+          fi
+
+      - name: Link to the production project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase link --project-ref "$PROD_PROJECT_REF" --workdir apps/web
+
+      - name: Read the production ledger
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase migration list --linked --workdir apps/web > prod-ledger.txt
+
+      # Identity before any write. No endpoint exposes the database fingerprint, so this checks the
+      # linked project ref against the repo's pinned ref and the history against known sentinels.
+      - name: Prove this is the production database
+        run: node scripts/db/migration-drift.mjs --ledger prod-ledger.txt --identity apps/web/supabase/.temp/project-ref
+
+      - name: Show the plan and stop on anything unreviewed
+        run: |
+          status=0
+          node scripts/db/migration-drift.mjs --ledger prod-ledger.txt --mode pre-push > plan.txt 2>&1 || status=$?
+          cat plan.txt
+          {
+            echo "### Production migration plan"
+            echo '```'
+            cat plan.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+
+      - name: Dry run of db push
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase db push --linked --include-all --skip-vault --dry-run --workdir apps/web
+
+      - name: Apply
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase db push --linked --include-all --skip-vault --workdir apps/web
+
+      - name: Drift check after the push
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          supabase migration list --linked --workdir apps/web > prod-ledger-after.txt
+          node scripts/db/migration-drift.mjs --ledger prod-ledger-after.txt --mode report

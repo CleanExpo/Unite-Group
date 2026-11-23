@@ -1,0 +1,5 @@
+{
+  "_about": "Repository arming switch for the production migration apply job (UNI-2757). The job fails closed while armed is false. Flip it only after the founder steps in docs/runbooks/db-migrations.md are done; the change needs a reviewed, human-merged commit, which is the human gate that does not depend on GitHub environment settings.",
+  "armed": false,
+  "projectRef": "lksfwktwtmyznckodsau"
+}

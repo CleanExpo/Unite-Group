@@ -1,0 +1,207 @@
+{
+  "schema": 1,
+  "_about": "Single owner of the file-to-ledger reconciliation (UNI-2757). Prod ledger versions differ from file versions because migrations were once applied by hand. Read by migration-drift.mjs and repair-plan.sh. Never edited by CI.",
+  "prodProjectRef": "lksfwktwtmyznckodsau",
+  "migrationsDir": "apps/web/supabase/migrations",
+  "identitySentinels": [
+    "20260309000000",
+    "20260907180000",
+    "20261102190000",
+    "20261104040000",
+    "20261107120000"
+  ],
+  "mapped": [
+    {
+      "file": "20260706090000_reconcile_social_channels_prod_drift",
+      "ledgerVersion": "20260708130012",
+      "evidence": "ledger name match, list_migrations read-only 23/11/2026"
+    },
+    {
+      "file": "20260708130000_dashboard_health",
+      "ledgerVersion": "20260708130447",
+      "evidence": "ledger name match, list_migrations read-only 23/11/2026"
+    },
+    {
+      "file": "20260709010000_evidence_ledger",
+      "ledgerVersion": "20260709024843",
+      "evidence": "ledger name match, list_migrations read-only 23/11/2026"
+    },
+    {
+      "file": "20260713030000_drip_events_sent_type",
+      "ledgerVersion": "20260714022550",
+      "evidence": "ledger name match, list_migrations read-only 23/11/2026"
+    },
+    {
+      "file": "20260713093000_unify_nexus_semantic_ingestion",
+      "ledgerVersion": "20260714022648",
+      "evidence": "ledger name match, list_migrations read-only 23/11/2026"
+    },
+    {
+      "file": "20260713120000_match_business_docs",
+      "ledgerVersion": "20260714022721",
+      "evidence": "ledger name match, list_migrations read-only 23/11/2026"
+    },
+    {
+      "file": "20260713191051_site_keys",
+      "ledgerVersion": "20260714022756",
+      "evidence": "ledger name match, list_migrations read-only 23/11/2026"
+    },
+    {
+      "file": "20260714000000_project_cost_metering",
+      "ledgerVersion": "20260714022842",
+      "evidence": "ledger name match, list_migrations read-only 23/11/2026"
+    },
+    {
+      "file": "20260714010000_margot_email_drafts",
+      "ledgerVersion": "20260714022902",
+      "evidence": "ledger name match, list_migrations read-only 23/11/2026"
+    },
+    {
+      "file": "20260714020000_mailbox_capture",
+      "ledgerVersion": "20260714022921",
+      "evidence": "ledger name match, list_migrations read-only 23/11/2026"
+    },
+    {
+      "file": "20260714030000_kanban_tasks",
+      "ledgerVersion": "20260714022950",
+      "evidence": "ledger name match, list_migrations read-only 23/11/2026"
+    },
+    {
+      "file": "20260714040000_fix_match_business_docs_text_cast",
+      "ledgerVersion": "20260714023022",
+      "evidence": "ledger name match, list_migrations read-only 23/11/2026"
+    },
+    {
+      "file": "20260715050000_cc_agent_events",
+      "ledgerVersion": "20260716073347",
+      "evidence": "ledger name match, list_migrations read-only 23/11/2026"
+    },
+    {
+      "file": "20260716010000_cc_tasks_claim",
+      "ledgerVersion": "20260716073402",
+      "evidence": "ledger name match, list_migrations read-only 23/11/2026"
+    },
+    {
+      "file": "20260717000000_email_account_voice",
+      "ledgerVersion": "20260717043706",
+      "evidence": "ledger name match, list_migrations read-only 23/11/2026"
+    },
+    {
+      "file": "20260717010000_email_account_agent_enabled",
+      "ledgerVersion": "20260717043718",
+      "evidence": "ledger name match, list_migrations read-only 23/11/2026"
+    },
+    {
+      "file": "20260717020000_email_account_slogan",
+      "ledgerVersion": "20260717043728",
+      "evidence": "ledger name match, list_migrations read-only 23/11/2026"
+    },
+    {
+      "file": "20261016190000_idea_evidence_admission",
+      "ledgerVersion": "20261016000002",
+      "evidence": "founder-stated 23/11/2026"
+    },
+    {
+      "file": "20261024090000_alert_delivery_log",
+      "ledgerVersion": "20261025010906",
+      "evidence": "founder-stated 23/11/2026"
+    },
+    {
+      "file": "20261024210000_card_enquiries_feedback",
+      "ledgerVersion": "20261024124903",
+      "evidence": "founder-stated 23/11/2026"
+    },
+    {
+      "file": "20261024230000_card_owner_seed_phill",
+      "ledgerVersion": "20261024185219",
+      "evidence": "founder-stated 23/11/2026"
+    },
+    {
+      "file": "20261025000000_alert_erasure",
+      "ledgerVersion": "20261025041226",
+      "evidence": "ledger name match, list_migrations read-only 23/11/2026"
+    },
+    {
+      "file": "20261025010000_uni3006_revoke_anon_crm",
+      "ledgerVersion": "20261025022606",
+      "evidence": "ledger name match, list_migrations read-only 23/11/2026"
+    },
+    {
+      "file": "20261025090000_card_profiles",
+      "ledgerVersion": "20261025041254",
+      "evidence": "ledger name match, list_migrations read-only 23/11/2026"
+    },
+    {
+      "file": "20261025100000_card_orders",
+      "ledgerVersion": "20261025010926",
+      "evidence": "founder-stated 23/11/2026"
+    },
+    {
+      "file": "20261025120000_site_events",
+      "ledgerVersion": "20261025010949",
+      "evidence": "founder-stated 23/11/2026"
+    },
+    {
+      "file": "20261025200000_card_orders_extra_business",
+      "ledgerVersion": "20261025074737",
+      "evidence": "founder-stated 23/11/2026"
+    }
+  ],
+  "held": [
+    {
+      "file": "20260908020000_coaching_seed_klim_spiroski",
+      "kind": "data-seed",
+      "reason": "Writes a named client row. Needs its own founder yes/no. Check read-only whether the row exists in prod before choosing repair or apply."
+    },
+    {
+      "file": "20261006000000_public_agent_quota",
+      "kind": "verify",
+      "reason": "Its tables are reported to exist in prod under another ledger version, but no ledger name matches this file. Verify the objects, then mark applied."
+    },
+    {
+      "file": "20260629990000_contacts_drift_baseline",
+      "kind": "verify",
+      "reason": "No ledger entry by version or name. Verify the objects exist in prod, then mark applied or let it apply."
+    },
+    {
+      "file": "20260630000000_crm_unify_contacts_view",
+      "kind": "verify",
+      "reason": "No ledger entry by version or name. Verify the objects exist in prod, then mark applied or let it apply."
+    },
+    {
+      "file": "20260701000000_wiki_pages",
+      "kind": "verify",
+      "reason": "Ambiguous: ledger holds create_wiki_pages (20260508232220) and uni2225_wiki_pages (20260708112150). Verify the objects."
+    },
+    {
+      "file": "20260706000000_uni2231_force_rls_5_tables",
+      "kind": "verify",
+      "reason": "No ledger entry by version or name. Verify FORCE RLS is set on the 5 tables in prod."
+    },
+    {
+      "file": "20260711100000_stripe_events",
+      "kind": "verify",
+      "reason": "Second file named stripe_events; the ledger name matches 20260612000000. Verify the objects."
+    },
+    {
+      "file": "20260711120000_op_access_grants",
+      "kind": "verify",
+      "reason": "Applied by hand (manual-applies/2026-07-11_op_access_grants.sql); table exists in prod with no ledger entry. Verify, then mark applied."
+    },
+    {
+      "file": "20260727010000_repair_nexus_semantic_coverage",
+      "kind": "verify",
+      "reason": "No ledger entry by version or name. Verify the function bodies in prod."
+    },
+    {
+      "file": "20260728010000_harden_nexus_semantic_freshness",
+      "kind": "verify",
+      "reason": "No ledger entry by version or name. Verify the function bodies in prod."
+    },
+    {
+      "file": "20260807010000_founder_chat_threads",
+      "kind": "verify",
+      "reason": "UNI-2757 evidence: founder_chat_threads was missing from prod on 24/09. No ledger entry now. Likely a real gap."
+    }
+  ]
+}
