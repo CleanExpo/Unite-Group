@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { STALE_READ_ATTR, StaleReadNotice } from '@/components/ui/StaleReadNotice'
 
 interface NotificationItem {
   id: string
@@ -31,6 +32,12 @@ export function NotificationBell() {
   const [data, setData] = useState<NotificationsResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  // Whether the LATEST read failed. Separate from `error` on purpose: `error` is
+  // cleared when a read starts and is also written by a failed mark-as-read, so
+  // a mark derived from it would drop while a replacement read is still in
+  // flight and would fire on a failed PATCH that left the read itself good.
+  // Only a successful read clears this. [UNI-2500]
+  const [readFailed, setReadFailed] = useState(false)
   const [popup, setPopup] = useState({ left: 0, width: 320, maxHeight: 400 })
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -58,8 +65,12 @@ export function NotificationBell() {
       const json = await res.json() as NotificationsResponse & { error?: string }
       if (!res.ok) throw new Error(json?.error || 'Notifications are currently unavailable. Please try again.')
       if (!json || !Array.isArray(json.notifications) || !Number.isInteger(json.unreadCount) || json.unreadCount < 0 || !json.notifications.every(item => item && typeof item.id === 'string' && typeof item.type === 'string' && typeof item.read === 'boolean' && typeof item.created_at === 'string')) throw new Error('Notifications returned an unreadable response. Please try again.')
-      if (request === requestSequence.current) setData(json)
+      if (request === requestSequence.current) {
+        setData(json)
+        setReadFailed(false)
+      }
     } catch (cause) {
+      if (request === requestSequence.current) setReadFailed(true)
       if (request === requestSequence.current) setError(cause instanceof Error && !(cause instanceof SyntaxError) ? cause.message : 'Notifications could not be loaded. Please try again.')
     } finally {
       if (request === requestSequence.current) setLoading(false)
@@ -115,12 +126,22 @@ export function NotificationBell() {
 
   const unread = data?.unreadCount ?? 0
   const recent = (data?.notifications ?? []).slice(0, 5)
+  // The count and the rows on screen came from an earlier read and the latest
+  // one failed. Keyed on `data`, not on rows: the count is stale even when the
+  // retained list is empty. [UNI-2500]
+  const stale = readFailed && data !== null
+  const staleMark = stale ? { [STALE_READ_ATTR]: 'true' } : {}
+  const bellLabel = readFailed
+    ? data
+      ? `Notifications — last known ${unread} unread, latest read failed`
+      : 'Notifications — latest read failed'
+    : `Notifications${unread > 0 ? ` — ${unread} unread` : ''}`
 
   return (
     <div ref={dropdownRef} style={{ position: 'relative', display: 'inline-flex' }}>
       <button
         onClick={() => { if (!open) positionPopup(); setOpen((v) => !v) }}
-        aria-label={`Notifications${unread > 0 ? ` — ${unread} unread` : ''}`}
+        aria-label={bellLabel}
         aria-expanded={open}
         aria-controls={popupId}
         style={{
@@ -153,8 +174,35 @@ export function NotificationBell() {
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
 
-        {/* Red badge */}
-        {unread > 0 && (
+        {/* Failed-read badge: no number, because the last known count is not current. */}
+        {readFailed && (
+          <span
+            aria-hidden="true"
+            data-bell-badge="read-failed"
+            style={{
+              position: 'absolute',
+              top: -3,
+              right: -3,
+              background: '#f59e0b',
+              color: '#1f1300',
+              borderRadius: '2px',
+              fontSize: 9,
+              fontWeight: 700,
+              lineHeight: 1,
+              minWidth: 14,
+              height: 14,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0 2px',
+            }}
+          >
+            !
+          </span>
+        )}
+
+        {/* Red badge: only a count from a read that is still current. */}
+        {!readFailed && unread > 0 && (
           <span
             aria-hidden="true"
             style={{
@@ -221,7 +269,18 @@ export function NotificationBell() {
             >
               Notifications
             </span>
-            {unread > 0 && (
+            {stale ? (
+              <span
+                {...staleMark}
+                style={{
+                  fontSize: 10,
+                  color: 'var(--color-text-muted)',
+                  fontWeight: 600,
+                }}
+              >
+                last known {unread} unread
+              </span>
+            ) : unread > 0 && (
               <span
                 style={{
                   fontSize: 10,
@@ -234,7 +293,8 @@ export function NotificationBell() {
             )}
           </div>
 
-          {error && <div role="alert" style={{ padding: '14px', fontSize: 12, color: 'var(--color-danger)', overflowWrap: 'anywhere' }}><p>{error}</p>{data && <p>Last loaded notifications are shown below.</p>}<button type="button" disabled={loading} onClick={() => void fetchNotifications()} style={{ background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)', padding: '8px 10px', marginTop: 8, cursor: 'pointer' }}>Retry notifications</button></div>}
+          {stale && <StaleReadNotice source="Notifications" actionsDisabled />}
+          {error && <div role="alert" style={{ padding: '14px', fontSize: 12, color: 'var(--color-danger)', overflowWrap: 'anywhere' }}><p>{error}</p><button type="button" disabled={loading} onClick={() => void fetchNotifications()} style={{ background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)', padding: '8px 10px', marginTop: 8, cursor: 'pointer' }}>Retry notifications</button></div>}
           {loading && !data && <p role="status" style={{ padding: '14px', fontSize: 12, color: 'var(--color-text-muted)' }}>Loading notifications…</p>}
           {data && !error && !loading && recent.length === 0 && (
             <div
@@ -249,70 +309,101 @@ export function NotificationBell() {
             </div>
           )}
           {recent.length > 0 && (
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-              {recent.map((n) => (
-                <li
-                  key={n.id}
-                  onClick={() => { if (!n.read) markRead(n.id) }}
-                  style={{
-                    padding: '10px 14px',
-                    borderBottom: '1px solid var(--color-border)',
-                    cursor: n.read ? 'default' : 'pointer',
-                    background: n.read ? 'transparent' : 'rgba(22, 163, 74, 0.03)',
-                    display: 'flex',
-                    gap: 10,
-                    alignItems: 'flex-start',
-                  }}
-                >
-                  {/* Unread dot */}
-                  <span
-                    style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: '1px',
-                      background: n.read ? 'transparent' : '#16a34a',
-                      flexShrink: 0,
-                      marginTop: 4,
-                    }}
-                  />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
+            <ul {...staleMark} style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+              {recent.map((n) => {
+                const rowStyle = {
+                  padding: '10px 14px',
+                  background: n.read ? 'transparent' : 'rgba(22, 163, 74, 0.03)',
+                  display: 'flex',
+                  gap: 10,
+                  alignItems: 'flex-start',
+                } as const
+                const message = typeof n.payload?.message === 'string' ? n.payload.message : null
+                const body = (
+                  <>
+                    {/* Unread dot */}
+                    <span
                       style={{
-                        fontSize: 11,
-                        fontWeight: 600,
-                        color: n.read ? 'var(--color-text-muted)' : 'var(--color-text-primary)',
-                        textTransform: 'capitalize',
-                        marginBottom: 2,
+                        width: 6,
+                        height: 6,
+                        borderRadius: '1px',
+                        background: n.read ? 'transparent' : '#16a34a',
+                        flexShrink: 0,
+                        marginTop: 4,
                       }}
-                    >
-                      {n.type.replace(/_/g, ' ')}
-                    </div>
-                    {typeof n.payload?.message === 'string' && (
-                      <div
+                    />
+                    {/* Spans, not divs: this body can sit inside a <button>. */}
+                    <span style={{ display: 'block', flex: 1, minWidth: 0 }}>
+                      <span
                         style={{
+                          display: 'block',
                           fontSize: 11,
-                          color: 'var(--color-text-muted)',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
+                          fontWeight: 600,
+                          color: n.read ? 'var(--color-text-muted)' : 'var(--color-text-primary)',
+                          textTransform: 'capitalize',
+                          marginBottom: 2,
                         }}
                       >
-                        {n.payload.message}
-                      </div>
+                        {n.type.replace(/_/g, ' ')}
+                      </span>
+                      {message !== null && (
+                        <span
+                          style={{
+                            display: 'block',
+                            fontSize: 11,
+                            color: 'var(--color-text-muted)',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {message}
+                        </span>
+                      )}
+                      <span
+                        style={{
+                          display: 'block',
+                          fontSize: 10,
+                          color: 'var(--color-text-muted)',
+                          marginTop: 3,
+                          opacity: 0.6,
+                        }}
+                      >
+                        {timeAgo(n.created_at)}
+                      </span>
+                    </span>
+                  </>
+                )
+                return (
+                  <li key={n.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    {n.read ? (
+                      <div style={rowStyle}>{body}</div>
+                    ) : (
+                      // A real button, so marking as read is reachable by keyboard and
+                      // can be disabled while the list is stale. [UNI-2500]
+                      <button
+                        type="button"
+                        disabled={stale}
+                        aria-label={`Mark as read: ${n.type.replace(/_/g, ' ')}${message !== null ? ` — ${message}` : ''}`}
+                        onClick={() => void markRead(n.id)}
+                        style={{
+                          ...rowStyle,
+                          width: '100%',
+                          border: 'none',
+                          margin: 0,
+                          font: 'inherit',
+                          color: 'inherit',
+                          textAlign: 'left',
+                          cursor: stale ? 'not-allowed' : 'pointer',
+                          opacity: stale ? 0.6 : 1,
+                        }}
+                      >
+                        {body}
+                      </button>
                     )}
-                    <div
-                      style={{
-                        fontSize: 10,
-                        color: 'var(--color-text-muted)',
-                        marginTop: 3,
-                        opacity: 0.6,
-                      }}
-                    >
-                      {timeAgo(n.created_at)}
-                    </div>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                )
+              })}
             </ul>
           )}
         </div>
