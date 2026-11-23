@@ -22,6 +22,9 @@ import {
   DriftInputError,
   lintMigrations,
   replayBlockers,
+  parseDbLint,
+  parseLintBaseline,
+  compareDbLint,
   listMigrationFiles,
   loadMap,
   main,
@@ -229,6 +232,71 @@ test('every committed migration file was read, so the replay rule saw real SQL',
   assert.ok(files.every((f) => typeof f.sql === 'string' && f.sql.length > 0));
 });
 
+// ── Schema lint baseline ────────────────────────────────────────────────────
+
+const LINT_FIXTURE = join(ROOT, 'scripts/db/__fixtures__/db-lint-2026-11-23.txt');
+const BASELINE_PATH = join(ROOT, 'scripts/db/lint-baseline.json');
+const KNOWN_FOUR = [
+  'public.get_video_pipeline_stats|42703|column "cnt" does not exist',
+  'public.match_business_docs|42703|column p.body does not exist',
+  'public.erase_lead_alert_data|42P01|relation "public.agent_actions" does not exist',
+  'public.erase_lead_alert_data_for_email|42P01|relation "public.agent_actions" does not exist',
+];
+const keyOf = (e) => `${e.function}|${e.sqlState}|${e.message}`;
+
+test('db lint: the exact four known errors (real CI output) pass against the committed baseline', () => {
+  const found = parseDbLint(readFileSync(LINT_FIXTURE, 'utf8'));
+  const baseline = parseLintBaseline(readFileSync(BASELINE_PATH, 'utf8'));
+  assert.deepEqual(found.map(keyOf), KNOWN_FOUR, 'warnings are ignored, the four errors are read');
+  assert.deepEqual(baseline.map(keyOf), KNOWN_FOUR);
+  assert.ok(baseline.every((e) => e.ticket === 'UNI-3531' && e.reason.length > 0));
+  assert.deepEqual(compareDbLint(found, baseline), []);
+  assert.equal(main(['--db-lint', LINT_FIXTURE], capture()), 0);
+});
+
+test('db lint: a planted new error fails, by name', () => {
+  const baseline = parseLintBaseline(readFileSync(BASELINE_PATH, 'utf8'));
+  const found = [...parseDbLint(readFileSync(LINT_FIXTURE, 'utf8')), { function: 'public.new_fn', sqlState: '42703', message: 'column x does not exist' }];
+  const why = compareDbLint(found, baseline);
+  assert.deepEqual(why, ['new schema lint error (not in lint-baseline.json): public.new_fn 42703 column x does not exist']);
+  // the same error text on a different function is still new: the key is exact
+  const moved = [...parseDbLint(readFileSync(LINT_FIXTURE, 'utf8')), { function: 'public.other_fn', sqlState: '42703', message: 'column "cnt" does not exist' }];
+  assert.equal(compareDbLint(moved, baseline).length, 1);
+  const dir = mkdtempSync(join(tmpdir(), 'dblint-'));
+  try {
+    const f = join(dir, 'lint.txt');
+    const planted = readFileSync(LINT_FIXTURE, 'utf8').replace(/\]\s*$/, ',{"function":"public.new_fn","issues":[{"level":"error","message":"boom","sqlState":"XX000"}]}]');
+    writeFileSync(f, planted);
+    assert.equal(main(['--db-lint', f], capture()), 1);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('db lint: a stale baseline entry (its error no longer occurs) fails, so the baseline shrinks', () => {
+  const baseline = parseLintBaseline(readFileSync(BASELINE_PATH, 'utf8'));
+  const fixed = parseDbLint(readFileSync(LINT_FIXTURE, 'utf8')).filter((e) => e.function !== 'public.match_business_docs');
+  const why = compareDbLint(fixed, baseline);
+  assert.equal(why.length, 1);
+  assert.ok(why[0].startsWith('stale baseline entry, the error no longer occurs: public.match_business_docs'));
+  // a clean lint with the four entries still listed fails four times
+  assert.equal(compareDbLint(parseDbLint('Linting schema: public\nNo schema errors found\n'), baseline).length, 4);
+});
+
+test('db lint: unreadable output and loose baseline entries are input errors, never a pass', () => {
+  assert.throws(() => parseDbLint(''), DriftInputError);
+  assert.throws(() => parseDbLint('Connecting to local database...\nerror: connection refused'), DriftInputError);
+  assert.throws(() => parseDbLint('[ not json'), DriftInputError);
+  const entry = { function: 'public.f', sqlState: '42703', message: 'm', reason: 'r', ticket: 'UNI-1' };
+  const bad = (e) => JSON.stringify({ entries: [{ ...entry, ...e }] });
+  assert.equal(parseLintBaseline(bad({})).length, 1);
+  for (const e of [{ function: '*' }, { function: 'public.*' }, { function: 'f' }, { message: '%' }, { message: 'column * does not exist' }, { sqlState: '' }, { sqlState: 'all' }, { reason: '' }, { ticket: 'UNI-TBD' }]) {
+    assert.throws(() => parseLintBaseline(bad(e)), DriftInputError, JSON.stringify(e));
+  }
+  assert.throws(() => parseLintBaseline(JSON.stringify({ entries: [entry, entry] })), DriftInputError);
+  assert.throws(() => parseLintBaseline('{}'), DriftInputError);
+});
+
 // ── Production identity ─────────────────────────────────────────────────────
 
 test('identity passes for the production ref and history, and fails for another ref, a missing ref or a thin history', () => {
@@ -399,7 +467,8 @@ const PR_ALLOWED_COMMANDS = [
   'supabase init --workdir apps/web',
   'fi',
   'supabase start --workdir apps/web',
-  'supabase db lint --local --workdir apps/web --fail-on error',
+  'supabase db lint --local --workdir apps/web --level error > db-lint.txt 2>&1 || { cat db-lint.txt; exit 1; }',
+  'node scripts/db/migration-drift.mjs --db-lint db-lint.txt',
   'supabase migration list --local --workdir apps/web > local-ledger.txt',
   'node scripts/db/migration-drift.mjs --ledger local-ledger.txt --mode report',
   'supabase stop --no-backup --workdir apps/web',

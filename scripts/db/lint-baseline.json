@@ -1,0 +1,33 @@
+{
+  "_about": "Schema lint errors that were already on main before UNI-2757 (supabase db lint on the local replay, 23/11/2026). The PR job fails on any error not listed here and on any entry that no longer occurs. Remove an entry in the same change that fixes its function. Fixing these needs its own Tier 1 change with a production check first (UNI-3531).",
+  "entries": [
+    {
+      "function": "public.get_video_pipeline_stats",
+      "sqlState": "42703",
+      "message": "column \"cnt\" does not exist",
+      "reason": "Function body aggregates a column the query does not select. Pre-existing on main.",
+      "ticket": "UNI-3531"
+    },
+    {
+      "function": "public.match_business_docs",
+      "sqlState": "42703",
+      "message": "column p.body does not exist",
+      "reason": "Function reads nexus_pages.body, which the replayed schema does not have. Pre-existing on main.",
+      "ticket": "UNI-3531"
+    },
+    {
+      "function": "public.erase_lead_alert_data",
+      "sqlState": "42P01",
+      "message": "relation \"public.agent_actions\" does not exist",
+      "reason": "agent_actions is not created by any migration file here; whether production has it is unchecked. Pre-existing on main.",
+      "ticket": "UNI-3531"
+    },
+    {
+      "function": "public.erase_lead_alert_data_for_email",
+      "sqlState": "42P01",
+      "message": "relation \"public.agent_actions\" does not exist",
+      "reason": "Same missing agent_actions table as erase_lead_alert_data. Pre-existing on main.",
+      "ticket": "UNI-3531"
+    }
+  ]
+}

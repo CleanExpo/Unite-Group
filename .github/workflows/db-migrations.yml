@@ -70,8 +70,12 @@ jobs:
       - name: Start a throwaway local stack (applies every migration in order)
         run: supabase start --workdir apps/web
 
+      # Errors already on main are listed one by one in scripts/db/lint-baseline.json (UNI-3531). The
+      # check fails on any error not listed, and on any listed entry that no longer occurs.
       - name: Lint the schema on the local stack
-        run: supabase db lint --local --workdir apps/web --fail-on error
+        run: |
+          supabase db lint --local --workdir apps/web --level error > db-lint.txt 2>&1 || { cat db-lint.txt; exit 1; }
+          node scripts/db/migration-drift.mjs --db-lint db-lint.txt
 
       - name: Drift check against the local stack
         run: |

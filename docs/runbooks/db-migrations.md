@@ -71,6 +71,10 @@ approve the `production-db` deployment. The two files not yet in production
 - No endpoint exposes the production database fingerprint, so identity is the linked project ref plus
   history sentinels. Adding a fingerprint to `/api/health` and comparing it here is a follow-up.
 - The map's 20 name-matched entries rest on the ledger names, not on an object-by-object check.
+- Schema lint baseline: four function errors that were already on main are listed one by one in
+  `scripts/db/lint-baseline.json` (UNI-3531). The PR job fails on any other lint error and on any listed entry that
+  no longer occurs, so remove an entry in the change that fixes its function. Fixing them is a separate Tier 1
+  change that first checks production (for example, whether `public.agent_actions` exists there).
 - Replay rule: the history must apply to an empty database, so a migration whose DO block reads application rows
   skips with a NOTICE when they are missing (`migration-drift.mjs --lint` refuses one that can abort). On a database
   built from empty, such a seed is recorded as applied with nothing written, and adding the founder later does not

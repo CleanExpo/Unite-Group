@@ -287,6 +287,81 @@ export function checkIdentity({ linkedRef, ledger, map }) {
   return why;
 }
 
+// ── Schema lint baseline (UNI-2757, UNI-3531) ───────────────────────────────
+//
+// `supabase db lint` reports errors in function bodies. Errors that were already on main are listed,
+// one by one, in lint-baseline.json; the check fails on any error NOT listed (a new regression) and on
+// any listed entry that no longer occurs (a fix, so the entry must be removed). An allow-list that
+// must match exactly, never a mute: no wildcards, no "ignore all".
+
+const lintKey = (e) => `${e.function}|${e.sqlState}|${e.message}`;
+
+/** Reads lint-baseline.json. Throws DriftInputError on any malformed, duplicate or wildcard entry. */
+export function parseLintBaseline(text) {
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new DriftInputError('lint baseline is not valid JSON');
+  }
+  if (!data || !Array.isArray(data.entries)) throw new DriftInputError('lint baseline needs an "entries" array');
+  const seen = new Set();
+  return data.entries.map((e, i) => {
+    for (const field of ['function', 'sqlState', 'message', 'reason', 'ticket']) {
+      if (typeof e?.[field] !== 'string' || e[field].trim() === '') throw new DriftInputError(`lint baseline entry ${i}: "${field}" must be a non-empty string`);
+    }
+    if (!/^[a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*$/.test(e.function)) throw new DriftInputError(`lint baseline entry ${i}: function must be an exact schema.name, got ${e.function}`);
+    if (!/^[0-9A-Z]{5}$/.test(e.sqlState)) throw new DriftInputError(`lint baseline entry ${i}: sqlState must be a five-character code, got ${e.sqlState}`);
+    if (!/^[A-Z]+-\d+$/.test(e.ticket)) throw new DriftInputError(`lint baseline entry ${i}: ticket must be a ticket id such as UNI-1234, got ${e.ticket}`);
+    if (/[*%?]/.test(e.message)) throw new DriftInputError(`lint baseline entry ${i}: message must be the exact text, not a pattern`);
+    const entry = { function: e.function, sqlState: e.sqlState, message: e.message.trim(), reason: e.reason, ticket: e.ticket };
+    const key = lintKey(entry);
+    if (seen.has(key)) throw new DriftInputError(`lint baseline entry ${i} duplicates ${key}`);
+    seen.add(key);
+    return entry;
+  });
+}
+
+/**
+ * Reads the captured output of `supabase db lint` (stdout and stderr together) and returns its
+ * error-level issues. Fails closed: output with neither a JSON result nor the CLI's own
+ * no-errors line is an input error, never "no errors".
+ */
+export function parseDbLint(text) {
+  const start = text.search(/^\[/m);
+  if (start === -1) {
+    if (/No schema errors found/i.test(text)) return [];
+    throw new DriftInputError('db lint output holds no JSON result and no "No schema errors found" line');
+  }
+  const end = text.lastIndexOf(']');
+  let data;
+  try {
+    data = JSON.parse(text.slice(start, end + 1));
+  } catch {
+    throw new DriftInputError('db lint JSON result cannot be parsed');
+  }
+  if (!Array.isArray(data)) throw new DriftInputError('db lint result is not an array');
+  const found = [];
+  for (const fn of data) {
+    if (typeof fn?.function !== 'string' || !Array.isArray(fn.issues)) throw new DriftInputError('db lint result entry lacks function or issues');
+    for (const issue of fn.issues) {
+      if (issue?.level !== 'error') continue;
+      found.push({ function: fn.function, sqlState: String(issue.sqlState ?? ''), message: String(issue.message ?? '').trim() });
+    }
+  }
+  return found;
+}
+
+/** Problems from comparing found lint errors with the baseline. Empty means pass. */
+export function compareDbLint(found, baseline) {
+  const known = new Set(baseline.map(lintKey));
+  const occurring = new Set(found.map(lintKey));
+  const problems = [];
+  for (const e of found) if (!known.has(lintKey(e))) problems.push(`new schema lint error (not in lint-baseline.json): ${e.function} ${e.sqlState} ${e.message}`);
+  for (const e of baseline) if (!occurring.has(lintKey(e))) problems.push(`stale baseline entry, the error no longer occurs: ${e.function} ${e.sqlState} ${e.message} (${e.ticket}); remove it from lint-baseline.json`);
+  return problems;
+}
+
 function parseArgs(argv) {
   const args = { mode: 'report', json: false };
   for (let i = 0; i < argv.length; i += 1) {
@@ -298,6 +373,8 @@ function parseArgs(argv) {
     };
     if (a === '--ledger') args.ledger = next();
     else if (a === '--map') args.map = next();
+    else if (a === '--db-lint') args.dbLint = next();
+    else if (a === '--lint-baseline') args.lintBaseline = next();
     else if (a === '--dir') args.dir = next();
     else if (a === '--armed-file') args.armedFile = next();
     else if (a === '--mode') args.mode = next();
@@ -314,6 +391,14 @@ function parseArgs(argv) {
 
 export function main(argv, out = console) {
   const args = parseArgs(argv);
+  if (args.dbLint) {
+    const baseline = parseLintBaseline(readFileSync(args.lintBaseline ?? join(HERE, 'lint-baseline.json'), 'utf8'));
+    const found = parseDbLint(readFileSync(args.dbLint, 'utf8'));
+    const why = compareDbLint(found, baseline);
+    for (const w of why) out.error(`db-lint: ${w}`);
+    out.log(why.length ? `db-lint: FAILED (${why.length} problem(s))` : `db-lint: OK (${found.length} error(s), all in the baseline; ${baseline.length} baseline entries, all still occurring)`);
+    return why.length ? 1 : 0;
+  }
   const map = loadMap(args.map ?? join(HERE, 'migration-ledger-map.json'));
   const files = listMigrationFiles(args.dir ?? join(ROOT, map.migrationsDir));
   if (files.length === 0) throw new DriftInputError('no migration files found: refusing to report a clean state from an empty directory');
