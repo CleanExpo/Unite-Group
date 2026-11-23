@@ -41,6 +41,19 @@ describe('pillar pages', () => {
   })
 })
 
+describe('live Conversion copy promises no film or QR the client card page does not render (UNI-3320 review)', () => {
+  const conv = PILLAR_EXTRA.conversion
+  const lines = [
+    ...conv.howItWorks.map((s) => `${s.title} ${s.body}`),
+    ...conv.beforeAfter.with,
+    ...conv.deliverablesRich.map((d) => `${d.title} ${d.body}`),
+  ]
+  it.each(lines)('%s', (line) => {
+    // A film or QR mention is allowed only when the same line says it is planned.
+    if (/\b(film|QR)\b/i.test(line)) expect(line).toMatch(/\bplanned\b/i)
+  })
+})
+
 describe('a Live pillar page carries no not-yet-shipped wording (UNI-3320)', () => {
   it.each((Object.keys(EXPECTED_BADGE) as (keyof typeof EXPECTED_BADGE)[]).filter((slug) => EXPECTED_BADGE[slug] === 'Live'))(
     '%s',
