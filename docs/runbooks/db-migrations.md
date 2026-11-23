@@ -46,7 +46,10 @@ file names, and `supabase db push` refuses to run while the ledger holds version
      workflow will then apply it. While a file is held the job refuses to run.
      `20260908020000_coaching_seed_klim_spiroski` writes a named client's data and needs its own yes or no before
      it is applied.
-4. **Arm the workflow.** Change `"armed"` to `true` in `scripts/db/production-apply.json` and merge that change.
+4. **Arm the workflow.** Change `"armed"` to `true` in `scripts/db/production-apply.json`, list every file the
+   apply may run in `"approvedFiles"` (file names without `.sql`), and merge that change. The plan step refuses any
+   pending file that is not listed, so arming once never approves a migration merged later: each later migration
+   needs its own reviewed change to `approvedFiles`.
    Until then the production job stops at its first check, whatever the environment settings are, because GitHub
    creates a missing environment with no reviewers and a repository-level secret of the same name would satisfy
    the secrets check. The committed switch is the human gate that does not depend on those settings.
@@ -60,6 +63,7 @@ approve the `production-db` deployment. The two files not yet in production
 - Run from any ref but `main`, or while `armed` is false, or without both secrets, or against a project that is not
   `lksfwktwtmyznckodsau` with the expected migration history.
 - Run while a held file or an unrepaired ledger row would make `db push` apply or refuse something unreviewed.
+- Apply a pending file that `approvedFiles` in `scripts/db/production-apply.json` does not name.
 - Apply anything on a pull request.
 
 ## Known limits
@@ -67,6 +71,10 @@ approve the `production-db` deployment. The two files not yet in production
 - No endpoint exposes the production database fingerprint, so identity is the linked project ref plus
   history sentinels. Adding a fingerprint to `/api/health` and comparing it here is a follow-up.
 - The map's 20 name-matched entries rest on the ledger names, not on an object-by-object check.
+- Replay rule: the history must apply to an empty database, so a migration whose DO block reads application rows
+  skips with a NOTICE when they are missing (`migration-drift.mjs --lint` refuses one that can abort). On a database
+  built from empty, such a seed is recorded as applied with nothing written, and adding the founder later does not
+  re-run it. Seed that data again by hand, under the usual approval, on any rebuilt environment that needs it.
 - `supabase db push` has no per-file exclude. A file that must not be applied has to be recorded as applied
   (repair) or fixed first.
 - Project rule: validate each migration on a Supabase database branch before production. This workflow replays

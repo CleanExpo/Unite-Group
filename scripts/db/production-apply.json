@@ -1,5 +1,6 @@
 {
-  "_about": "Repository arming switch for the production migration apply job (UNI-2757). The job fails closed while armed is false. Flip it only after the founder steps in docs/runbooks/db-migrations.md are done; the change needs a reviewed, human-merged commit, which is the human gate that does not depend on GitHub environment settings.",
+  "_about": "Repository arming switch for the production migration apply job (UNI-2757). The job fails closed while armed is false. Flip it only after the founder steps in docs/runbooks/db-migrations.md are done; the change needs a reviewed, human-merged commit, which is the human gate that does not depend on GitHub environment settings. approvedFiles lists, by file name without .sql, every migration the next apply may run; the pre-push check refuses any other pending file, so each later migration needs its own reviewed approval.",
   "armed": false,
+  "approvedFiles": [],
   "projectRef": "lksfwktwtmyznckodsau"
 }

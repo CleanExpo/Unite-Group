@@ -21,6 +21,7 @@ import {
   computeDrift,
   DriftInputError,
   lintMigrations,
+  replayBlockers,
   listMigrationFiles,
   loadMap,
   main,
@@ -182,6 +183,52 @@ test('lint catches a bad name, a duplicate version, a map entry for a missing fi
   assert.ok(problems.some((p) => p.includes('also a real file version')));
 });
 
+test('replay rule: a DO block that reads application rows may not abort on missing data', () => {
+  const seedRaises = [
+    'do $$ declare v uuid; begin',
+    '  select founder_id into v from public.crm_contacts limit 1;',
+    "  if v is null then raise exception 'no founder'; end if;",
+    'end $$;',
+  ].join('\n');
+  const seedBareRaise = "do $x$ declare n int; begin select count(*) into n from (select id from auth.users) u; if n = 0 then raise 'none'; end if; end $x$;";
+  const seedSkips = [
+    'do $$ declare v uuid; begin',
+    '  select founder_id into v from public.crm_contacts limit 1;',
+    "  if v is null then raise notice 'skipped'; return; end if;",
+    '  -- a comment that says raise exception is not code',
+    'end $$;',
+  ].join('\n');
+  const schemaGuard = "do $$ declare n int; begin select count(*) into n from pg_catalog.pg_class where relname = 'x'; if n > 0 then raise exception 'exists'; end if; end $$;";
+  const functionBody = "create function public.f() returns void language plpgsql as $$ begin raise exception 'runtime check'; end $$;";
+  assert.equal(replayBlockers(seedRaises).length, 1);
+  assert.equal(replayBlockers(seedBareRaise).length, 1);
+  assert.deepEqual(replayBlockers(seedSkips), []);
+  assert.deepEqual(replayBlockers(schemaGuard), []);
+  assert.deepEqual(replayBlockers(functionBody), []);
+  // forms a narrower rule would miss: an unqualified table, an EXISTS test, a second DO block after a clean one
+  const unqualified = "do $$ declare v uuid; begin select founder_id into v from crm_contacts limit 1; if v is null then raise exception 'x'; end if; end $$;";
+  const existsTest = "do $$ begin if not exists (select 1 from public.crm_leads) then raise exception 'x'; end if; end $$;";
+  const secondBlock = `${schemaGuard}\n\n${seedRaises}`;
+  assert.equal(replayBlockers(unqualified).length, 1);
+  assert.equal(replayBlockers(existsTest).length, 1);
+  assert.deepEqual(replayBlockers(secondBlock).map((p) => p.slice(0, 18)), ['DO block at line 3']);
+  // a table name inside a string or comment is not a read
+  const quoted = "do $$ declare n int; begin select count(*) into n from pg_class; -- from public.crm_contacts\n if n < 0 then raise exception 'missing from public.crm_contacts'; end if; end $$;";
+  assert.deepEqual(replayBlockers(quoted), []);
+  // a conflict guard after the empty-database skip is allowed; the same guard before it is not
+  const skipThenGuard = "do $$ declare n int; begin select count(*) into n from public.crm_leads; if n = 0 then raise notice 'empty'; return; end if; if n > 1 then raise exception 'conflict'; end if; end $$;";
+  const guardThenSkip = "do $$ declare n int; begin select count(*) into n from public.crm_leads; if n > 1 then raise exception 'conflict'; end if; if n = 0 then raise notice 'empty'; return; end if; end $$;";
+  assert.deepEqual(replayBlockers(skipThenGuard), []);
+  assert.equal(replayBlockers(guardThenSkip).length, 1);
+  const problems = lintMigrations([...files, { file: '20990101000000_seed', version: '20990101000000', name: 'seed', valid: true, sql: seedRaises }], map);
+  assert.ok(problems.some((p) => p.startsWith('20990101000000_seed.sql: DO block at line 1 reads public.crm_contacts')));
+});
+
+test('every committed migration file was read, so the replay rule saw real SQL', () => {
+  assert.ok(files.length > 100);
+  assert.ok(files.every((f) => typeof f.sql === 'string' && f.sql.length > 0));
+});
+
 // ── Production identity ─────────────────────────────────────────────────────
 
 test('identity passes for the production ref and history, and fails for another ref, a missing ref or a thin history', () => {
@@ -264,6 +311,59 @@ test('the CLI arming check reads the file it is given: armed passes, disarmed fa
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test('arming once never approves a later migration: pre-push refuses every pending file not in approvedFiles', () => {
+  const later = { file: '20261201000000_later_change', version: '20261201000000', name: 'later_change', valid: true };
+  const ledger = repairedLedger().filter((e) => !MISSING.some((f) => f.slice(0, 14) === e.version));
+  const drift = computeDrift({ files: [...files, later], ledger, map });
+  assert.deepEqual(drift.unapplied, [...MISSING, later.file]);
+  // approval names the two reviewed files only: the later migration is refused by name
+  const why = verdict(drift, 'pre-push', MISSING);
+  assert.deepEqual(why, [`not approved for this apply: ${later.file} is not listed in production-apply.json approvedFiles`]);
+  assert.equal(verdict(drift, 'pre-push', []).length, 3, 'an empty list approves nothing');
+  assert.deepEqual(verdict(drift, 'pre-push', [...MISSING, later.file]), []);
+
+  // the CLI reads approvedFiles from the arming file; absent or malformed list approves nothing
+  const dir = mkdtempSync(join(tmpdir(), 'approved-'));
+  try {
+    const ledgerFile = join(dir, 'ledger.txt');
+    writeFileSync(ledgerFile, toText(repairedLedger().filter((e) => !MISSING.some((f) => f.slice(0, 14) === e.version))));
+    const write = (name, body) => { const f = join(dir, name); writeFileSync(f, JSON.stringify({ armed: true, projectRef: map.prodProjectRef, ...body })); return f; };
+    const run = (armedFile) => main(['--ledger', ledgerFile, '--mode', 'pre-push', '--armed-file', armedFile], capture());
+    assert.equal(run(write('both.json', { approvedFiles: MISSING })), 0);
+    assert.equal(run(write('one.json', { approvedFiles: [MISSING[0]] })), 1);
+    assert.equal(run(write('none.json', {})), 1);
+    assert.equal(run(write('bad.json', { approvedFiles: 'all' })), 1);
+    assert.throws(() => run(join(dir, 'absent.json')));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('report mode fails on a ledger row with no file, so the post-push check cannot pass over drift', () => {
+  const ledger = [...repairedLedger(), { version: '99999999999999', name: 'unknown' }];
+  const drift = computeDrift({ files, ledger, map });
+  assert.deepEqual(drift.orphans, ['99999999999999']);
+  assert.ok(verdict(drift, 'report').some((w) => w.includes('99999999999999')));
+  const dir = mkdtempSync(join(tmpdir(), 'orphan-'));
+  try {
+    const f = join(dir, 'ledger.txt');
+    writeFileSync(f, toText(ledger));
+    assert.equal(main(['--ledger', f, '--mode', 'report'], capture()), 1);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('the committed arming file carries an approvedFiles list', () => {
+  const armed = JSON.parse(readFileSync(join(ROOT, 'scripts/db/production-apply.json'), 'utf8'));
+  assert.ok(Array.isArray(armed.approvedFiles));
+});
+
+test('lint refuses a file mapped twice (the later entry would silently win)', () => {
+  const problems = lintMigrations(files, { ...map, mapped: [...map.mapped, { file: map.mapped[0].file, ledgerVersion: '20990101000001' }] });
+  assert.ok(problems.some((p) => p === `map: ${map.mapped[0].file} is mapped more than once`));
 });
 
 test('a held file verified missing in production has a documented, working path to being applied', () => {

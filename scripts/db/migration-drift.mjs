@@ -84,9 +84,52 @@ export function listMigrationFiles(dir) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     if (!entry.isFile() || !entry.name.endsWith('.sql')) continue;
     const m = FILE_RE.exec(entry.name);
-    files.push(m ? { file: entry.name.slice(0, -4), version: m[1], name: m[2], valid: true } : { file: entry.name.slice(0, -4), valid: false });
+    const sql = readFileSync(join(dir, entry.name), 'utf8');
+    files.push(m ? { file: entry.name.slice(0, -4), version: m[1], name: m[2], valid: true, sql } : { file: entry.name.slice(0, -4), valid: false, sql });
   }
   return files.sort((a, b) => a.file.localeCompare(b.file));
+}
+
+const DO_BLOCK_RE = /\bdo\s+(\$[A-Za-z_]*\$)([\s\S]*?)\1/gi;
+// Single-quoted strings and comments, blanked before scanning (newlines kept so line numbers hold).
+const NOISE_RE = /'(?:[^']|'')*'|--[^\n]*|\/\*[\s\S]*?\*\//g;
+// Every relation a statement reads or touches: FROM x, JOIN x (a function call such as unnest( is not a relation).
+const RELATION_RE = /\b(?:from|join)\s+((?:"?[A-Za-z_][\w$]*"?\s*\.\s*)?"?[A-Za-z_][\w$]*"?)(?!\s*\()/gi;
+// RAISE at any level that aborts: EXCEPTION, the bare-message form (defaults to EXCEPTION), SQLSTATE, USING, or a re-raise.
+const ABORTING_RAISE_RE = /\braise\b(?!\s+(?:debug|log|info|notice|warning)\b)/i;
+// The empty-database skip: a non-aborting RAISE followed directly by RETURN.
+const SKIP_RE = /\braise\s+(?:debug|log|info|notice|warning)\b[^;]*;\s*return\s*;/i;
+
+function isCatalog(relation) {
+  const parts = relation.replace(/["\s]/g, '').toLowerCase().split('.');
+  const schema = parts.length > 1 ? parts[0] : null;
+  if (schema === 'pg_catalog' || schema === 'information_schema') return true;
+  return schema === null && parts[0].startsWith('pg_');
+}
+
+/**
+ * Replay rule: the history must apply to an EMPTY database (the PR job does exactly that).
+ * A top-level DO block that reads any non-catalog relation is a data seed or a data check. On an
+ * empty database those rows are always missing, so such a block must skip with a NOTICE and
+ * return BEFORE any aborting RAISE. An aborting RAISE after that skip only runs on a populated
+ * database (a conflict guard) and is allowed. Schema guards that read only the catalog (pg_* or information_schema) and
+ * RAISE inside function bodies (run later, at call time) are not affected.
+ * Returns a list of problems for one file's SQL.
+ */
+export function replayBlockers(sql) {
+  const text = sql.replace(NOISE_RE, (s) => s.replace(/[^\n]/g, ' '));
+  const problems = [];
+  for (const m of text.matchAll(DO_BLOCK_RE)) {
+    const body = m[2];
+    const reads = [...body.matchAll(RELATION_RE)].map((r) => r[1]).filter((r) => !isCatalog(r));
+    const abort = body.search(ABORTING_RAISE_RE);
+    const skip = body.search(SKIP_RE);
+    if (reads.length && abort !== -1 && (skip === -1 || skip > abort)) {
+      const line = text.slice(0, m.index).split('\n').length;
+      problems.push(`DO block at line ${line} reads ${reads[0]} and can RAISE at an aborting level before any NOTICE-and-RETURN skip; on an empty database it must skip first, so the history replays`);
+    }
+  }
+  return problems;
 }
 
 /** Static checks on the file set and the map. Returns a list of problems (empty means clean). */
@@ -100,11 +143,15 @@ export function lintMigrations(files, map) {
     }
     if (seen.has(f.version)) problems.push(`${f.file}.sql: version ${f.version} is also used by ${seen.get(f.version)}.sql`);
     seen.set(f.version, f.file);
+    if (typeof f.sql === 'string') for (const p of replayBlockers(f.sql)) problems.push(`${f.file}.sql: ${p}`);
   }
   const names = new Set(files.map((f) => f.file));
   const claimed = new Map();
+  const mappedOnce = new Set();
   for (const m of map.mapped) {
     if (!names.has(m.file)) problems.push(`map: mapped file ${m.file} does not exist`);
+    if (mappedOnce.has(m.file)) problems.push(`map: ${m.file} is mapped more than once`);
+    mappedOnce.add(m.file);
     if (seen.has(m.ledgerVersion)) problems.push(`map: ledger version ${m.ledgerVersion} is also a real file version`);
     if (claimed.has(m.ledgerVersion)) problems.push(`map: ledger version ${m.ledgerVersion} is claimed by ${claimed.get(m.ledgerVersion)} and ${m.file}`);
     claimed.set(m.ledgerVersion, m.file);
@@ -143,15 +190,25 @@ export function computeDrift({ files, ledger, map }) {
   return result;
 }
 
-/** Why a mode fails. Empty list means pass. */
-export function verdict(drift, mode) {
+/**
+ * Why a mode fails. Empty list means pass.
+ * `approved` (pre-push only) is the list of files the reviewed production-apply.json names for this
+ * apply. When given, every file db push would apply must be on it, so arming once never approves a
+ * migration merged later: each new file needs its own reviewed, human-merged approval.
+ */
+export function verdict(drift, mode, approved = null) {
   const why = [];
   if (mode === 'pre-push') {
     for (const f of drift.held) why.push(`held file would be applied unreviewed by db push: ${f}`);
+    if (approved !== null) {
+      const ok = new Set(approved);
+      for (const f of drift.unapplied) if (!ok.has(f)) why.push(`not approved for this apply: ${f} is not listed in production-apply.json approvedFiles`);
+    }
     if (drift.orphans.length) why.push(`${drift.orphans.length} ledger version(s) have no file; db push refuses to run until they are repaired (see repair-plan.sh)`);
   } else {
     for (const f of drift.unapplied) why.push(`not applied: ${f}`);
     for (const f of drift.held) why.push(`held and not applied: ${f}`);
+    if (drift.orphans.length) why.push(`${drift.orphans.length} ledger version(s) have no file: ${drift.orphans.slice(0, 5).join(', ')}${drift.orphans.length > 5 ? ', ...' : ''}`);
   }
   return why;
 }
@@ -291,7 +348,13 @@ export function main(argv, out = console) {
     out.log(repairPlan(drift, map, files, ledger));
     return 0;
   }
-  const why = verdict(drift, args.mode);
+  let approved = null;
+  if (args.mode === 'pre-push') {
+    // Fail closed: an unreadable file throws; a missing or malformed list approves nothing.
+    const armed = JSON.parse(readFileSync(args.armedFile ?? join(HERE, 'production-apply.json'), 'utf8'));
+    approved = Array.isArray(armed?.approvedFiles) ? armed.approvedFiles.filter((f) => typeof f === 'string') : [];
+  }
+  const why = verdict(drift, args.mode, approved);
   if (args.json) out.log(JSON.stringify({ mode: args.mode, ok: why.length === 0, why, ...drift }, null, 2));
   else {
     out.log(`files ${files.length}: applied ${drift.applied.length}, applied under another version ${drift.mappedApplied.length}, held ${drift.held.length}, unapplied ${drift.unapplied.length}, ledger orphans ${drift.orphans.length}`);

@@ -7,8 +7,13 @@
 -- 20260908020000_coaching_seed_klim_spiroski.sql does, never typed in by hand.
 --
 -- It refuses rather than guesses: exactly one distinct founder must own the rows of both tables,
--- or it raises. It never replaces an owner that is already set to someone else.
+-- or it raises. It never replaces an owner that is already set to someone else (it raises).
 -- Re-running it changes nothing.
+--
+-- REPLAY RULE (UNI-2757): the history must apply to an empty database. With no founder at all
+-- (an empty database) the seed skips with a NOTICE and writes nothing; that check comes first.
+-- A populated database with conflicting founders or owners still fails the migration. The
+-- ledger tracks versions, so this change does not re-run the seed where it is recorded.
 
 do $$
 declare
@@ -22,7 +27,8 @@ begin
     where f is not null;
 
   if v_count = 0 then
-    raise exception 'card owner seed: no founder found in crm_leads or crm_contacts';
+    raise notice 'card owner seed: no founder found in crm_leads or crm_contacts; skipped, nothing written';
+    return;
   end if;
   if v_count > 1 then
     raise exception 'card owner seed: % different founders own CRM rows; refusing to guess the card owner', v_count;
