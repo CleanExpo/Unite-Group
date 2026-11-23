@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 // Founder route (NOT /preview/) — so the preview fallback must never engage.
 vi.mock('next/navigation', () => ({ usePathname: () => '/founder/knowledge-console' }))
@@ -40,5 +40,170 @@ describe('KnowledgeConsoleClient — no fabricated data on the founder route', (
     expect(screen.queryByText('RestoreAssist')).toBeNull()
     // A successful-but-empty load is not an error.
     expect(screen.queryByText(/knowledge unavailable/i)).toBeNull()
+  })
+})
+
+// UNI-2496: three independent reads (projects, notes list, note detail) used to
+// share ONE error slot that only the projects loader ever cleared. A notes or
+// note-detail read that failed once kept its banner after it recovered.
+describe('KnowledgeConsoleClient — a recovered read clears its own error', () => {
+  const PROJECT = {
+    id: 'p1',
+    key: 'alpha',
+    label: 'Alpha Project',
+    description: 'Alpha description',
+    note_count: 2,
+    status: 'active',
+    last_ingested_at: null,
+    metadata: {},
+  }
+
+  function note(id: string, title: string) {
+    return {
+      id,
+      vault_path: `/02-Projects/alpha/${title}.md`,
+      title,
+      slug: id,
+      project_key: 'alpha',
+      note_type: 'project',
+      tags: [],
+      word_count: 10,
+      confidence: 'medium',
+      quality: 'draft',
+      ai_optimized: false,
+      created_at: '2026-11-01T00:00:00.000Z',
+      updated_at: '2026-11-01T00:00:00.000Z',
+    }
+  }
+
+  function detail(id: string, title: string) {
+    return {
+      ...note(id, title),
+      content: `Body of ${title}`,
+      content_html: null,
+      frontmatter: {},
+      sources: [],
+      obsidian_source: null,
+      obsidian_mtime: null,
+    }
+  }
+
+  function ok(body: unknown) {
+    return Promise.resolve({ ok: true, status: 200, json: async () => body } as Response)
+  }
+
+  function fail(status = 503) {
+    return Promise.resolve({ ok: false, status, json: async () => ({}) } as Response)
+  }
+
+  type Route = (url: string) => Promise<Response>
+
+  function mockFetch(route: Route) {
+    global.fetch = vi.fn((input: RequestInfo | URL) => route(String(input))) as typeof fetch
+  }
+
+  it('clears the notes error once the notes read recovers', async () => {
+    mockFetch((url) => {
+      if (url.startsWith('/api/knowledge/projects')) return ok({ projects: [PROJECT] })
+      if (url.startsWith('/api/knowledge/notes?')) {
+        // Fails until the founder searches, then recovers.
+        return url.includes('q=') ? ok({ notes: [note('n1', 'Recovered note')] }) : fail()
+      }
+      if (url === '/api/knowledge/notes/n1') return ok(detail('n1', 'Recovered note'))
+      return fail(404)
+    })
+
+    render(<KnowledgeConsoleClient />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/Notes API returned 503/)).toBeDefined()
+    })
+
+    fireEvent.change(screen.getByPlaceholderText('Search notes'), { target: { value: 'recovered' } })
+
+    await waitFor(() => {
+      expect(screen.getByText('Body of Recovered note')).toBeDefined()
+    })
+    expect(screen.queryByText(/knowledge unavailable/i)).toBeNull()
+  })
+
+  it('clears the selected-note error once a note detail read recovers', async () => {
+    mockFetch((url) => {
+      if (url.startsWith('/api/knowledge/projects')) return ok({ projects: [PROJECT] })
+      if (url.startsWith('/api/knowledge/notes?')) {
+        return ok({ notes: [note('n1', 'Broken note'), note('n2', 'Working note')] })
+      }
+      if (url === '/api/knowledge/notes/n1') return fail(500)
+      if (url === '/api/knowledge/notes/n2') return ok(detail('n2', 'Working note'))
+      return fail(404)
+    })
+
+    render(<KnowledgeConsoleClient />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/Note API returned 500/)).toBeDefined()
+    })
+
+    fireEvent.click(screen.getByText('Working note'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Body of Working note')).toBeDefined()
+    })
+    expect(screen.queryByText(/knowledge unavailable/i)).toBeNull()
+  })
+
+  it('clears the selected-note error when a later notes read leaves no note selected', async () => {
+    // No note selected means no detail read: the old detail failure must not linger.
+    mockFetch((url) => {
+      if (url.startsWith('/api/knowledge/projects')) return ok({ projects: [PROJECT] })
+      if (url.startsWith('/api/knowledge/notes?')) {
+        return url.includes('q=') ? ok({ notes: [] }) : ok({ notes: [note('n1', 'Broken note')] })
+      }
+      if (url === '/api/knowledge/notes/n1') return fail(500)
+      return fail(404)
+    })
+
+    render(<KnowledgeConsoleClient />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/Note API returned 500/)).toBeDefined()
+    })
+
+    fireEvent.change(screen.getByPlaceholderText('Search notes'), { target: { value: 'nothing' } })
+
+    await waitFor(() => {
+      expect(screen.getByText('No notes indexed')).toBeDefined()
+    })
+    await waitFor(() => {
+      expect(screen.queryByText(/knowledge unavailable/i)).toBeNull()
+    })
+  })
+
+  it('keeps the error while the notes read is still failing', async () => {
+    // Negative control: a read that keeps failing keeps its banner, so a fix
+    // that never records the notes error cannot pass.
+    mockFetch((url) => {
+      if (url.startsWith('/api/knowledge/projects')) return ok({ projects: [PROJECT] })
+      if (url.startsWith('/api/knowledge/notes?')) return fail()
+      return fail(404)
+    })
+
+    render(<KnowledgeConsoleClient />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/Notes API returned 503/)).toBeDefined()
+    })
+
+    fireEvent.change(screen.getByPlaceholderText('Search notes'), { target: { value: 'still broken' } })
+
+    await waitFor(() => {
+      const calls = vi.mocked(global.fetch).mock.calls.map(([input]) => String(input))
+      expect(calls.some((url) => url.includes('q=still+broken'))).toBe(true)
+    })
+    await waitFor(() => {
+      expect(screen.getByText(/Notes API returned 503/)).toBeDefined()
+    })
+    // The projects read succeeded, so its project is still shown.
+    expect(screen.getByText('Alpha Project', { selector: 'h2' })).toBeDefined()
   })
 })
