@@ -93,7 +93,7 @@ export default function SignaturesPage() {
             />
             <div className={m.actions}>
               <a href="/#contact" className={m.btnPrimary}>Start with contact</a>
-              <a href="/cards/order" className={m.btnSecondary}>Order a card first</a>
+              <a href="/cards/order" data-track="cta" data-track-label="signatures-order-first" className={m.btnSecondary}>Order a card first</a>
             </div>
           </div>
         </section>

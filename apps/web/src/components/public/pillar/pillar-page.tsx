@@ -60,7 +60,7 @@ export function PillarPage({ slug }: { slug: Pillar['slug'] }) {
               <a href="/#contact" className={pp.btnPrimary} data-track="cta" data-track-label={`pillar-${slug}-contact`}>
                 Ask a question
               </a>
-              <a href={live ? '/cards/order' : '/pricing'} className={pp.btnGhost}>
+              <a href={live ? '/cards/order' : '/pricing'} data-track="cta" data-track-label={`pillar-${slug}-order`} className={pp.btnGhost}>
                 {live ? 'Order a card' : 'View pricing'}
               </a>
             </div>
@@ -281,7 +281,7 @@ export function PillarPage({ slug }: { slug: Pillar['slug'] }) {
                 <a href="/cards" className={pp.btnPrimary} data-track="cta" data-track-label={`pillar-${slug}-showroom`}>
                   See the showroom
                 </a>
-                <a href="/cards/order" className={pp.btnGhost}>
+                <a href="/cards/order" data-track="cta" data-track-label="pillar-conversion-order" className={pp.btnGhost}>
                   Order a card
                 </a>
               </div>

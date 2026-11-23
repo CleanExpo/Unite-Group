@@ -68,12 +68,12 @@ export default function PricingPage() {
                       <>
                         {' — from '}
                         {formatAud(cardFrom)}, one-off, GST included.{' '}
-                        <a href="/cards/order">Order a card</a>
+                        <a href="/cards/order" data-track="cta" data-track-label="pricing-order-card">Order a card</a>
                       </>
                     ) : (
                       <>
                         {' — online orders are not open yet. '}
-                        <a href="/cards/order">See the card</a>
+                        <a href="/cards/order" data-track="cta" data-track-label="pricing-see-card">See the card</a>
                       </>
                     )}
                   </li>
