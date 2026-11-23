@@ -104,3 +104,62 @@ test.describe('enquiry form states', () => {
     await expect(page.getByRole('button', { name: 'Send enquiry' })).toHaveCount(0)
   })
 })
+
+// UNI-3528: a client card with a film plays that film and shows a QR code that opens the card.
+test.describe('client film and QR', () => {
+  const FILMED = '/c/harbour-bakery'
+
+  test('a filmed card serves its film, and a card with no film shows none', async ({ page }) => {
+    const media = page.waitForResponse((r) => r.url().endsWith('/cards/media/edition-constellation.mp4'))
+    await page.goto(FILMED)
+    const film = page.locator('[data-card-film] video')
+    await expect(film).toHaveAttribute('src', '/cards/media/edition-constellation.mp4')
+    await expect(film).toHaveAttribute('loop', '')
+    expect([200, 206]).toContain((await media).status())
+    await page.goto(CLIENT)
+    await expect(page.locator('[data-card-film]')).toHaveCount(0)
+    await expect(page.locator('video')).toHaveCount(0)
+  })
+
+  test('the QR code scans back to the absolute card URL', async ({ page }) => {
+    await page.goto(FILMED)
+    const svg = page.locator('[data-card-qr] svg')
+    await expect(svg).toBeVisible()
+    await expect(svg).toHaveAttribute('aria-label', 'QR code that opens this card on your phone')
+    // draw the SVG the way a camera sees it, then decode it with a QR reader (jsQR, a dev dependency)
+    await page.addScriptTag({ path: 'node_modules/jsqr/dist/jsQR.js' })
+    const decoded = await page.evaluate(async () => {
+      const el = document.querySelector('[data-card-qr] svg') as SVGSVGElement
+      const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(el)], { type: 'image/svg+xml' }))
+      const img = new Image()
+      img.src = url
+      await img.decode()
+      const px = 400
+      const canvas = document.createElement('canvas')
+      canvas.width = px
+      canvas.height = px
+      const ctx = canvas.getContext('2d')!
+      ctx.imageSmoothingEnabled = false
+      ctx.drawImage(img, 0, 0, px, px)
+      const data = ctx.getImageData(0, 0, px, px)
+      const jsQR = (window as unknown as { jsQR: (d: Uint8ClampedArray, w: number, h: number) => { data: string } | null }).jsQR
+      return jsQR(data.data, px, px)?.data ?? null
+    })
+    expect(decoded).toBe('https://unite-group.in/c/harbour-bakery')
+  })
+
+  for (const width of [320, 390]) {
+    test(`the filmed card has no horizontal scroll and the QR fits at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 844 })
+      await page.goto(FILMED)
+      await expect(page.getByRole('heading', { level: 1 })).toHaveText('Riley Example')
+      const o = await noHorizontalScroll(page)
+      expect(o.doc).toBeLessThanOrEqual(0)
+      expect(o.body).toBeLessThanOrEqual(0)
+      const box = await page.locator('[data-card-qr] svg').boundingBox()
+      expect(box!.width).toBeGreaterThanOrEqual(140)
+      expect(box!.x).toBeGreaterThanOrEqual(0)
+      expect(box!.x + box!.width).toBeLessThanOrEqual(width)
+    })
+  }
+})
