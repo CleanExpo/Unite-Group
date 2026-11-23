@@ -5,7 +5,7 @@ import {
   CONTACT_EMAIL,
   PILLARS,
   PRICE_NOTE,
-  SHIPPED_PILLAR,
+  isPillarLive,
   lowestCardPrice,
   pillarPath,
 } from '@/lib/public-site'
@@ -181,7 +181,7 @@ export function HomePage() {
                     <a href={pillarPath(p.slug)} data-track="cta" data-track-label={`home-pillar-${p.slug}`}>
                       <span className={hp.pillarMiniName}>
                         {p.name}
-                        {p.slug === SHIPPED_PILLAR ? (
+                        {isPillarLive(p.slug) ? (
                           <span className={`${pub.chip} ${pub.chipLive}`} data-chip="live">
                             Live
                           </span>

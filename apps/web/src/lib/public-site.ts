@@ -70,7 +70,7 @@ export const PILLARS: readonly Pillar[] = [
       },
       {
         q: 'Can I start before Visibility is live?',
-        a: 'Yes. A living business card and a fast public page are live today under Conversion and Experience — they are the first places many people find you.',
+        a: 'Yes. A living business card and its hosted card page are live today under Conversion — they are often the first place people find you.',
       },
     ],
   },
@@ -80,35 +80,35 @@ export const PILLARS: readonly Pillar[] = [
     line: 'Give people something worth opening.',
     headline: 'Make the first look worth remembering.',
     intro:
-      'Experience is the first three seconds: film, type, and layout that feel like your business on the phone someone already has in their hand.',
+      'Experience is the first three seconds: a short film that ends on your logo, on a card page built for the phone someone already has in their hand.',
     will: [
-      'Short films and pages that feel like your business — not a generic template',
-      'Built mobile-first with real media budgets, not decorative placeholders',
-      'Fast to load, easy to read, accessible contrast and tap targets',
+      'A living business card that opens on a short film and ends on your logo',
+      'A private proof you approve before anything goes public',
+      'A QR code and a saved contact, so the next step is one tap',
     ],
-    seoTitle: 'Premium mobile web experience & video business cards | Unite Group',
+    seoTitle: 'Video business cards & phone-first card pages | Unite Group',
     seoDescription:
-      'Phone-first pages and living business cards that load fast and end on your brand. Built for Australian SMBs. Card showroom live; wider Experience stack coming.',
-    searchIntent: 'video business card / mobile-first small business website design Australia',
+      'Living business cards that open on a short film, end on your logo, and save to contacts with a QR code and vCard. Built phone first for Australian SMBs. Experience layer coming.',
+    searchIntent: 'video business card / digital business card with QR code Australia',
     audience: 'Teams embarrassed to text a PDF link or a clip-art card after a good meeting.',
     problems: [
-      'Homepage looks fine on desktop but breaks on the device customers actually use',
-      'Stock imagery and lorem ipsum undermine trust after a referral',
-      'No owned media — everything is borrowed from a template library',
+      'A PDF or clip-art card undermines trust after a good referral',
+      'People cannot save your details in one tap, so they lose them',
+      'The link you send was designed for a laptop, not the phone it opens on',
     ],
     outcomes: [
       'A film-led first impression you are willing to share in a text message',
-      'Pages that pass basic speed and readability checks on real devices',
-      'A visual language you can extend to signatures and showroom tiles',
+      'A card page laid out for the phone first, with your details one tap away',
+      'A QR code that opens your card, and a vCard that saves you to their contacts',
     ],
     faq: [
       {
         q: 'What can I buy today?',
-        a: 'Living business cards in the showroom are live — nine opening films, your logo on the last frame, QR and vCard built in.',
+        a: 'A living business card, ordered under Conversion: pick an edition in the showroom, approve a private proof, and get a hosted card page with your details and a Save contact button. Your film playing on your own card page, and a QR code for each card, are the Experience layer and are not live yet.',
       },
       {
-        q: 'Do you build full marketing sites here?',
-        a: 'Not on this page. For multi-page sites, see pricing, Grow packages, or ask us on the contact form.',
+        q: 'Do you build full websites under Experience?',
+        a: 'No. Experience covers the living card film and its hosted card page, not full websites. If you need a website, use the get-a-website form to tell us what you need.',
       },
       {
         q: 'Are the sample films AI-generated?',
@@ -204,8 +204,22 @@ export const PILLARS: readonly Pillar[] = [
 
 export const pillarPath = (slug: Pillar['slug']): `/solutions/${Pillar['slug']}` => `/solutions/${slug}`
 
-/** The only product on sale. It sits in the Conversion layer (spec s10). */
-export const SHIPPED_PILLAR: Pillar['slug'] = 'conversion'
+export type PillarStatus = 'live' | 'coming'
+
+/**
+ * The one owner of each pillar's Live or Coming status (UNI-3320). Every badge, chip and call to action reads it
+ * through isPillarLive; nothing compares slugs on its own. A pillar turns Live only once its promised customer
+ * outcome works: Conversion is the card order path. Experience stays Coming until a customer's own card page plays
+ * their film and each card has its own QR code (today /c/[slug] shows neither; only the sample card plays a film).
+ */
+export const PILLAR_STATUS: Readonly<Record<Pillar['slug'], PillarStatus>> = {
+  visibility: 'coming',
+  experience: 'coming',
+  conversion: 'live',
+  intelligence: 'coming',
+}
+
+export const isPillarLive = (slug: Pillar['slug']): boolean => PILLAR_STATUS[slug] === 'live'
 
 /** The lowest card price a buyer can pay right now, formatted, or null while online ordering is off (cardFromAud). */
 export const lowestCardPrice = (): string | null => {
