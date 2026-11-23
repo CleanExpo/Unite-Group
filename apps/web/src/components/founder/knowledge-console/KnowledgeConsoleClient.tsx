@@ -274,10 +274,13 @@ export function KnowledgeConsoleClient() {
         const response = await fetch('/api/knowledge/projects?limit=100', {
           signal: controller.signal,
         })
+        // A superseded read must not write anything, success included (UNI-2496 review).
+        if (controller.signal.aborted) return
 
         if (!response.ok) throw new Error(`Projects API returned ${response.status}`)
 
         const payload = await response.json() as { projects?: KnowledgeProject[] }
+        if (controller.signal.aborted) return
         const loadedProjects = payload.projects?.map(normalizeProject) ?? []
 
         setSource('api')
@@ -342,10 +345,14 @@ export function KnowledgeConsoleClient() {
         const response = await fetch(`/api/knowledge/notes?${params.toString()}`, {
           signal: controller.signal,
         })
+        // A superseded read must not write anything: its late success would clear
+        // the newer read's live error and show notes for an old search.
+        if (controller.signal.aborted) return
 
         if (!response.ok) throw new Error(`Notes API returned ${response.status}`)
 
         const payload = await response.json() as { notes?: NoteSummary[] }
+        if (controller.signal.aborted) return
         const loadedNotes = payload.notes ?? []
         setNotes(loadedNotes)
         setSelectedNoteId(loadedNotes[0]?.id ?? '')
@@ -390,10 +397,14 @@ export function KnowledgeConsoleClient() {
         const response = await fetch(`/api/knowledge/notes/${selectedNoteId}`, {
           signal: controller.signal,
         })
+        // A superseded read must not write anything: its late success would clear
+        // the newer read's live error and show the previously selected note.
+        if (controller.signal.aborted) return
 
         if (!response.ok) throw new Error(`Note API returned ${response.status}`)
 
         const note = await response.json() as NoteDetail
+        if (controller.signal.aborted) return
         setSelectedNote(note)
         setNoteError(null)
       } catch (loadError) {

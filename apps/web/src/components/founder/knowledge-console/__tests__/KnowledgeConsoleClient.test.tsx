@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 // Founder route (NOT /preview/) — so the preview fallback must never engage.
 vi.mock('next/navigation', () => ({ usePathname: () => '/founder/knowledge-console' }))
@@ -102,6 +102,33 @@ describe('KnowledgeConsoleClient — a recovered read clears its own error', () 
     global.fetch = vi.fn((input: RequestInfo | URL) => route(String(input))) as typeof fetch
   }
 
+  // A response the test releases by hand, so it can arrive after a newer read.
+  function held() {
+    let release!: (response: Response) => void
+    const promise = new Promise<Response>((resolve) => { release = resolve })
+    return { promise, release }
+  }
+
+  function okResponse(body: unknown) {
+    return { ok: true, status: 200, json: async () => body } as Response
+  }
+
+  function failResponse(status = 503) {
+    return { ok: false, status, json: async () => ({}) } as Response
+  }
+
+  // Release a held response and let every promise and state update it starts settle.
+  async function releaseAndSettle(response: { release: (r: Response) => void }, value: Response) {
+    await act(async () => {
+      response.release(value)
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
+  }
+
+  function fetchedUrls() {
+    return vi.mocked(global.fetch).mock.calls.map(([input]) => String(input))
+  }
+
   it('clears the notes error once the notes read recovers', async () => {
     mockFetch((url) => {
       if (url.startsWith('/api/knowledge/projects')) return ok({ projects: [PROJECT] })
@@ -181,10 +208,12 @@ describe('KnowledgeConsoleClient — a recovered read clears its own error', () 
 
   it('keeps the error while the notes read is still failing', async () => {
     // Negative control: a read that keeps failing keeps its banner, so a fix
-    // that never records the notes error cannot pass.
+    // that never records the notes error cannot pass. The second read is held
+    // and released by hand, so the assertion runs only after it has settled.
+    const second = held()
     mockFetch((url) => {
       if (url.startsWith('/api/knowledge/projects')) return ok({ projects: [PROJECT] })
-      if (url.startsWith('/api/knowledge/notes?')) return fail()
+      if (url.startsWith('/api/knowledge/notes?')) return url.includes('q=') ? second.promise : fail()
       return fail(404)
     })
 
@@ -197,13 +226,74 @@ describe('KnowledgeConsoleClient — a recovered read clears its own error', () 
     fireEvent.change(screen.getByPlaceholderText('Search notes'), { target: { value: 'still broken' } })
 
     await waitFor(() => {
-      const calls = vi.mocked(global.fetch).mock.calls.map(([input]) => String(input))
-      expect(calls.some((url) => url.includes('q=still+broken'))).toBe(true)
+      expect(fetchedUrls().some((url) => url.includes('q=still+broken'))).toBe(true)
     })
+    await releaseAndSettle(second, failResponse(502))
+
+    // The banner now carries the SECOND read's failure, so it cannot be the first one's leftover.
+    expect(screen.getByText(/Notes API returned 502/)).toBeDefined()
+    expect(screen.queryByText(/Notes API returned 503/)).toBeNull()
+    // The projects read succeeded, so its project is still shown.
+    expect(screen.getByText('Alpha Project', { selector: 'h2' })).toBeDefined()
+  })
+
+  // UNI-2496 review: a read that was superseded (its effect re-ran and aborted it)
+  // must not write anything when its response finally arrives. Its late success
+  // would otherwise clear the NEWER read's live error and show stale data.
+  it('a late success from a superseded notes read leaves the newer notes error in place', async () => {
+    const first = held()
+    mockFetch((url) => {
+      if (url.startsWith('/api/knowledge/projects')) return Promise.resolve(okResponse({ projects: [PROJECT] }))
+      if (url.startsWith('/api/knowledge/notes?')) {
+        return url.includes('q=') ? Promise.resolve(failResponse(503)) : first.promise
+      }
+      if (url === '/api/knowledge/notes/stale') return Promise.resolve(okResponse(detail('stale', 'Stale note')))
+      return Promise.resolve(failResponse(404))
+    })
+
+    render(<KnowledgeConsoleClient />)
+
+    // The first notes read is in flight; a search supersedes it and the newer read fails.
+    await waitFor(() => {
+      expect(vi.mocked(global.fetch).mock.calls.some(([input]) => String(input).startsWith('/api/knowledge/notes?'))).toBe(true)
+    })
+    fireEvent.change(screen.getByPlaceholderText('Search notes'), { target: { value: 'newer' } })
     await waitFor(() => {
       expect(screen.getByText(/Notes API returned 503/)).toBeDefined()
     })
-    // The projects read succeeded, so its project is still shown.
-    expect(screen.getByText('Alpha Project', { selector: 'h2' })).toBeDefined()
+
+    await releaseAndSettle(first, okResponse({ notes: [note('stale', 'Stale note')] }))
+
+    expect(screen.getByText(/Notes API returned 503/)).toBeDefined()
+    expect(screen.queryByText('Stale note')).toBeNull()
+  })
+
+  it('a late success from a superseded note-detail read leaves the newer note error in place', async () => {
+    const firstDetail = held()
+    mockFetch((url) => {
+      if (url.startsWith('/api/knowledge/projects')) return Promise.resolve(okResponse({ projects: [PROJECT] }))
+      if (url.startsWith('/api/knowledge/notes?')) {
+        return Promise.resolve(okResponse({ notes: [note('n1', 'Note One'), note('n2', 'Note Two')] }))
+      }
+      if (url === '/api/knowledge/notes/n1') return firstDetail.promise
+      if (url === '/api/knowledge/notes/n2') return Promise.resolve(failResponse(500))
+      return Promise.resolve(failResponse(404))
+    })
+
+    render(<KnowledgeConsoleClient />)
+
+    // Note One's detail read is in flight; selecting Note Two supersedes it and that read fails.
+    await waitFor(() => {
+      expect(vi.mocked(global.fetch).mock.calls.some(([input]) => String(input) === '/api/knowledge/notes/n1')).toBe(true)
+    })
+    fireEvent.click(screen.getByText('Note Two'))
+    await waitFor(() => {
+      expect(screen.getByText(/Note API returned 500/)).toBeDefined()
+    })
+
+    await releaseAndSettle(firstDetail, okResponse(detail('n1', 'Note One')))
+
+    expect(screen.getByText(/Note API returned 500/)).toBeDefined()
+    expect(screen.queryByText('Body of Note One')).toBeNull()
   })
 })
