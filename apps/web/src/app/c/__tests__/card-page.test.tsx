@@ -40,6 +40,33 @@ describe('/c/[slug]', () => {
     expect(html).not.toContain('<video')
   })
 
+  it('UNI-3528: a client card with a film plays that film, with its poster when it is a known edition', async () => {
+    getPublishedCard.mockResolvedValue({ ...card, filmSrc: '/cards/media/edition-constellation.mp4' })
+    const html = renderToStaticMarkup(await CardPage(params('sam')))
+    expect(html).toContain('data-card-film')
+    expect(html).toMatch(/<video[^>]*src="\/cards\/media\/edition-constellation\.mp4"/)
+    expect(html).toMatch(/<video[^>]*loop/)
+    expect(html).toContain('edition-constellation-poster.jpg')
+    expect(html).not.toContain('data-sample-film')
+  })
+
+  it('UNI-3528: a client card without a film shows none', async () => {
+    getPublishedCard.mockResolvedValue({ ...card, filmSrc: null })
+    const html = renderToStaticMarkup(await CardPage(params('sam')))
+    expect(html).not.toContain('data-card-film')
+    expect(html).not.toContain('<video')
+    getPublishedCard.mockResolvedValue(card)
+    expect(renderToStaticMarkup(await CardPage(params('sam')))).not.toContain('<video')
+  })
+
+  it('UNI-3528: every card shows a labelled QR code for its own address', async () => {
+    getPublishedCard.mockResolvedValue(card)
+    const html = renderToStaticMarkup(await CardPage(params('sam')))
+    expect(html).toContain('data-card-qr')
+    expect(html).toContain('aria-label="QR code that opens this card on your phone"')
+    expect(html).toContain('unite-group.in/c/sam')
+  })
+
   it('shows no enquiry form unless CARD_ENQUIRY_RECEIPT_ENABLED=1, then shows it', async () => {
     getPublishedCard.mockResolvedValue(card)
     expect(renderToStaticMarkup(await CardPage(params('sam')))).not.toContain('<form')

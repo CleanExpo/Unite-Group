@@ -87,6 +87,7 @@ const PUBLISHED_ROW = Object.freeze({
   phone: null,
   service_area: null,
   published_at: '2026-01-01T00:00:00.000Z',
+  film_src: null,
   google_place_id: STUB_PLACE_ID,
 });
 
