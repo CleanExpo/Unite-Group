@@ -243,19 +243,29 @@ export function KnowledgeConsoleClient() {
   const [loadingProjects, setLoadingProjects] = useState(true)
   const [loadingNotes, setLoadingNotes] = useState(false)
   const [loadingSelectedNote, setLoadingSelectedNote] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  // One error slot per read (UNI-2496). Each is cleared only by its own read:
+  // on success, or when that read has nothing to fetch. Never at loader entry —
+  // the note-detail effect re-fires on every new `notes` array, so clearing on
+  // entry would flicker, and a shared slot let one recovered read hide behind
+  // another read's old failure.
+  const [projectsError, setProjectsError] = useState<string | null>(null)
+  const [notesError, setNotesError] = useState<string | null>(null)
+  const [noteError, setNoteError] = useState<string | null>(null)
+  const errors = [projectsError, notesError, noteError].filter(
+    (message): message is string => message !== null,
+  )
 
   useEffect(() => {
     const controller = new AbortController()
 
     async function loadProjects() {
       setLoadingProjects(true)
-      setError(null)
 
       if (previewMode) {
         setSource('fallback')
         setProjects(FALLBACK_PROJECTS)
         setActiveProjectKey((current) => current || FALLBACK_PROJECTS[0].key)
+        setProjectsError(null)
         setLoadingProjects(false)
         return
       }
@@ -264,13 +274,17 @@ export function KnowledgeConsoleClient() {
         const response = await fetch('/api/knowledge/projects?limit=100', {
           signal: controller.signal,
         })
+        // A superseded read must not write anything, success included (UNI-2496 review).
+        if (controller.signal.aborted) return
 
         if (!response.ok) throw new Error(`Projects API returned ${response.status}`)
 
         const payload = await response.json() as { projects?: KnowledgeProject[] }
+        if (controller.signal.aborted) return
         const loadedProjects = payload.projects?.map(normalizeProject) ?? []
 
         setSource('api')
+        setProjectsError(null)
 
         if (loadedProjects.length === 0) {
           // Honest empty — real DB has no projects yet (not a fabricated list).
@@ -289,7 +303,7 @@ export function KnowledgeConsoleClient() {
         // Honest error — never substitute fabricated projects for a failed load.
         setProjects([])
         setActiveProjectKey('')
-        setError(loadError instanceof Error ? loadError.message : 'Knowledge API unavailable')
+        setProjectsError(loadError instanceof Error ? loadError.message : 'Knowledge API unavailable')
       } finally {
         if (!controller.signal.aborted) setLoadingProjects(false)
       }
@@ -304,7 +318,11 @@ export function KnowledgeConsoleClient() {
     const controller = new AbortController()
 
     async function loadNotes() {
-      if (!activeProjectKey) return
+      if (!activeProjectKey) {
+        // No project, so no notes read: an earlier notes failure no longer applies.
+        setNotesError(null)
+        return
+      }
       setLoadingNotes(true)
 
       if (source === 'fallback') {
@@ -312,6 +330,7 @@ export function KnowledgeConsoleClient() {
         setNotes(fallbackNotes)
         setSelectedNoteId(fallbackNotes[0]?.id ?? '')
         setSelectedNote(fallbackNotes[0] ?? null)
+        setNotesError(null)
         setLoadingNotes(false)
         return
       }
@@ -326,21 +345,26 @@ export function KnowledgeConsoleClient() {
         const response = await fetch(`/api/knowledge/notes?${params.toString()}`, {
           signal: controller.signal,
         })
+        // A superseded read must not write anything: its late success would clear
+        // the newer read's live error and show notes for an old search.
+        if (controller.signal.aborted) return
 
         if (!response.ok) throw new Error(`Notes API returned ${response.status}`)
 
         const payload = await response.json() as { notes?: NoteSummary[] }
+        if (controller.signal.aborted) return
         const loadedNotes = payload.notes ?? []
         setNotes(loadedNotes)
         setSelectedNoteId(loadedNotes[0]?.id ?? '')
         setSelectedNote(null)
+        setNotesError(null)
       } catch (loadError) {
         if (controller.signal.aborted) return
         // Honest error — never substitute fabricated notes for a failed load.
         setNotes([])
         setSelectedNoteId('')
         setSelectedNote(null)
-        setError(loadError instanceof Error ? loadError.message : 'Knowledge notes unavailable')
+        setNotesError(loadError instanceof Error ? loadError.message : 'Knowledge notes unavailable')
       } finally {
         if (!controller.signal.aborted) setLoadingNotes(false)
       }
@@ -356,12 +380,15 @@ export function KnowledgeConsoleClient() {
 
     async function loadSelectedNote() {
       if (!selectedNoteId) {
+        // No note selected, so no detail read: an earlier detail failure no longer applies.
         setSelectedNote(null)
+        setNoteError(null)
         return
       }
 
       if (source === 'fallback') {
         setSelectedNote(FALLBACK_NOTES.find((note) => note.id === selectedNoteId) ?? null)
+        setNoteError(null)
         return
       }
 
@@ -370,15 +397,20 @@ export function KnowledgeConsoleClient() {
         const response = await fetch(`/api/knowledge/notes/${selectedNoteId}`, {
           signal: controller.signal,
         })
+        // A superseded read must not write anything: its late success would clear
+        // the newer read's live error and show the previously selected note.
+        if (controller.signal.aborted) return
 
         if (!response.ok) throw new Error(`Note API returned ${response.status}`)
 
         const note = await response.json() as NoteDetail
+        if (controller.signal.aborted) return
         setSelectedNote(note)
+        setNoteError(null)
       } catch (loadError) {
         if (controller.signal.aborted) return
         setSelectedNote(null)
-        setError(loadError instanceof Error ? loadError.message : 'Selected note unavailable')
+        setNoteError(loadError instanceof Error ? loadError.message : 'Selected note unavailable')
       } finally {
         if (!controller.signal.aborted) setLoadingSelectedNote(false)
       }
@@ -427,7 +459,7 @@ export function KnowledgeConsoleClient() {
         <MetricCard label="Selected note" value={selectedNote ? 'Loaded' : 'None'} icon={FileSearch} />
       </div>
 
-      {error && (
+      {errors.length > 0 && (
         <div
           className="flex items-start gap-2 rounded-sm border px-3 py-2 text-[12px]"
           style={{
@@ -437,7 +469,7 @@ export function KnowledgeConsoleClient() {
           }}
         >
           <AlertCircle size={14} className="mt-0.5 shrink-0" strokeWidth={1.7} />
-          <span>Knowledge unavailable — couldn’t load: {error}</span>
+          <span>Knowledge unavailable — couldn’t load: {errors.join('; ')}</span>
         </div>
       )}
 
