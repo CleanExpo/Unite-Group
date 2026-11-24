@@ -399,6 +399,13 @@ interface StaleFixture {
   retained: RegExp
   /** Provoke a SECOND read. */
   refresh: (ctx: RefreshContext) => Promise<void>
+  /**
+   * Optional: reveal the retained region once, right after mounting. For a
+   * surface whose list lives behind a toggle (NotificationBell's dropdown),
+   * nothing is in the DOM to mark or disable until it is opened, and every
+   * assertion below would pass over an empty container. [UNI-2500]
+   */
+  open?: (ctx: RefreshContext) => Promise<void>
   /** Accessible names of controls that ACT on the retained records. */
   actions: RegExp[]
 }
@@ -777,6 +784,36 @@ const STALE_FIXTURES: StaleFixture[] = [
     // action over stale data. [UNI-2476]
     actions: [],
   },
+  // twelve — the founder notification bell. It keeps its notifications across a
+  // failed poll on purpose; the count and rows must then be marked and the
+  // mark-as-read rows must go inert. [UNI-2500]
+  {
+    file: 'components/founder/notifications/NotificationBell.tsx',
+    exportName: 'NotificationBell',
+    ok: {
+      notifications: [
+        {
+          id: 'nt-stale-1',
+          type: 'mission_update',
+          payload: { message: 'Retained notification message' },
+          read: false,
+          read_at: null,
+          created_at: '2026-08-12T00:00:00.000Z',
+        },
+      ],
+      unreadCount: 1,
+    },
+    retained: /Retained notification message/,
+    // The list only renders while the dropdown is open. The bell button's name
+    // starts with "Notifications" in every state.
+    open: ({ container }) => clickByName(container, /^Notifications/),
+    // 60 s poll, captured by the sweep's setInterval spy.
+    refresh: tick,
+    // Each unread row is a "Mark as read: ..." button. The verb is not in
+    // MUTATION_CONTROL, so the generic stale-region scan does not see it; this
+    // per-fixture entry is what asserts it goes disabled and comes back.
+    actions: [/^Mark as read: /],
+  },
     ]
 
 /**
@@ -852,6 +889,7 @@ describe('No-Invaders: a retained payload must be marked stale and go inert', ()
 
     const { container } = render(React.createElement(Comp as React.FC))
     const ctx: RefreshContext = { container, polls }
+    if (fx.open) await fx.open(ctx)
 
     // ── 1. NEGATIVE CONTROL: the ordinary success path ──────────────────────
     // Without this, "mark everything stale and disable everything" would
