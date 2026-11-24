@@ -27,7 +27,8 @@ export function qrSvg(text: string): QrSvg {
   let path = ''
   for (let y = 0; y < n; y++) {
     for (let x = 0; x < n; x++) {
-      if (qr.modules.get(x, y)) path += `M${x + QUIET} ${y + QUIET}h1v1h-1z`
+      // qrcode's bit matrix is get(row, col): y is the row, x is the column. get(x, y) would draw the mirror image.
+      if (qr.modules.get(y, x)) path += `M${x + QUIET} ${y + QUIET}h1v1h-1z`
     }
   }
   return { size: n + QUIET * 2, path }

@@ -126,7 +126,8 @@ test.describe('client film and QR', () => {
     const svg = page.locator('[data-card-qr] svg')
     await expect(svg).toBeVisible()
     await expect(svg).toHaveAttribute('aria-label', 'QR code that opens this card on your phone')
-    // draw the SVG the way a camera sees it, then decode it with a QR reader (jsQR, a dev dependency)
+    // draw the SVG the way a camera sees it, then decode it with a QR reader (jsQR, a dev dependency). jsQR also reads a
+    // mirrored code, so this proves the browser draws something scannable; module orientation is pinned in lib/card/__tests__/qr.test.ts.
     await page.addScriptTag({ path: 'node_modules/jsqr/dist/jsQR.js' })
     const decoded = await page.evaluate(async () => {
       const el = document.querySelector('[data-card-qr] svg') as SVGSVGElement
