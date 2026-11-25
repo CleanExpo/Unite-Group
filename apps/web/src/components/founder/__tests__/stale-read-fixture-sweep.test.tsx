@@ -844,6 +844,7 @@ const MUST_SURVIVE_STALE_READ: readonly string[] = [
   'components/command-centre/provider-accounts/ProviderAccountsTile.tsx',
   'components/command-centre/activity/ActivityFeedPanel.tsx',
   'components/founder/boardroom/TeamPanel.tsx',
+  'components/founder/notifications/NotificationBell.tsx',
 ]
 
 describe('No-Invaders: a retained payload must be marked stale and go inert', () => {
