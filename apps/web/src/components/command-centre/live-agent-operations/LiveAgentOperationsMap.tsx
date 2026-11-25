@@ -205,19 +205,36 @@ function SummaryCell({ label, value, alert = false, degraded = false }: { label:
   )
 }
 
+// The card date is the newest change to the agent's open tasks (or its sessions), not an
+// agent check-in; no agent heartbeat feeds this panel. Labelled as such so an idle agent's
+// old date cannot read as the agent reporting in. A week without a task change is flagged.
+const STALE_TASKS_MS = 7 * 86_400_000
+
+function tasksAreStale(iso: string | null): boolean {
+  if (!iso) return false
+  const parsed = Date.parse(iso)
+  return !Number.isNaN(parsed) && Date.now() - parsed >= STALE_TASKS_MS
+}
+
 function OperationNodeCard({ node }: { node: OperationNode }) {
   const color = stateColor(node.state)
+  const stale = tasksAreStale(node.lastUpdatedAt)
 
   return (
-    <article className="flex min-h-52 flex-col justify-between gap-4 px-5 py-4" style={{ background: 'var(--cc-bg-soft)' }}>
+    <article data-agent-card className="flex min-h-52 flex-col justify-between gap-4 px-5 py-4" style={{ background: 'var(--cc-bg-soft)' }}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="wrap-break-word font-mono text-sm uppercase tracking-[0.16em]" style={{ color: 'var(--cc-ink)' }}>
             {node.label}
           </h3>
           <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em]" style={{ color: 'var(--cc-ink-hush)' }}>
-            updated {formatAgo(node.lastUpdatedAt)}
+            {node.lastUpdatedAt ? `last task change ${formatAgo(node.lastUpdatedAt)}` : 'no task change recorded'}
           </p>
+          {stale ? (
+            <p data-stale-tasks="true" className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em]" style={{ color: 'var(--cc-signal-text)' }}>
+              no task change in 7+ days
+            </p>
+          ) : null}
         </div>
         <span className="font-mono text-[10px] uppercase tracking-[0.14em]" style={{ color }}>
           {STATE_LABELS[node.state]}
