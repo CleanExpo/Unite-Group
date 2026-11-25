@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import {
-  chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, utimesSync, writeFileSync,
+  chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, utimesSync, writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -170,7 +170,7 @@ test('the client projects folder may not sit inside a git work tree', () => {
     mkdirSync(join(base, 'repo', '.git'), { recursive: true });
     assert.throws(() => resolveClientRoot({ clientRoot: join(base, 'repo', 'clients') }), /inside the git work tree/);
     assert.throws(() => resolveClientRoot({ clientRoot: 'relative/path' }), /absolute path/);
-    assert.equal(resolveClientRoot({ clientRoot: join(base, 'elsewhere') }), join(base, 'elsewhere'));
+    assert.equal(resolveClientRoot({ clientRoot: join(base, 'elsewhere') }), join(realpathSync(base), 'elsewhere'));
   } finally {
     cleanup();
   }
@@ -374,6 +374,125 @@ test('metadata stripping removes JPEG APP1 and PNG text chunks and keeps the ima
   assert.deepEqual(findMetadata(png, '.png'), []);
   assert.equal(png.indexOf(Buffer.from('Jane')), -1);
   assert.ok(png.includes(Buffer.from('IDAT')));
+});
+
+// Kind: "private client bytes reach the published image". Seen twice (UNI-3433 review rounds 1 and 3):
+// a fullwidth `@` past the approver deny-list, then APP2 (ICC profile) past the JPEG marker deny-list.
+// Design: what a published image may contain is an ALLOW-LIST of pixel-structure segments and chunks,
+// and stripping and inspecting both read that one list, so a segment type nobody named is dropped.
+const PRIVATE = Buffer.from('PRIVATE-CLIENT-MATERIAL');
+
+function jpegSegment(marker, payload) {
+  const len = Buffer.alloc(2);
+  len.writeUInt16BE(payload.length + 2);
+  return Buffer.concat([Buffer.from([0xff, marker]), len, payload]);
+}
+
+function jpegWith(marker, payload, tail = Buffer.alloc(0)) {
+  return Buffer.concat([
+    Buffer.from([0xff, 0xd8]),
+    jpegSegment(marker, payload),
+    jpegSegment(0xdb, Buffer.from([0x01, 0x02])),
+    jpegSegment(0xda, Buffer.from([0x03, 0x04])),
+    Buffer.from([0x11, 0xff, 0x00, 0x22, 0xff, 0xd9]),
+    tail,
+  ]);
+}
+
+test('JPEG: every segment outside the pixel-structure allow-list is dropped, whatever its marker', () => {
+  const markers = [];
+  for (let m = 0xe1; m <= 0xef; m += 1) markers.push(m); // APP1 to APP15 (APP2 is the ICC profile)
+  markers.push(0xfe, 0xf0, 0xf5, 0xfd, 0xc8, 0xdc, 0xdf); // COM, JPGn, JPG, DNL, EXP
+  for (const marker of markers) {
+    const dirty = jpegWith(marker, Buffer.concat([Buffer.from('ICC_PROFILE\0'), PRIVATE]));
+    assert.notDeepEqual(findMetadata(dirty, '.jpg'), [], `marker 0x${marker.toString(16)} must be reported`);
+    const clean = stripMetadata(dirty, '.jpg');
+    assert.equal(clean.indexOf(PRIVATE), -1, `marker 0x${marker.toString(16)} bytes survived stripping`);
+    assert.deepEqual(findMetadata(clean, '.jpg'), [], `marker 0x${marker.toString(16)}: clean output still reported`);
+    assert.ok(clean.includes(Buffer.from([0x11, 0xff, 0x00, 0x22, 0xff, 0xd9])), 'pixel data kept');
+  }
+});
+
+test('JPEG: APP0 JFIF and APP14 Adobe are kept only in their fixed, thumbnail-free form', () => {
+  const jfif = Buffer.concat([Buffer.from('JFIF\0'), Buffer.from([1, 1, 0, 0, 1, 0, 1, 0, 0])]);
+  assert.deepEqual(findMetadata(jpegWith(0xe0, jfif), '.jpg'), []);
+  const withThumb = Buffer.concat([jfif.subarray(0, 12), Buffer.from([2, 2]), PRIVATE]);
+  assert.notDeepEqual(findMetadata(jpegWith(0xe0, withThumb), '.jpg'), []);
+  assert.equal(stripMetadata(jpegWith(0xe0, withThumb), '.jpg').indexOf(PRIVATE), -1);
+  const adobe = Buffer.concat([Buffer.from('Adobe'), Buffer.from([0, 100, 0, 0, 0, 0, 1])]);
+  assert.deepEqual(findMetadata(jpegWith(0xee, adobe), '.jpg'), []);
+  assert.notDeepEqual(findMetadata(jpegWith(0xee, Buffer.concat([Buffer.from('Adobe'), PRIVATE])), '.jpg'), []);
+});
+
+test('JPEG: bytes after the end-of-image marker are reported and removed', () => {
+  const dirty = jpegWith(0xdb, Buffer.from([0x01, 0x02]), PRIVATE);
+  assert.notDeepEqual(findMetadata(dirty, '.jpg'), []);
+  const clean = stripMetadata(dirty, '.jpg');
+  assert.equal(clean.indexOf(PRIVATE), -1);
+  assert.deepEqual(findMetadata(clean, '.jpg'), []);
+});
+
+test('PNG: only critical chunks, tRNS, sRGB and gAMA survive; unknown chunks and trailing bytes do not', () => {
+  const head = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  for (const type of ['iCCP', 'eXIf', 'prVt', 'zzZz', 'bKGD', 'sPLT', 'pHYs', 'tEXt']) {
+    const dirty = Buffer.concat([head, chunk('IHDR', Buffer.alloc(13)), chunk(type, PRIVATE), chunk('IDAT', Buffer.from([1, 2, 3])), chunk('IEND')]);
+    assert.notDeepEqual(findMetadata(dirty, '.png'), [], `chunk ${type} must be reported`);
+    const clean = stripMetadata(dirty, '.png');
+    assert.equal(clean.indexOf(PRIVATE), -1, `chunk ${type} bytes survived stripping`);
+    assert.deepEqual(findMetadata(clean, '.png'), []);
+  }
+  const kept = Buffer.concat([head, chunk('IHDR', Buffer.alloc(13)), chunk('gAMA', Buffer.alloc(4)), chunk('sRGB', Buffer.alloc(1)), chunk('IDAT', Buffer.from([1])), chunk('IEND')]);
+  assert.deepEqual(findMetadata(kept, '.png'), []);
+  const trailing = Buffer.concat([kept, PRIVATE]);
+  assert.notDeepEqual(findMetadata(trailing, '.png'), []);
+  assert.equal(stripMetadata(trailing, '.png').indexOf(PRIVATE), -1);
+  const wide = Buffer.concat([head, chunk('IHDR', Buffer.alloc(13)), chunk('gAMA', PRIVATE), chunk('IDAT', Buffer.from([1])), chunk('IEND')]);
+  assert.notDeepEqual(findMetadata(wide, '.png'), [], 'a gAMA chunk of the wrong size can carry bytes');
+});
+
+test('ingest publishes a JPEG with a private APP2 segment clean, and the project check agrees', () => {
+  const { ctx, cleanup } = sandbox();
+  try {
+    const { workspace, site } = scaffold(ctx);
+    writeFileSync(join(workspace, 'incoming', 'logo.jpg'), jpegWith(0xe2, Buffer.concat([Buffer.from('ICC_PROFILE\0'), PRIVATE])));
+    const r = ingest(ctx, { slug: 'sample-cafe', select: ['logo.jpg'], approvedBy: 'operator', now: NOW });
+    const published = readFileSync(join(site, 'src', 'assets', 'client', r.ingested[0].file));
+    assert.equal(published.indexOf(PRIVATE), -1);
+    assert.deepEqual(checkProject(ctx, { slug: 'sample-cafe' }).problems, []);
+  } finally {
+    cleanup();
+  }
+});
+
+// Kind: "private material is written inside a git work tree". Design: one function owns the rule and
+// it judges the CANONICAL path (symlinks resolved, including through a path that does not exist yet).
+test('a client projects folder reached through a symlink into a git work tree is refused', () => {
+  const { base, cleanup } = sandbox();
+  try {
+    mkdirSync(join(base, 'repo', '.git'), { recursive: true });
+    mkdirSync(join(base, 'repo', 'clients'));
+    symlinkSync(join(base, 'repo', 'clients'), join(base, 'link'));
+    assert.throws(() => resolveClientRoot({ clientRoot: join(base, 'link') }), /inside the git work tree/);
+    assert.throws(() => resolveClientRoot({ clientRoot: join(base, 'link', 'not-yet') }), /inside the git work tree/);
+    symlinkSync(join(base, 'repo'), join(base, 'link2'));
+    assert.throws(() => resolveClientRoot({ clientRoot: join(base, 'link2', 'deep', 'er') }), /inside the git work tree/);
+    assert.equal(resolveClientRoot({ clientRoot: join(base, 'elsewhere') }), realpathSync(base) + '/elsewhere');
+  } finally {
+    cleanup();
+  }
+});
+
+test('a project folder that is a symlink into a git work tree is refused before anything is written', () => {
+  const { base, ctx, cleanup } = sandbox();
+  try {
+    mkdirSync(join(base, 'repo', '.git'), { recursive: true });
+    mkdirSync(ctx.clientRoot, { recursive: true });
+    symlinkSync(join(base, 'repo'), join(ctx.clientRoot, 'sample-cafe'));
+    assert.throws(() => scaffold(ctx), /inside the git work tree/);
+    assert.deepEqual(readdirSync(join(base, 'repo')), ['.git']);
+  } finally {
+    cleanup();
+  }
 });
 
 test('ingest lists without copying, then copies only approved images, stripped and hash-named', () => {

@@ -1,8 +1,8 @@
 // Shared helpers for the client website-build tool. Node standard library only.
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, realpathSync, renameSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, renameSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { dirname, isAbsolute, join, resolve } from 'node:path';
+import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
@@ -66,16 +66,53 @@ function insideGitWorkTree(path) {
   }
 }
 
-// Client material never lives inside a git work tree: the monorepo is public.
+// The real location of a path: every symlink resolved, including through a path that does not exist
+// yet (the nearest existing ancestor is resolved and the rest appended). A link that points nowhere is
+// refused, because a later write would follow it. The kind "private material lands inside a work
+// tree" was found through a symlinked client root (UNI-3433 round 3); the rule is judged on this
+// canonical path, never on the spelling the caller typed.
+function canonicalPath(path) {
+  let dir = resolve(path);
+  const rest = [];
+  for (;;) {
+    let present = true;
+    try {
+      lstatSync(dir);
+    } catch (err) {
+      if (err.code !== 'ENOENT' && err.code !== 'ENOTDIR') throw err;
+      present = false;
+    }
+    if (present) {
+      let real;
+      try {
+        real = realpathSync(dir);
+      } catch (err) {
+        throw new ToolError(`cannot resolve ${dir} (${err.code ?? err.message}); a broken link is refused because a write would follow it`, 2);
+      }
+      return join(real, ...rest.reverse());
+    }
+    const parent = dirname(dir);
+    if (parent === dir) return join(dir, ...rest.reverse());
+    rest.push(basename(dir));
+    dir = parent;
+  }
+}
+
+// The one owner of "client material never lives inside a git work tree: the monorepo is public".
+// Returns the canonical path, or throws.
+export function assertOutsideGitWorkTree(path, label = 'client projects folder') {
+  const real = canonicalPath(path);
+  const repo = insideGitWorkTree(real);
+  if (repo) {
+    throw new ToolError(`${label} ${resolve(path)} resolves to ${real}, inside the git work tree ${repo}; client material must stay outside any repo`, 2);
+  }
+  return real;
+}
+
 export function resolveClientRoot({ clientRoot, env = process.env } = {}) {
   const raw = clientRoot ?? env.CLIENT_PROJECTS_ROOT ?? join(homedir(), 'client-projects');
   if (!isAbsolute(raw)) throw new ToolError(`CLIENT_PROJECTS_ROOT must be an absolute path, got "${raw}"`, 2);
-  const root = resolve(raw);
-  const repo = insideGitWorkTree(root);
-  if (repo) {
-    throw new ToolError(`client projects folder ${root} is inside the git work tree ${repo}; client material must stay outside any repo`, 2);
-  }
-  return root;
+  return assertOutsideGitWorkTree(raw);
 }
 
 function nearestExisting(path) {
@@ -132,7 +169,9 @@ export function resolveSitesDir({ sitesDir } = {}) {
 }
 
 export function workspacePath(ctx, slug) {
-  return join(ctx.clientRoot, validateSlug(slug));
+  const ws = join(ctx.clientRoot, validateSlug(slug));
+  assertOutsideGitWorkTree(ws, 'project workspace');
+  return ws;
 }
 
 export function requireWorkspace(ctx, slug) {

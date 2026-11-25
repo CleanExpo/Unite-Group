@@ -13,42 +13,89 @@ const PNG = new Set(['.png']);
 const REFUSED = new Set(['.webp', '.avif', '.gif', '.heic', '.heif', '.tif', '.tiff', '.svg', '.bmp']);
 export const IMAGE_EXTENSIONS = new Set([...JPEG, ...PNG, ...REFUSED]);
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-// PNG chunks that carry metadata rather than pixels.
-const PNG_METADATA_CHUNKS = new Set(['eXIf', 'tEXt', 'iTXt', 'zTXt', 'tIME']);
-// JPEG segments: APP1 (EXIF, XMP), APP13 (IPTC/Photoshop), COM (comments).
-const JPEG_METADATA_MARKERS = new Set([0xe1, 0xed, 0xfe]);
+// What a published image may contain is an ALLOW-LIST of pixel-structure segments and chunks. Anything
+// not named here is dropped by stripMetadata and reported by findMetadata, and both read the one
+// classification below, so a segment type nobody thought of cannot be kept by one and missed by the
+// other. (UNI-3433: a deny-list of EXIF/XMP/IPTC/comment markers let an APP2 ICC profile through.)
+//
+// JPEG kept: DQT, DHT, every SOF, SOS (with its entropy-coded data), DRI, RSTn, EOI, DNL of its fixed
+// size, APP0 JFIF of its fixed size with no thumbnail, APP14 Adobe of its fixed size. Everything else
+// is dropped (all other APPn including the ICC profile, COM, JPGn), and so is anything after EOI.
+// Dropping the ICC profile means a wide-gamut photo is shown as sRGB.
+const JPEG_PIXEL_MARKERS = new Set([
+  0xdb, 0xc4, 0xda, 0xdd,
+  0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf,
+]);
+const JFIF_LENGTH = 16;
+const ADOBE_LENGTH = 14;
+const DNL_LENGTH = 4;
 
-function walkJpeg(buf, onSegment) {
+// PNG kept: the critical chunks, tRNS, and sRGB and gAMA at their fixed sizes. Everything else, and
+// anything after IEND, is dropped.
+const PNG_PIXEL_CHUNKS = new Set(['IHDR', 'PLTE', 'IDAT', 'IEND', 'tRNS']);
+const PNG_FIXED_CHUNKS = new Map([['sRGB', 1], ['gAMA', 4]]);
+
+function jpegSegmentKept(buf, marker, start, end) {
+  if (JPEG_PIXEL_MARKERS.has(marker)) return true;
+  const len = end - start - 2;
+  if (marker === 0xe0) return len === JFIF_LENGTH && buf.toString('latin1', start + 4, start + 9) === 'JFIF\0' && buf[start + 16] === 0 && buf[start + 17] === 0;
+  if (marker === 0xee) return len === ADOBE_LENGTH && buf.toString('latin1', start + 4, start + 9) === 'Adobe';
+  if (marker === 0xdc) return len === DNL_LENGTH;
+  return false;
+}
+
+// Splits a JPEG into the pieces to keep and a list of what is dropped.
+function classifyJpeg(buf) {
   if (buf.length < 4 || buf[0] !== 0xff || buf[1] !== 0xd8) throw new ToolError('not a valid JPEG (no start marker)');
+  const kept = [buf.subarray(0, 2)];
+  const dropped = [];
   let i = 2;
+  let ended = false;
   while (i < buf.length) {
     if (buf[i] !== 0xff) throw new ToolError('JPEG structure is damaged; re-export the image');
     const marker = buf[i + 1];
-    if (marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) {
-      onSegment(marker, i, i + 2);
+    if (marker === 0xd9) {
+      kept.push(buf.subarray(i, i + 2));
+      if (i + 2 < buf.length) dropped.push(`${buf.length - i - 2} bytes after the end of the JPEG`);
+      ended = true;
+      break;
+    }
+    if (marker === 0xd8) throw new ToolError('JPEG structure is damaged; re-export the image');
+    if (marker === 0xff) {
+      i += 1; // a fill byte before a marker
+      continue;
+    }
+    if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) {
+      kept.push(buf.subarray(i, i + 2));
       i += 2;
       continue;
     }
-    if (marker === 0xd9) {
-      onSegment(marker, i, i + 2);
-      return buf.length;
-    }
+    if (i + 4 > buf.length) throw new ToolError('JPEG structure is damaged; re-export the image');
     const len = buf.readUInt16BE(i + 2);
-    const end = i + 2 + len;
-    if (end > buf.length) throw new ToolError('JPEG segment runs past the end of the file; re-export the image');
+    let end = i + 2 + len;
+    if (len < 2 || end > buf.length) throw new ToolError('JPEG segment runs past the end of the file; re-export the image');
     if (marker === 0xda) {
-      // Start of scan: the compressed image data runs to the end of the file.
-      onSegment(marker, i, buf.length);
-      return buf.length;
+      // Entropy-coded data follows the scan header. A 0xff in it is followed by 0x00 (stuffing), a
+      // restart marker or a fill 0xff; the first 0xff followed by anything else is the next marker.
+      let j = end;
+      while (j < buf.length) {
+        if (buf[j] === 0xff && j + 1 < buf.length && buf[j + 1] !== 0x00 && buf[j + 1] !== 0xff && !(buf[j + 1] >= 0xd0 && buf[j + 1] <= 0xd7)) break;
+        j += 1;
+      }
+      end = j;
     }
-    onSegment(marker, i, end);
+    if (jpegSegmentKept(buf, marker, i, marker === 0xda ? i + 2 + len : end)) kept.push(buf.subarray(i, end));
+    else dropped.push(`JPEG segment 0x${marker.toString(16)}`);
     i = end;
   }
-  return buf.length;
+  if (!ended) throw new ToolError('JPEG has no end marker; re-export the image');
+  return { kept, dropped };
 }
 
-function walkPng(buf, onChunk) {
+function classifyPng(buf) {
   if (buf.length < 8 || !buf.subarray(0, 8).equals(PNG_SIGNATURE)) throw new ToolError('not a valid PNG (bad signature)');
+  const kept = [PNG_SIGNATURE];
+  const dropped = [];
   let i = 8;
   while (i < buf.length) {
     if (i + 8 > buf.length) throw new ToolError('PNG structure is damaged; re-export the image');
@@ -56,48 +103,34 @@ function walkPng(buf, onChunk) {
     const type = buf.toString('latin1', i + 4, i + 8);
     const end = i + 12 + len;
     if (end > buf.length) throw new ToolError('PNG chunk runs past the end of the file; re-export the image');
-    onChunk(type, i, end);
+    if (PNG_PIXEL_CHUNKS.has(type) || PNG_FIXED_CHUNKS.get(type) === len) kept.push(buf.subarray(i, end));
+    else dropped.push(`PNG chunk ${type}`);
     i = end;
-    if (type === 'IEND') break;
+    if (type === 'IEND') {
+      if (i < buf.length) dropped.push(`${buf.length - i} bytes after the end of the PNG`);
+      break;
+    }
   }
+  return { kept, dropped };
+}
+
+function classify(buf, ext) {
+  const e = ext.toLowerCase();
+  if (JPEG.has(e)) return classifyJpeg(buf);
+  if (PNG.has(e)) return classifyPng(buf);
+  return null;
 }
 
 export function stripMetadata(buf, ext) {
-  const e = ext.toLowerCase();
-  const parts = [];
-  if (JPEG.has(e)) {
-    parts.push(buf.subarray(0, 2));
-    walkJpeg(buf, (marker, start, end) => {
-      if (marker === 0xd8) return;
-      if (!JPEG_METADATA_MARKERS.has(marker)) parts.push(buf.subarray(start, end));
-    });
-    return Buffer.concat(parts);
-  }
-  if (PNG.has(e)) {
-    parts.push(PNG_SIGNATURE);
-    walkPng(buf, (type, start, end) => {
-      if (!PNG_METADATA_CHUNKS.has(type)) parts.push(buf.subarray(start, end));
-    });
-    return Buffer.concat(parts);
-  }
-  throw new ToolError(`${e} images cannot be checked for location data here; export as JPEG or PNG first`);
+  const parts = classify(buf, ext);
+  if (!parts) throw new ToolError(`${ext.toLowerCase()} images cannot be checked for location data here; export as JPEG or PNG first`);
+  return Buffer.concat(parts.kept);
 }
 
 export function findMetadata(buf, ext) {
-  const e = ext.toLowerCase();
-  const found = [];
-  if (JPEG.has(e)) {
-    walkJpeg(buf, (marker) => {
-      if (JPEG_METADATA_MARKERS.has(marker)) found.push(`JPEG segment 0x${marker.toString(16)}`);
-    });
-  } else if (PNG.has(e)) {
-    walkPng(buf, (type) => {
-      if (PNG_METADATA_CHUNKS.has(type)) found.push(`PNG chunk ${type}`);
-    });
-  } else {
-    found.push(`${e} cannot be inspected; only JPEG and PNG are allowed`);
-  }
-  return found;
+  const parts = classify(buf, ext);
+  if (!parts) return [`${ext.toLowerCase()} cannot be inspected; only JPEG and PNG are allowed`];
+  return parts.dropped;
 }
 
 export function sha256(buf) {
