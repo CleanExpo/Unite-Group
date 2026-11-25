@@ -1,12 +1,14 @@
 import type { PublicCard } from '@/lib/card/published'
+import { cardAbsoluteUrl } from '@/lib/card/qr'
 
 import { DEMO_EDITION, EDITIONS, youtubeIdFor } from '@/app/cards/editions'
 import { LivingFilm } from '@/app/cards/living-film'
 
 import styles from './card.module.css'
+import { CardQr } from './card-qr'
 import { EnquiryForm } from './enquiry-form'
 
-/** The persistent card: server HTML and real links. The sample shows the moving Constellation film (client script) so buyers see a living card; client cards stay media-free. The enquiry form (the only script) renders only when enquiries are open. */
+/** The persistent card: server HTML and real links. The sample shows the moving Constellation film (client script) so buyers see a living card; a client card plays its own film only when its profile names one (film_src, UNI-3528), and every card shows a QR code for its own address. The enquiry form (the only script) renders only when enquiries are open. */
 export function CardView({
   card, enquiryOpen = false, ownerAlerts = false, sample = false, reviewOpen = false, highlightReview = false,
 }: {
@@ -17,6 +19,8 @@ export function CardView({
   highlightReview?: boolean
 }) {
   const demo = EDITIONS.find((e) => e.name === DEMO_EDITION)
+  const clientFilm = !sample ? card.filmSrc : null
+  const clientEdition = clientFilm ? EDITIONS.find((e) => e.video === clientFilm) : undefined
   const telHref = card.phone ? `tel:${card.phone.replace(/[^+\d]/g, '')}` : null
   // Google review policy: the same button for every visitor, never behind a feedback question or the enquiry form
   const review = reviewOpen ? (
@@ -43,6 +47,11 @@ export function CardView({
       {sample && demo ? (
         <div className={styles.film} data-sample-film>
           <LivingFilm src={demo.video} poster={demo.poster} label={`${demo.label} edition film`} youtubeId={youtubeIdFor(demo.name)} />
+        </div>
+      ) : null}
+      {clientFilm ? (
+        <div className={styles.film} data-card-film>
+          <LivingFilm src={clientFilm} poster={clientEdition?.poster} label={`${card.businessName ?? card.displayName} film`} />
         </div>
       ) : null}
       <article className={styles.card}>
@@ -77,6 +86,7 @@ export function CardView({
           {highlightReview ? null : review}
         </ul>
         {enquiryOpen ? <EnquiryForm slug={card.slug} fallback={{ phone: card.phone, email: card.email }} ownerAlerts={ownerAlerts} /> : null}
+        <CardQr url={cardAbsoluteUrl(card.slug)} label="QR code that opens this card on your phone" />
       </article>
     </main>
   )

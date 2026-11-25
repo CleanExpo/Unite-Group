@@ -16,13 +16,21 @@ export function EditionTile({ edition }: { edition: Edition }) {
   const [playing, setPlaying] = useState(false)
   const inView = useRef(false)
   const userStopped = useRef(false)
+  const userPlaying = useRef(false)
 
   // Read at event time so a visitor who changes the setting mid-visit is respected.
   const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-  function play() {
+  // `auto` is a play the page starts itself on scroll. The tracker ignores those (data-track-autoplay), so
+  // video_play counts only a visitor's own hover or tap (UNI-3293).
+  function play(auto = false) {
     const v = video.current
     if (!v) return
+    // The origin belongs to the play that caused the event: a visitor's play is never relabelled by a scroll
+    // callback that lands before the browser's own play event.
+    if (auto && userPlaying.current) return
+    userPlaying.current = !auto
+    v.setAttribute('data-track-autoplay', auto ? 'true' : 'false')
     if (v.currentTime >= edition.stopAt) v.currentTime = 0
     void v.play().then(() => setPlaying(true), () => setPlaying(false))
   }
@@ -35,7 +43,7 @@ export function EditionTile({ edition }: { edition: Edition }) {
         for (const e of entries) {
           inView.current = e.isIntersecting
           if (e.isIntersecting) {
-            if (!reducedMotion() && !userStopped.current) play()
+            if (!reducedMotion() && !userStopped.current) play(true)
           } else if (!v.paused) {
             v.pause()
             setPlaying(false)
@@ -52,6 +60,7 @@ export function EditionTile({ edition }: { edition: Edition }) {
   function stop() {
     const v = video.current
     if (!v) return
+    userPlaying.current = false
     v.pause()
     v.currentTime = 0
     setPlaying(false)

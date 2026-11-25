@@ -12,6 +12,7 @@ import { SiteFooter } from '@/public/site/site-footer'
 import { PublicPageShell } from '@/public/layout/public-page-shell'
 import { CONTACT_MAILTO, SiteNav } from '@/public/site/site-nav'
 import { cardsPageGraphJsonLd, cardsShowroomJsonLd } from '@/lib/cards-jsonld'
+import { cardsAbEnabled } from '@/lib/experiments/cards-ab'
 import { liveCardTiers } from '@/lib/public-pricing'
 import { publicPageMetadata } from '@/lib/page-metadata'
 
@@ -20,13 +21,25 @@ import { formatAud, serializeJsonLd, stripePaymentLink } from '@/app/grow/packag
 import { SectionIntro } from '@/public/section-intro'
 import m from '@/public/layout/marketing-page.module.css'
 
+import { CardsAbGate } from './cards-ab-gate'
 import { EditionTile } from './edition-tile'
 import { EDITIONS } from './editions'
-import { CARD_TIERS } from './order/order-view'
+import { CARD_EXTRA_BUSINESS, CARD_TIERS } from './order/order-view'
 import { PAYMENT_ENTITY_LINE } from './payment-entity'
+import { ProductFirst } from './product-first'
 import p from './showroom-page.module.css'
 import s from './showroom.module.css'
-import { EXCLUSION_FACTS, FAQ_FACTS, HOSTING_FACTS, PRICE_NOTE, TIER_LINES } from './showroom-facts'
+import {
+  COSTS_EXTRA_FACTS,
+  FAQ_FACTS,
+  HOSTING_FACTS,
+  LIMIT_FACTS,
+  PRICE_NOTE,
+  STAFF_CARD_FACTS,
+  TIER_INCLUDES,
+  TIER_LINES,
+  staffCardPricedLine,
+} from './showroom-facts'
 
 export const metadata: Metadata = publicPageMetadata({
   path: '/cards',
@@ -91,88 +104,97 @@ export default function CardsShowroomPage() {
       <SiteNav />
 
       <main id="main" className={m.main}>
-        <section className={m.heroBand} aria-labelledby="cards-title">
-          <div className={m.wrap}>
-            <nav aria-label="Breadcrumb">
-              <ol className={m.crumbs}>
-                <li><a href="/">Unite Group</a></li>
-                <li aria-current="page">Living cards</li>
-              </ol>
-            </nav>
-            <div className={p.heroGrid}>
-              <div className={p.heroCopy}>
-                <SectionIntro
-                  as="h1"
-                  id="cards-title"
-                  eyebrow="Living business cards"
-                  title="A business card that opens like a film and ends on your logo."
-                  lead="One link or QR code. A short opener, your details, one-tap save to contacts, and links to your businesses."
-                />
-                <ul className={p.heroFacts} aria-label="What you get">
-                  {HERO_FACTS.map((fact) => {
-                    const Icon = fact.icon
-                    return (
-                      <li key={fact.title} className={p.heroFact}>
-                        <span className={p.heroFactIcon} aria-hidden="true">
-                          <Icon strokeWidth={1.75} size={22} />
-                        </span>
-                        <span className={p.heroFactText}>
-                          <strong className={p.heroFactTitle}>{fact.title}</strong>
-                          <span className={p.heroFactLine}>{fact.line}</span>
-                        </span>
-                      </li>
-                    )
-                  })}
-                </ul>
-                {ready && buyLink ? (
-                  <div className={p.buyNow} data-buy-now={ready.id}>
-                    <a href={buyLink} rel="noopener" data-track="cta" data-track-label="cards-hero-buy-ready" className={m.btnPrimary}>
-                      {`Buy ${ready.name}, A${formatAud(ready.priceAud)}`}
+        {/* UNI-3293: the showroom is the control; the product-first explainer (B) exists only while the flag is on. */}
+        <CardsAbGate
+          treatment={cardsAbEnabled() ? <ProductFirst /> : undefined}
+          control={
+            <>
+          <section className={m.heroBand} aria-labelledby="cards-title">
+            <div className={m.wrap}>
+              <nav aria-label="Breadcrumb">
+                <ol className={m.crumbs}>
+                  <li><a href="/">Unite Group</a></li>
+                  <li aria-current="page">Living cards</li>
+                </ol>
+              </nav>
+              <div className={p.heroGrid}>
+                <div className={p.heroCopy}>
+                  <SectionIntro
+                    as="h1"
+                    id="cards-title"
+                    eyebrow="Living business cards"
+                    title="A business card that opens like a film and ends on your logo."
+                    lead="One link or QR code. A short opener, your details, one-tap save to contacts, and links to your businesses."
+                  />
+                  <ul className={p.heroFacts} aria-label="What you get">
+                    {HERO_FACTS.map((fact) => {
+                      const Icon = fact.icon
+                      return (
+                        <li key={fact.title} className={p.heroFact}>
+                          <span className={p.heroFactIcon} aria-hidden="true">
+                            <Icon strokeWidth={1.75} size={22} />
+                          </span>
+                          <span className={p.heroFactText}>
+                            <strong className={p.heroFactTitle}>{fact.title}</strong>
+                            <span className={p.heroFactLine}>{fact.line}</span>
+                          </span>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                  {ready && buyLink ? (
+                    <div className={p.buyNow} data-buy-now={ready.id}>
+                      <a href={buyLink} rel="noopener" data-track="cta" data-track-label="cards-hero-buy-ready" className={m.btnPrimary}>
+                        {`Buy ${ready.name}, A${formatAud(ready.priceAud)}`}
+                      </a>
+                      <p className={p.buyNote}>One-off price, GST included.</p>
+                      <p className={p.buyNote}>{PAYMENT_ENTITY_LINE}</p>
+                    </div>
+                  ) : null}
+                  <div className={m.actions}>
+                    <a href="/cards/order" data-track="cta" data-track-label="cards-hero-get-card" className={buyLink ? m.btnSecondary : m.btnPrimary}>
+                      Get your own card
                     </a>
-                    <p className={p.buyNote}>One-off price, GST included.</p>
-                    <p className={p.buyNote}>{PAYMENT_ENTITY_LINE}</p>
+                    <a href="#editions" data-track="cta" data-track-label="cards-hero-see-editions" className={m.btnSecondary}>
+                      See the editions
+                    </a>
+                    <a href={CONTACT_MAILTO} data-contact-email className={m.btnSecondary}>
+                      Email us
+                    </a>
                   </div>
-                ) : null}
-                <div className={m.actions}>
-                  <a href="/cards/order" data-track="cta" data-track-label="cards-hero-get-card" className={buyLink ? m.btnSecondary : m.btnPrimary}>
-                    Get your own card
-                  </a>
-                  <a href="#editions" data-track="cta" data-track-label="cards-hero-see-editions" className={m.btnSecondary}>
-                    See the editions
-                  </a>
-                  <a href={CONTACT_MAILTO} data-contact-email className={m.btnSecondary}>
-                    Email us
-                  </a>
                 </div>
-              </div>
-              <div className={p.heroShowcase}>
-                <p className={p.showcaseEyebrow}>Live preview</p>
-                <div className={p.qrWrap} data-card-qr>
-                  <EditionTile edition={signature} />
-                  <figure className={p.qrFigure}>
-                    <img src="/cards/living-card-qr.png" alt="QR code that opens unite-group.in/cards" width={128} height={128} />
-                    <figcaption>Scan to open this page</figcaption>
-                  </figure>
+                <div className={p.heroShowcase}>
+                  <p className={p.showcaseEyebrow}>Live preview</p>
+                  <div className={p.qrWrap} data-card-qr>
+                    <EditionTile edition={signature} />
+                    <figure className={p.qrFigure}>
+                      <img src="/cards/living-card-qr.png" alt="QR code that opens unite-group.in/cards" width={128} height={128} />
+                      <figcaption>Scan to open this page</figcaption>
+                    </figure>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        <section id="editions" className={`${m.section} ${p.editionsBand}`}>
-          <div className={m.wrap}>
-            <SectionIntro
-              title="Nine editions"
-              lead="Every example ends on the Unite Group logo. Yours ends on your own. Each clip is AI-generated and runs for about four seconds."
-            />
-            <p className={p.editionsHint}>Hover or tap a tile to play the clip. Your card uses your logo and colours instead of ours.</p>
-            <div className={p.grid}>
-              {editions.map((edition) => (
-                <EditionTile key={edition.name} edition={edition} />
-              ))}
+          <section id="editions" className={`${m.section} ${p.editionsBand}`}>
+            <div className={m.wrap}>
+              <SectionIntro
+                title="Nine editions"
+                lead="Every example ends on the Unite Group logo. Yours ends on your own. Each clip is AI-generated and runs for about four seconds."
+              />
+              <p className={p.editionsHint}>Hover or tap a tile to play the clip. Your card uses your logo and colours instead of ours.</p>
+              <div className={p.grid}>
+                {editions.map((edition) => (
+                  <EditionTile key={edition.name} edition={edition} />
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+
+            </>
+          }
+        />
 
         <section className={m.sectionAlt} aria-label="How you get your card">
           <div className={m.wrap}>
@@ -225,6 +247,11 @@ export default function CardsShowroomPage() {
                     </p>
                     <p className={p.compareLine}>{TIER_LINES[tier.id]}</p>
                     <p className={p.compareMeta}>{`${tier.rounds} rounds of changes.`}</p>
+                    <ul className={p.compareIncludes} aria-label={`${tier.name} includes`}>
+                      {TIER_INCLUDES[tier.id].map((fact) => (
+                        <li key={fact}>{fact}</li>
+                      ))}
+                    </ul>
                     <div className={p.compareCtas}>
                       {on ? (
                         <a
@@ -245,6 +272,17 @@ export default function CardsShowroomPage() {
                 )
               })}
             </ul>
+            <div id="costs-extra" className={p.costsExtra}>
+              <h3 className={s.heading}>What costs extra</h3>
+              <ul className={s.list}>
+                {live.length > 0 ? (
+                  <li>{[staffCardPricedLine(CARD_EXTRA_BUSINESS.priceAud), ...STAFF_CARD_FACTS].join(' ')}</li>
+                ) : null}
+                {COSTS_EXTRA_FACTS.map((fact) => (
+                  <li key={fact}>{fact}</li>
+                ))}
+              </ul>
+            </div>
           </div>
         </section>
 
@@ -282,9 +320,9 @@ export default function CardsShowroomPage() {
               </ul>
             </div>
             <div id="exclusions">
-              <h2 className={s.heading}>Not included, and limits</h2>
+              <h2 className={s.heading}>Limits</h2>
               <ul className={s.list}>
-                {EXCLUSION_FACTS.map((fact) => (
+                {LIMIT_FACTS.map((fact) => (
                   <li key={fact}>{fact}</li>
                 ))}
               </ul>

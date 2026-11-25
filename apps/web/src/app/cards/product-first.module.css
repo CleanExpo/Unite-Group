@@ -1,0 +1,47 @@
+.explainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 26rem;
+  margin-inline: auto;
+  width: 100%;
+}
+
+.frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: var(--pub-radius-xl);
+  border: 1px solid rgba(236, 123, 65, 0.22);
+  background: rgba(4, 6, 14, 0.85);
+}
+
+.video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #04060e;
+}
+
+.caption {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--pub-ink-soft);
+  text-align: center;
+}
+
+.bigCta {
+  min-height: 56px;
+  padding-inline: 32px;
+  font-size: 17px;
+}
+
+.ctaNote {
+  margin: 0.25rem 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--pub-ink-soft);
+}

@@ -17,6 +17,12 @@ const CARDS = {
     card_slug: 'acme-plumbing', display_name: 'Sam Example', role_title: 'Licensed Plumber', business_name: 'Acme Plumbing',
     email: 'sam@example.test', phone: '0491 570 158', service_area: 'Gold Coast, Queensland', published_at: '2026-10-24T00:00:00Z',
   },
+  // UNI-3528: a client card whose profile names a film (a file we host under /cards/media/)
+  'harbour-bakery': {
+    card_slug: 'harbour-bakery', display_name: 'Riley Example', role_title: 'Owner', business_name: 'Harbour Bakery',
+    email: 'riley@example.test', phone: '0491 570 159', service_area: 'Brisbane, Queensland', published_at: '2026-10-24T00:00:00Z',
+    film_src: '/cards/media/edition-constellation.mp4',
+  },
 }
 
 let held = false

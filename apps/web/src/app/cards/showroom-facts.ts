@@ -16,6 +16,31 @@ export const TIER_LINES: Record<'ready' | 'custom', string> = {
   custom: 'We make a film for your business', // 2
 }
 
+/**
+ * What each tier includes, cut word for word from the terms (section 2). Round counts are shown by the card itself
+ * (CARD_TIERS.rounds), so they are not repeated here. Hosting (7.1) applies to every card.
+ */
+export const TIER_INCLUDES: Record<'ready' | 'custom', string[]> = {
+  ready: [
+    'Your own card web page with that film, your business name and your contact details.', // 2 (Starter pack 2)
+    'You approve a private preview before it goes live.', // 2 (Starter pack 3)
+    'We host your card for 12 months from the day it goes live. There is no monthly fee.', // 7.1
+  ],
+  custom: [
+    'Your own card web page with that film, your business name and your contact details.', // 2 (Business Pack 3)
+    'You approve a private preview before it goes live.', // 2 (Business Pack 2)
+    'We host your card for 12 months from the day it goes live. There is no monthly fee.', // 7.1
+  ],
+}
+
+/** The staff-card add-on, section 2 (Business Pack 4). The price in the first sentence is built from CARD_EXTRA_BUSINESS. */
+export const staffCardPricedLine = (priceAud: number) =>
+  `You can add staff cards to a Business Pack order, at AUD ${priceAud} each (GST included), with no limit.` // 2
+export const STAFF_CARD_FACTS = [
+  'Each staff card is for one staff member and includes 3 rounds.', // 2
+  'They are paid as a separate payment.', // 2
+]
+
 export const HOSTING_FACTS = [
   'We host your card for 12 months from the day it goes live. There is no monthly fee.', // 7.1
   'We email you at least 30 days before hosting ends with the renewal price. Hosting does not renew unless you choose to pay.', // 7.2
@@ -71,10 +96,17 @@ export const FAQ_FACTS: FaqFact[] = [
   },
 ]
 
+/** Items that cost extra: the first three exclusions. The rest are limits. */
+export const COSTS_EXTRA_FACTS = EXCLUSION_FACTS.slice(0, 3)
+export const LIMIT_FACTS = EXCLUSION_FACTS.slice(3)
+
 /** Every quoted string the provenance test checks (price lines are built from CARD_TIERS, so excluded). */
 export const provenanceStrings = () => [
   PRICE_NOTE,
   ...Object.values(TIER_LINES),
+  ...TIER_INCLUDES.ready,
+  ...TIER_INCLUDES.custom,
+  ...STAFF_CARD_FACTS,
   ...HOSTING_FACTS,
   ...EXCLUSION_FACTS,
   ...FAQ_FACTS.flatMap((f) => f.answer),

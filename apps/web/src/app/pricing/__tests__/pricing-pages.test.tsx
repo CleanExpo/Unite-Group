@@ -38,7 +38,8 @@ describe('/pricing (UNI-3017)', () => {
     vi.stubEnv(CUSTOM, 'not-a-stripe-link')
     expect(cardFromAud()).toBeNull()
     const t = text(renderToStaticMarkup(<PricingPage />))
-    expect(t).not.toMatch(/\$249|\$449|GST included/)
+    // The plan prices are GST included too (UNI-3175), so look for the card's own wording.
+    expect(t).not.toMatch(/\$249|\$449|one-off, GST included/)
     expect(t).toContain('online orders are not open yet')
     expect(pricingMeta.description).not.toMatch(/\$249|\$449/)
   })
@@ -49,18 +50,22 @@ describe('/pricing (UNI-3017)', () => {
     expect(html).toContain('href="/cards/order"')
     expect(html).not.toMatch(/buy\.stripe\.com|checkout\.stripe/)
   })
-  it('says the plan prices are plus GST and invites an enquiry, since there is no plan checkout', () => {
+  it('says the plan prices are GST included and invites an enquiry, since there is no plan checkout', () => {
+    // UNI-3175: $99 and $22 are the full price the customer pays (Phill, 02/11 and 23/11/2026).
     const t = text(renderToStaticMarkup(<PricingPage />))
-    expect(t).toContain('$99 a month, plus GST')
-    expect(t).toContain('$22 each, plus GST')
+    expect(t).toContain('$99 a month, GST included')
+    expect(t).toContain('$22 each, GST included')
+    expect(t).not.toMatch(/plus GST/i)
     expect(t).toContain('Ask about Starter')
-    expect(pricingMeta.description).toContain('plus GST')
+    expect(pricingMeta.description).toContain('GST included')
+    expect(pricingMeta.description).not.toMatch(/plus GST/i)
     const llms = readFileSync(join(root, 'public', 'llms.txt'), 'utf8')
     expect(llms).not.toMatch(/on sale/i)
-    const starterTotal = `A$${(STARTER_PLAN.priceAud * 1.1).toFixed(2)} a month, GST included`
-    expect(llms).toContain(`- Starter plan: ${starterTotal}`)
-    expect(llms).toContain(`/pricing : Starter plan ${starterTotal}`)
-    expect(llms).toContain(`$${SIGNATURE_ADDON.priceAud} AUD each plus GST`)
+    const starter = `A$${STARTER_PLAN.priceAud} a month, GST included`
+    expect(llms).toContain(`- Starter plan: ${starter}`)
+    expect(llms).toContain(`/pricing : Starter plan ${starter}`)
+    expect(llms).toContain(`A$${SIGNATURE_ADDON.priceAud} each, GST included`)
+    expect(llms).not.toMatch(/plus GST/i)
   })
   it('is canonical and never names the restoration sister companies', () => {
     expect(pricingMeta.alternates?.canonical).toBe('https://unite-group.in/pricing')
@@ -72,6 +77,11 @@ describe('/signatures (UNI-3017)', () => {
   const html = renderToStaticMarkup(<SignaturesPage />)
   it('prices the add-on at $22 each and introduces Margot', () => {
     expect(text(html)).toContain('$22 each')
+    // UNI-3175: GST included, in the page and its description.
+    expect(text(html)).toContain('GST included')
+    expect(text(html)).not.toMatch(/plus GST/i)
+    expect(sigMeta.description).toContain('GST included')
+    expect(sigMeta.description).not.toMatch(/plus GST/i)
     expect(html).toContain('Margot')
     expect(html).toContain('data-signature-sample')
     expect(sigMeta.alternates?.canonical).toBe('https://unite-group.in/signatures')

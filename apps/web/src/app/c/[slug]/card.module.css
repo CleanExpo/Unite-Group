@@ -208,3 +208,27 @@
 .reviewHighlight {
   box-shadow: 0 0 0 4px rgba(229, 90, 43, 0.45);
 }
+
+/* Card QR (UNI-3528): a white tile so it scans on the dark page; 168px is large enough to scan from a phone held at arm's length and fits 320px wide screens. */
+.qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 24px 0 0;
+}
+
+.qrSvg {
+  display: block;
+  width: 168px;
+  height: 168px;
+  max-width: 100%;
+  border-radius: 4px;
+}
+
+.qrCaption {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #c9c3b8;
+  text-align: center;
+}
