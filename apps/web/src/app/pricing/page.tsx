@@ -7,13 +7,13 @@ import { SectionIntro } from '@/public/section-intro'
 import m from '@/public/layout/marketing-page.module.css'
 import { formatAud, serializeJsonLd } from '@/app/grow/packages'
 import { pricingPageJsonLd } from '@/lib/pricing-jsonld'
-import { cardFromAud, PLUS_GST, SIGNATURE_ADDON, STARTER_PLAN } from '@/lib/public-pricing'
+import { cardFromAud, GST_INCLUDED, SIGNATURE_ADDON, STARTER_PLAN } from '@/lib/public-pricing'
 import { publicPageMetadata } from '@/lib/page-metadata'
 
 export const metadata: Metadata = publicPageMetadata({
   path: '/pricing',
   title: 'Pricing | Starter plan, signatures & living cards | Unite Group',
-  description: `Starter plan ${formatAud(STARTER_PLAN.priceAud)} a month and email signatures at ${formatAud(SIGNATURE_ADDON.priceAud)} each, ${PLUS_GST}. Living business cards from ${cardFromAud() ?? 'ask us'}.`,
+  description: `Starter plan ${formatAud(STARTER_PLAN.priceAud)} a month and email signatures at ${formatAud(SIGNATURE_ADDON.priceAud)} each, ${GST_INCLUDED}. Living business cards from ${cardFromAud() ?? 'ask us'}.`,
 })
 
 export default function PricingPage() {
@@ -46,7 +46,7 @@ export default function PricingPage() {
               <article className={`${m.planCard} ${m.planCardFeatured}`}>
                 <h2 id="plan-title" className={m.planPrice}>{STARTER_PLAN.name}</h2>
                 <p className={m.planMeta}>
-                  <strong>{formatAud(STARTER_PLAN.priceAud)}</strong> a {STARTER_PLAN.period}, {PLUS_GST}
+                  <strong>{formatAud(STARTER_PLAN.priceAud)}</strong> a {STARTER_PLAN.period}, {GST_INCLUDED}
                 </p>
                 <p className={m.planBody}>{STARTER_PLAN.line}</p>
                 <div className={m.actions}>
@@ -60,7 +60,7 @@ export default function PricingPage() {
                   <li className={m.addonItem} data-addon="signatures">
                     <a href={SIGNATURE_ADDON.href}>{SIGNATURE_ADDON.name}</a>
                     {' — '}
-                    {formatAud(SIGNATURE_ADDON.priceAud)} {SIGNATURE_ADDON.unit}, {PLUS_GST}. {SIGNATURE_ADDON.line}
+                    {formatAud(SIGNATURE_ADDON.priceAud)} {SIGNATURE_ADDON.unit}, {GST_INCLUDED}. {SIGNATURE_ADDON.line}
                   </li>
                   <li className={m.addonItem} data-addon="card">
                     <a href="/cards">Living business card</a>
@@ -68,12 +68,12 @@ export default function PricingPage() {
                       <>
                         {' — from '}
                         {formatAud(cardFrom)}, one-off, GST included.{' '}
-                        <a href="/cards/order">Order a card</a>
+                        <a href="/cards/order" data-track="cta" data-track-label="pricing-order-card">Order a card</a>
                       </>
                     ) : (
                       <>
                         {' — online orders are not open yet. '}
-                        <a href="/cards/order">See the card</a>
+                        <a href="/cards/order" data-track="cta" data-track-label="pricing-see-card">See the card</a>
                       </>
                     )}
                   </li>

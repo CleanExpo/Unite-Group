@@ -6,7 +6,7 @@ import { SiteNav } from '@/public/site/site-nav'
 import { SectionIntro } from '@/public/section-intro'
 import m from '@/public/layout/marketing-page.module.css'
 import { formatAud } from '@/app/grow/packages'
-import { PLUS_GST, SIGNATURE_ADDON } from '@/lib/public-pricing'
+import { GST_INCLUDED, SIGNATURE_ADDON } from '@/lib/public-pricing'
 import { CONTACT_EMAIL, SITE_URL } from '@/lib/public-site'
 import { publicPageMetadata } from '@/lib/page-metadata'
 
@@ -15,7 +15,7 @@ import sig from './signatures-page.module.css'
 export const metadata: Metadata = publicPageMetadata({
   path: '/signatures',
   title: 'Email signatures | Unite Group',
-  description: `Branded email signatures for your team, ${formatAud(SIGNATURE_ADDON.priceAud)} each (${PLUS_GST}), introduced by Margot.`,
+  description: `Branded email signatures for your team, ${formatAud(SIGNATURE_ADDON.priceAud)} each (${GST_INCLUDED}), introduced by Margot.`,
 })
 
 const STEPS = [
@@ -42,7 +42,7 @@ export default function SignaturesPage() {
               as="h1"
               eyebrow="Add-on"
               title={`Email signatures, ${formatAud(SIGNATURE_ADDON.priceAud)} each`}
-              lead={`${SIGNATURE_ADDON.line} Prices are ${PLUS_GST}.`}
+              lead={`${SIGNATURE_ADDON.line} ${formatAud(SIGNATURE_ADDON.priceAud)} each, ${GST_INCLUDED}.`}
             />
             <div className={m.actions}>
               <a href="/#contact" className={m.btnPrimary}>Order signatures</a>
@@ -93,7 +93,7 @@ export default function SignaturesPage() {
             />
             <div className={m.actions}>
               <a href="/#contact" className={m.btnPrimary}>Start with contact</a>
-              <a href="/cards/order" className={m.btnSecondary}>Order a card first</a>
+              <a href="/cards/order" data-track="cta" data-track-label="signatures-order-first" className={m.btnSecondary}>Order a card first</a>
             </div>
           </div>
         </section>

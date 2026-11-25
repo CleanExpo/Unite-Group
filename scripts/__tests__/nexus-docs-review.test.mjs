@@ -119,6 +119,41 @@ test('Access-Transparency changes classify under the API-compliance surface, nev
   assert.ok(item.proposedMarkdown.includes('not Claude Max usage telemetry') || item.proposedMarkdown.includes('NOT Claude Max usage telemetry'))
 })
 
+test('a page that failed to fetch is listed as fetch_failed, never dropped and never counted as material', () => {
+  const fetched = okSource({ id: 'a.fetched', change: 'unchanged' })
+  const failed = {
+    id: 'b.failed',
+    vendor: 'OpenAI',
+    url: 'https://docs.example.com/failed',
+    outcome: 'failed',
+    critical: false,
+    errorCode: 'http_status',
+    error: 'Unexpected HTTP status 404',
+  }
+  const review = runReview({
+    report: report([failed, fetched]),
+    classification,
+    currentContent: new Map([[fetched.id, 'same text']]),
+    priorSnapshots: new Map([[fetched.id, 'same text'], [failed.id, 'old text']]),
+    now: '2026-07-13T00:00:00.000Z',
+  })
+
+  const byId = Object.fromEntries(review.items.map((item) => [item.id, item]))
+  assert.equal(byId['b.failed'].classification, 'fetch_failed')
+  assert.deepEqual(byId['b.failed'].reasons, ['http_status'])
+  assert.equal(byId['b.failed'].error, 'Unexpected HTTP status 404')
+  assert.equal(byId['b.failed'].proposedMarkdown, null)
+  assert.equal(byId['a.fetched'].classification, 'unchanged')
+  assert.equal(review.summary.total, 2)
+  assert.equal(review.summary.fetchFailed, 1)
+  assert.equal(review.summary.materialChanges, 0)
+
+  const markdown = renderReviewMarkdown(review)
+  assert.match(markdown, /1 not fetched/)
+  assert.match(markdown, /## Sources not fetched/)
+  assert.match(markdown, /- `b\.failed` — http_status: Unexpected HTTP status 404/)
+})
+
 test('unchanged and first-seen deltas are handled distinctly', () => {
   // The unchanged source now carries text identical to its snapshot: with no text or no snapshot the review can
   // no longer call a source unchanged (see the snapshot-only test below).

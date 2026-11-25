@@ -5,7 +5,7 @@ import {
   CONTACT_EMAIL,
   PILLARS,
   PRICE_NOTE,
-  SHIPPED_PILLAR,
+  isPillarLive,
   lowestCardPrice,
   pillarPath,
 } from '@/lib/public-site'
@@ -50,11 +50,11 @@ type StartLink = {
 // Phill's five steps, names and lines (design-pass gap 05.2 / 05.5). The Create line names a price only while
 // online ordering is live; see createLine.
 const START_LINKS: StartLink[] = [
-  { key: 'discover', no: '01', name: 'Discover', line: 'Compare Starter, signatures, and card tiers in AUD', href: '/pricing' },
-  { key: 'diagnose', no: '02', name: 'Diagnose', line: 'See what Intelligence will summarise when it ships', href: '/solutions/intelligence', coming: true },
+  { key: 'discover', no: '01', name: 'Discover', line: 'See plan and card prices in Australian dollars', href: '/pricing' },
+  { key: 'diagnose', no: '02', name: 'Diagnose', line: 'Intelligence will give you a summary when it is ready', href: '/solutions/intelligence', coming: true },
   { key: 'create', no: '03', name: 'Create', line: 'Ask us about a living video card', href: '/cards/order', paid: true },
-  { key: 'results', no: '04', name: 'Explore results', line: 'Nine showroom films — yours ends on your logo', href: '/cards' },
-  { key: 'talk', no: '05', name: 'Talk', line: 'One question by email; a human reply with a next step', href: '#contact' },
+  { key: 'results', no: '04', name: 'Explore results', line: 'Watch sample films. Yours ends on your logo.', href: '/cards' },
+  { key: 'talk', no: '05', name: 'Talk', line: 'Ask one question by email. We reply with your next step.', href: '#contact' },
 ]
 
 // Not for sale yet: CRM first (Phill, 27/10/2026: just "CRM"), then the three intelligence products.
@@ -181,7 +181,7 @@ export function HomePage() {
                     <a href={pillarPath(p.slug)} data-track="cta" data-track-label={`home-pillar-${p.slug}`}>
                       <span className={hp.pillarMiniName}>
                         {p.name}
-                        {p.slug === SHIPPED_PILLAR ? (
+                        {isPillarLive(p.slug) ? (
                           <span className={`${pub.chip} ${pub.chipLive}`} data-chip="live">
                             Live
                           </span>

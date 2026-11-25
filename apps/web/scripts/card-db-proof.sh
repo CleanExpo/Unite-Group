@@ -162,5 +162,27 @@ for mut in \
   if [ $rc -ne 0 ] && ! echo "$out" | grep -q CARD_REVIEW_RLS_PROOF_PASS; then echo "RED-AS-EXPECTED  review mutant ($mut)"; else echo "FAIL  review proof stayed green on mutant ($mut)"; FAILS=$((FAILS+1)); fi
 done
 
+# 7. client film (20261123100000): the CHECK and the anon/owner grants, then the proof must go red on each planted defect.
+#    The first mutant drops BOTH prefix rules (the LIKE and the anchored regex): the two overlap, so removing only one changes nothing the CHECK accepts and cannot make the proof fail.
+FILM_MIG="$MIG/20261123100000_card_profiles_film_src.sql"
+fresh_db_reuse film || exit 2
+apply film "$BASE_MIG"; apply film "$FIX_MIG"; apply film "$REVIEW_MIG"; apply film "$FILM_MIG"; apply film "$FILM_MIG" && echo "PASS  film migration applies twice"
+expect_pass "client film_src proof" film "$TESTS/card_film_src_rls.sql"
+for mut in \
+  "s/film_src like '\/cards\/media\/%'/true/;s/'^\/cards\/media\//'^\//" \
+  "s/and film_src not like '%..%'//" \
+  "s/and film_src ~ '[^']*'/and true/" \
+  "s/to anon;/to anon;grant update (film_src) on table public.card_profiles to authenticated;/" \
+  "s/^grant select (film_src).*\$//"; do
+  name="fmut$RANDOM"
+  fresh_db_reuse "$name" || exit 2
+  apply "$name" "$BASE_MIG"; apply "$name" "$FIX_MIG"; apply "$name" "$REVIEW_MIG"
+  sed -e "$mut" "$FILM_MIG" > "$DATA/mutant.sql"
+  if cmp -s "$FILM_MIG" "$DATA/mutant.sql"; then echo "FAIL  mutant did not change the migration: $mut"; FAILS=$((FAILS+1)); continue; fi
+  apply "$name" "$DATA/mutant.sql"
+  out="$(PSQL -d "$name" -f "$TESTS/card_film_src_rls.sql" 2>&1)"; rc=$?
+  if [ $rc -ne 0 ] && ! echo "$out" | grep -q CARD_FILM_SRC_PROOF_PASS; then echo "RED-AS-EXPECTED  film mutant ($mut)"; else echo "FAIL  film proof stayed green on mutant ($mut)"; FAILS=$((FAILS+1)); fi
+done
+
 if [ $FAILS -eq 0 ]; then echo "CARD_DB_PROOF_ALL_PASS"; exit 0; fi
 echo "CARD_DB_PROOF_FAILURES=$FAILS"; exit 1

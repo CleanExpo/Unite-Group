@@ -1,0 +1,134 @@
+import { prerender } from 'react-dom/static.edge'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('next/navigation', () => ({ redirect: vi.fn(), useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }) }))
+vi.mock('@/lib/supabase/client', () => ({ createClient: vi.fn() }))
+vi.mock('@/lib/error-reporting', () => ({ captureClientError: vi.fn() }))
+vi.mock('@/lib/portal/projects/server', () => ({ portalProjectsContext: vi.fn() }))
+vi.mock('../actions', () => ({ submitProjectRequestAction: vi.fn(), respondToItemAction: vi.fn() }))
+
+import { renderedFindings } from '@/__tests__/portal-forbidden-words'
+import type { PortalAccess } from '@/lib/portal/changes/access'
+import { portalProjectsContext } from '@/lib/portal/projects/server'
+import type { PortalProjectsDb } from '@/lib/portal/projects/service'
+
+import ProjectPage from '../page'
+
+const OWNER = { userId: 'u1', ownerId: 'u1', tenantSlug: 'acme-demo', plan: 'comp', aal: 'aal2' } as const
+const NOW = Date.now()
+const iso = (daysAgo: number) => new Date(NOW - daysAgo * 86400000).toISOString()
+
+function db(projects: unknown[] | null, items: unknown[] | null): PortalProjectsDb {
+  return {
+    rpc: vi.fn(),
+    from(table) {
+      return {
+        select: () => ({
+          eq: () => {
+            const order = () => ({ limit: async (n: number) => {
+              const data = table === 'portal_projects' ? projects : items
+              return data ? { data: data.slice(0, n), error: null } : { data: null, error: { message: 'boom' } }
+            } })
+            return { order, eq: () => ({ order }) }
+          },
+        }),
+      }
+    },
+  }
+}
+
+const PROJECT = {
+  id: 'p1', tenant_slug: 'acme-demo', slug: 'demo-erp', name: 'Demo ERP (synthetic)', objective: 'Run stock and sales in one place.',
+  health: 'on_hold', health_reason: null, production_hold: true, hold_reason: 'Owner production hold.', current_milestone: 'Phase 2 testing',
+  updated_at: iso(1),
+}
+const base = {
+  project_id: 'p1', tenant_slug: 'acme-demo', kind: 'requirement', client_text: 'x', plain_summary: null, summary_is_ai_proposal: false,
+  waiting_on: 'unite', source: 'portal', author_kind: 'client_human', evidence_count: 1,
+  blocker_reason: null, decision_needed: null, client_note: null, forecast_window: null, forecast_confidence: null,
+  forecast_basis: null, forecast_updated_at: null, created_at: iso(10), updated_at: iso(1),
+}
+const ITEMS = [
+  { ...base, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1', title: 'Login page review', state: 'awaiting_client_review', waiting_on: 'client' },
+  { ...base, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2', title: 'Monthly sales report', state: 'blocked', evidence_count: 0, blocker_reason: 'Report layout not agreed' },
+  { ...base, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3', title: 'Stock by branch', state: 'client_accepted' },
+  { ...base, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa5', title: 'Which branches?', state: 'clarification_required', waiting_on: 'client', decision_needed: 'Which branches should see this?' },
+  { ...base, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa6', title: 'Changes asked', state: 'clarification_required', waiting_on: 'unite' },
+  { ...base, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4', title: 'Bot idea', state: 'proposed', source: 'telegram', author_kind: 'client_bot', evidence_count: 0, summary_is_ai_proposal: true, plain_summary: 'Add a stock alert' },
+]
+
+async function render(access: PortalAccess, d: PortalProjectsDb): Promise<string> {
+  vi.mocked(portalProjectsContext).mockResolvedValue({ access, db: d })
+  const { prelude } = await prerender(<>{await ProjectPage()}</>)
+  return new Response(prelude).text()
+}
+
+beforeEach(() => vi.clearAllMocks())
+
+describe('/portal/project', () => {
+  it('shows no project data to a signed-out or aal1 visitor', async () => {
+    const d = db([PROJECT], ITEMS)
+    for (const access of [{ kind: 'sign_in' }, { kind: 'verify_second_factor' }] as PortalAccess[]) {
+      const html = await render(access, d)
+      expect(html).not.toContain('Demo ERP')
+      expect(html).not.toContain('Login page review')
+    }
+  })
+
+  it('shows health, hold, decisions, blockers and an unverified forecast honestly', async () => {
+    const html = await render({ kind: 'ok', owner: OWNER as never }, db([PROJECT], ITEMS))
+    expect(html).toContain('Demo ERP (synthetic)')
+    expect(html).toContain('On hold')
+    expect(html).toContain('Release on hold.')
+    expect(html).toContain('Needs your decision')
+    expect(html).toContain('Ready for your review')
+    expect(html).toContain('Report layout not agreed')
+    expect(html).toContain('Accepted by you, waiting for release')
+    expect(html).toContain('ESTIMATE NOT YET VERIFIED')
+    expect(html).toContain('not a confirmed decision')
+    expect(html).toContain('AI summary, not yet confirmed')
+    expect(html).not.toMatch(/\d+\s?%/)
+    expect(renderedFindings(html)).toEqual([])
+  })
+
+  it('shows the accept control only on an item awaiting review, and an answer box only where the team asked', async () => {
+    const html = await render({ kind: 'ok', owner: OWNER as never }, db([PROJECT], ITEMS))
+    expect(html.match(/>Accept</g)).toHaveLength(1)
+    expect(html.match(/>Send answer</g)).toHaveLength(1)
+    const decisions = html.slice(html.indexOf('Needs your decision'), html.indexOf('Current blockers'))
+    expect(decisions).toContain('Which branches?')
+    expect(decisions).not.toContain('Changes asked')
+  })
+
+  it('shows the full original request and the client note before the client can accept', async () => {
+    const review = {
+      ...ITEMS[0],
+      title: 'Show stock by branch',
+      client_text: 'Show stock by branch\nOnly for the two northern branches, never the southern one.',
+      client_note: 'Please also hide cost prices.',
+    }
+    const html = await render({ kind: 'ok', owner: OWNER as never }, db([PROJECT], [review]))
+    const decisions = html.slice(html.indexOf('Needs your decision'), html.indexOf('Current blockers'))
+    const accept = decisions.indexOf('>Accept<')
+    expect(accept).toBeGreaterThan(-1)
+    for (const words of ['Only for the two northern branches, never the southern one.', 'Please also hide cost prices.']) {
+      const at = decisions.indexOf(words)
+      expect(at, words).toBeGreaterThan(-1)
+      expect(at, words).toBeLessThan(accept)
+    }
+  })
+
+  it('says older items are not shown when the list is cut', async () => {
+    const many = Array.from({ length: 501 }, (_, n) => ({ ...base, id: `aaaaaaaa-aaaa-4aaa-8aaa-${String(n).padStart(12, '0')}`, title: `T${n}`, state: 'in_development' }))
+    const html = await render({ kind: 'ok', owner: OWNER as never }, db([PROJECT], many))
+    expect(html).toContain('older items are not shown')
+    const few = await render({ kind: 'ok', owner: OWNER as never }, db([PROJECT], ITEMS))
+    expect(few).not.toContain('older items are not shown')
+  })
+
+  it('says the read failed instead of showing an empty project', async () => {
+    const html = await render({ kind: 'ok', owner: OWNER as never }, db(null, ITEMS))
+    expect(html).toContain('We could not load your project')
+    expect(html).not.toContain('Nothing is waiting on you')
+  })
+})

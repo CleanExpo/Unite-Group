@@ -1143,10 +1143,7 @@ async function writeContentSnapshots(root, contentDir, results) {
 async function writeReports(root, outputDir, json, markdown, baselineCandidateJson) {
   const safeDirectory = assertPathInsideRoot(root, outputDir)
   await mkdir(safeDirectory, { recursive: true })
-  const writes = [
-    atomicWrite(path.join(safeDirectory, 'report.json'), json),
-    atomicWrite(path.join(safeDirectory, 'report.md'), markdown),
-  ]
+  const writes = [atomicWrite(path.join(safeDirectory, 'report.md'), markdown)]
   if (baselineCandidateJson) {
     writes.push(atomicWrite(
       path.join(safeDirectory, 'baseline.candidate.json'),
@@ -1154,6 +1151,8 @@ async function writeReports(root, outputDir, json, markdown, baselineCandidateJs
     ))
   }
   await Promise.all(writes)
+  // report.json is the completion marker: it is written alone, after every other output has succeeded.
+  await atomicWrite(path.join(safeDirectory, 'report.json'), json)
   return safeDirectory
 }
 
@@ -1233,6 +1232,12 @@ export async function runWatcher(options) {
     ? buildFingerprintBaseline(report, options.registry)
     : null
   const baselineCandidateJson = baselineCandidate ? renderJson(baselineCandidate) : null
+  // The page text is written before the report, so a report on disk means every write finished: the automation
+  // workflow relies on that to tell failed pages apart from a crash.
+  let contentWrittenTo = null
+  if (captureContent) {
+    contentWrittenTo = await writeContentSnapshots(root, options.contentDir, results)
+  }
   let writtenTo = null
   if (options.outputDir) {
     writtenTo = await writeReports(
@@ -1242,10 +1247,6 @@ export async function runWatcher(options) {
       markdown,
       baselineCandidateJson,
     )
-  }
-  let contentWrittenTo = null
-  if (captureContent) {
-    contentWrittenTo = await writeContentSnapshots(root, options.contentDir, results)
   }
   return {
     report,
@@ -1274,7 +1275,7 @@ function usage() {
   ].join('\n')
 }
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const parsed = {
     root: '.',
     config: 'config/nexus-official-sources.json',
@@ -1331,14 +1332,17 @@ async function readJsonInsideRoot(root, candidate, label) {
   }
 }
 
-async function main() {
-  const args = parseArgs(process.argv.slice(2))
+// The whole command-line path, so tests run exactly what the CLI runs. `io` only supplies the working directory, a
+// clock, and stand-ins for the lowest network layer (requestImpl replaces requestPinnedHttps, resolveHost replaces
+// DNS); the production transport selection is otherwise unchanged. It cannot change how arguments are read or how the
+// exit code is chosen.
+export async function runCli(argv, io = {}) {
+  const args = parseArgs(argv)
   if (args.help) {
-    process.stdout.write(`${usage()}\n`)
-    return
+    return { exitCode: 0, stdout: `${usage()}\n`, stderr: '', report: null }
   }
 
-  const root = realpathSync(path.resolve(args.root))
+  const root = realpathSync(path.resolve(io.cwd ?? process.cwd(), args.root))
   const registry = await readJsonInsideRoot(root, args.config, 'registry')
   const baseline = args.baseline
     ? await readJsonInsideRoot(root, args.baseline, 'baseline')
@@ -1351,11 +1355,24 @@ async function main() {
     contentDir: args.contentDir,
     onlyIds: args.onlyIds,
     gateMaterial: args.gateMaterial,
+    now: io.now,
+    requestImpl: io.requestImpl,
+    resolveHost: io.resolveHost,
   })
 
-  process.stdout.write(result.json)
-  process.stderr.write(result.markdown)
-  process.exitCode = result.report.gates.exitCode
+  return {
+    exitCode: result.report.gates.exitCode,
+    stdout: result.json,
+    stderr: result.markdown,
+    report: result.report,
+  }
+}
+
+async function main() {
+  const result = await runCli(process.argv.slice(2))
+  process.stdout.write(result.stdout)
+  process.stderr.write(result.stderr)
+  process.exitCode = result.exitCode
 }
 
 const invokedPath = process.argv[1] ? pathToFileURL(path.resolve(process.argv[1])).href : null

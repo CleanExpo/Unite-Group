@@ -1,0 +1,736 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "restoration-world/world.schema.json",
+  "title": "Restoration World wire contract (schemaVersion 9, capacity-pressure-v1)",
+  "description": "Defined once. GDScript types are generated from this file. Rules are not described here; they live in scenario.ts.",
+  "$defs": {
+    "Stage": { "enum": ["briefing", "consequence", "reflected", "complete"] },
+    "Choice": { "enum": ["seek-support", "rush-response"] },
+    "CommandType": { "enum": ["decide", "reflect", "complete", "create-business", "enter-claim", "call-category", "decide-claim", "complete-claim", "start-job", "call-stops", "call-water", "call-decision", "call-step", "call-cause", "finish-job", "add-person", "change-roles", "post-vacancy", "hire-candidate"] },
+    "ResultCode": { "enum": ["invalid-command", "id-conflict", "stale-revision", "invalid-stage", "invalid-address", "category-not-called", "category-already-called", "house-not-suited", "stops-not-called", "stops-already-called", "water-not-called", "water-already-called", "decision-already-called", "decisions-open", "person-unknown", "person-already-added", "vacancy-already-open", "vacancy-not-open", "no-candidates", "step-already-called", "cause-already-called", "steps-not-done", "cause-not-called"] },
+    "ServiceCode": { "enum": ["permission-denied", "not-found", "method-not-allowed", "privileged-refused", "internal-error"] },
+    "DenialReason": { "enum": ["unknown-actor", "missing-role", "not-permitted"] },
+    "Role": { "enum": ["owner", "senior-technician", "administrator"] },
+    "StaffRole": { "enum": ["senior-technician", "administrator"] },
+    "L3Action": { "enum": ["add-person", "change-roles", "post-vacancy", "hire-candidate", "read-people", "read-record-any", "read-record-own"] },
+    "VacancyStatus": { "enum": ["open", "closed"] },
+    "PersonId": { "type": "string", "pattern": "^[a-z0-9-]{1,64}$" },
+    "AddressReason": { "enum": ["country-outside-au-nz", "region-unknown", "postcode-invalid"] },
+    "ConsequenceKind": { "enum": ["support-requested", "work-stopped"] },
+    "ServiceMode": { "enum": ["live", "test"] },
+    "Country": { "enum": ["AU", "NZ"] },
+    "Currency": { "enum": ["AUD", "NZD"] },
+    "AreaId": { "enum": ["office", "dispatch", "equipment-bay", "vehicle-area", "drying-storage"] },
+    "ClaimStage": { "enum": ["on-site", "decided", "complete"] },
+    "ZoneId": { "enum": ["laundry-floor", "lounge-carpet", "lounge-wall"] },
+    "ZoneSurface": { "enum": ["tile", "carpet", "plasterboard"] },
+    "OptionId": { "enum": ["dry-in-place", "lift-and-dry", "replace-flooring", "power-on-shortcut"] },
+    "WaterSource": { "enum": ["supply-hose", "drain-hose"] },
+    "TimeBeforeArrival": { "enum": ["same-day", "four-warm-days"] },
+    "WaterCategory": { "enum": [1, 2, 3] },
+    "WaterClass": { "enum": [1, 2, 3, 4] },
+    "HouseTypeId": { "enum": ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10"] },
+    "ScenarioId": { "enum": ["W1", "W2", "W3", "W4", "W5", "W6", "W7", "W8", "W9", "W10", "WM1", "WM2", "WM3", "WM4", "WM5", "WM6", "WM7", "WM8", "WM9", "WM10", "M1", "M2", "M3", "M4", "M5", "F1", "F2", "F3", "F4", "F5", "C1", "C2", "C3", "B1", "B2", "B3", "ST1", "ST2", "ST3", "ST4", "SW1", "SW2", "SW3", "HS1", "HS2", "CL1", "CL2", "AS1", "AS2"] },
+    "ScenarioFamily": { "enum": ["water", "water-mould", "mould", "fire", "crime-scene", "biohazard", "storm", "sewage", "hoarding", "clandestine-lab", "asbestos"] },
+    "SafetyStop": { "enum": ["ELEC", "STRUC", "ASB", "LEAD", "PPE", "HBV", "TRADE", "POLICE", "WASTE"] },
+    "JobStage": { "enum": ["on-site", "complete"] },
+    "WaterCallKind": { "enum": ["none", "category", "category-and-class"] },
+    "CommandId": { "type": "string", "pattern": "^[a-zA-Z0-9_-]{1,64}$" },
+    "JobSetup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["waterSource", "timeBeforeArrival"],
+      "properties": {
+        "waterSource": { "$ref": "#/$defs/WaterSource" },
+        "timeBeforeArrival": { "$ref": "#/$defs/TimeBeforeArrival" }
+      }
+    },
+    "Address": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["line1", "suburb", "region", "postcode", "country"],
+      "properties": {
+        "line1": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "suburb": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "region": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "postcode": { "type": "string", "minLength": 1, "maxLength": 10 },
+        "country": { "$ref": "#/$defs/Country" }
+      }
+    },
+    "WorldCommand": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "expectedRevision", "type", "choice"],
+          "properties": {
+            "id": { "$ref": "#/$defs/CommandId" },
+            "expectedRevision": { "type": "integer", "minimum": 0 },
+            "type": { "const": "decide" },
+            "choice": { "$ref": "#/$defs/Choice" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "expectedRevision", "type"],
+          "properties": {
+            "id": { "$ref": "#/$defs/CommandId" },
+            "expectedRevision": { "type": "integer", "minimum": 0 },
+            "type": { "enum": ["reflect", "complete"] }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "expectedRevision", "type", "name", "address"],
+          "properties": {
+            "id": { "$ref": "#/$defs/CommandId" },
+            "expectedRevision": { "type": "integer", "minimum": 0 },
+            "type": { "const": "create-business" },
+            "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+            "address": { "$ref": "#/$defs/Address" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "expectedRevision", "type"],
+          "properties": {
+            "id": { "$ref": "#/$defs/CommandId" },
+            "expectedRevision": { "type": "integer", "minimum": 0 },
+            "type": { "enum": ["enter-claim", "complete-claim"] }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "expectedRevision", "type", "setup"],
+          "properties": {
+            "id": { "$ref": "#/$defs/CommandId" },
+            "expectedRevision": { "type": "integer", "minimum": 0 },
+            "type": { "const": "enter-claim" },
+            "setup": { "$ref": "#/$defs/JobSetup" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "expectedRevision", "type", "category"],
+          "properties": {
+            "id": { "$ref": "#/$defs/CommandId" },
+            "expectedRevision": { "type": "integer", "minimum": 0 },
+            "type": { "const": "call-category" },
+            "category": { "$ref": "#/$defs/WaterCategory" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "expectedRevision", "type", "optionId"],
+          "properties": {
+            "id": { "$ref": "#/$defs/CommandId" },
+            "expectedRevision": { "type": "integer", "minimum": 0 },
+            "type": { "const": "decide-claim" },
+            "optionId": { "$ref": "#/$defs/OptionId" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "expectedRevision", "type", "scenarioId", "houseType"],
+          "properties": {
+            "id": { "$ref": "#/$defs/CommandId" },
+            "expectedRevision": { "type": "integer", "minimum": 0 },
+            "type": { "const": "start-job" },
+            "scenarioId": { "$ref": "#/$defs/ScenarioId" },
+            "houseType": { "$ref": "#/$defs/HouseTypeId" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "expectedRevision", "type", "stops"],
+          "properties": {
+            "id": { "$ref": "#/$defs/CommandId" },
+            "expectedRevision": { "type": "integer", "minimum": 0 },
+            "type": { "const": "call-stops" },
+            "stops": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/SafetyStop" } }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "expectedRevision", "type", "category", "waterClass"],
+          "properties": {
+            "id": { "$ref": "#/$defs/CommandId" },
+            "expectedRevision": { "type": "integer", "minimum": 0 },
+            "type": { "const": "call-water" },
+            "category": { "$ref": "#/$defs/WaterCategory" },
+            "waterClass": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/WaterClass" }] }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "expectedRevision", "type", "decisionId", "optionId"],
+          "properties": {
+            "id": { "$ref": "#/$defs/CommandId" },
+            "expectedRevision": { "type": "integer", "minimum": 0 },
+            "type": { "const": "call-decision" },
+            "decisionId": { "type": "string" },
+            "optionId": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "expectedRevision", "type"],
+          "properties": {
+            "id": { "$ref": "#/$defs/CommandId" },
+            "expectedRevision": { "type": "integer", "minimum": 0 },
+            "type": { "const": "finish-job" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "expectedRevision", "type", "stepId", "optionId"],
+          "properties": {
+            "id": { "$ref": "#/$defs/CommandId" },
+            "expectedRevision": { "type": "integer", "minimum": 0 },
+            "type": { "const": "call-step" },
+            "stepId": { "type": "string" },
+            "optionId": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "expectedRevision", "type", "causeId"],
+          "properties": {
+            "id": { "$ref": "#/$defs/CommandId" },
+            "expectedRevision": { "type": "integer", "minimum": 0 },
+            "type": { "const": "call-cause" },
+            "causeId": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "expectedRevision", "type", "personId", "roles"],
+          "properties": {
+            "id": { "$ref": "#/$defs/CommandId" },
+            "expectedRevision": { "type": "integer", "minimum": 0 },
+            "type": { "enum": ["add-person", "change-roles"] },
+            "personId": { "$ref": "#/$defs/PersonId" },
+            "roles": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/StaffRole" } }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "expectedRevision", "type", "role"],
+          "properties": {
+            "id": { "$ref": "#/$defs/CommandId" },
+            "expectedRevision": { "type": "integer", "minimum": 0 },
+            "type": { "const": "post-vacancy" },
+            "role": { "$ref": "#/$defs/StaffRole" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "expectedRevision", "type", "vacancyId", "candidateId"],
+          "properties": {
+            "id": { "$ref": "#/$defs/CommandId" },
+            "expectedRevision": { "type": "integer", "minimum": 0 },
+            "type": { "const": "hire-candidate" },
+            "vacancyId": { "type": "string" },
+            "candidateId": { "type": "string" }
+          }
+        }
+      ]
+    },
+    "HouseType": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "era", "floor", "walls", "lining", "roof", "storeys", "asbestosPresumed", "leadPaintPresumed", "model"],
+      "properties": {
+        "id": { "$ref": "#/$defs/HouseTypeId" },
+        "name": { "type": "string" }, "era": { "type": "string" }, "floor": { "type": "string" }, "walls": { "type": "string" },
+        "lining": { "type": "string" }, "roof": { "type": "string" }, "storeys": { "type": "string" },
+        "asbestosPresumed": { "type": "boolean" }, "leadPaintPresumed": { "type": "boolean" },
+        "model": { "$ref": "#/$defs/HouseModel" }
+      }
+    },
+    "HouseModel": {
+      "description": "A2: the numbers the client builds the house in 3D from. Footprints sit on the room kit's 2 m grid.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["widthM", "depthM", "floorHeightM", "storeys", "wallFinish", "roofForm", "roofPitchDeg", "roofFinish", "verandah",
+        "attached", "parapet", "sources"],
+      "properties": {
+        "widthM": { "type": "number", "minimum": 4, "multipleOf": 2 },
+        "depthM": { "type": "number", "minimum": 4, "multipleOf": 2 },
+        "floorHeightM": { "type": "number", "minimum": 0, "maximum": 3 },
+        "storeys": { "type": "integer", "minimum": 1 },
+        "wallFinish": { "enum": ["brick", "weatherboard", "fibro", "concrete"] },
+        "roofForm": { "enum": ["hip", "gable", "flat"] },
+        "roofPitchDeg": { "type": "number", "minimum": 0, "maximum": 45 },
+        "roofFinish": { "enum": ["tile", "iron", "slate", "membrane"] },
+        "verandah": { "type": "boolean" }, "attached": { "type": "boolean" }, "parapet": { "type": "boolean" },
+        "sources": { "type": "string" }
+      }
+    },
+    "ScenarioSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "family", "title", "houses", "houseRule", "waterCall"],
+      "properties": {
+        "id": { "$ref": "#/$defs/ScenarioId" },
+        "family": { "$ref": "#/$defs/ScenarioFamily" },
+        "title": { "type": "string" },
+        "houses": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/HouseTypeId" } },
+        "houseRule": { "oneOf": [{ "type": "null" }, { "type": "string" }] },
+        "waterCall": { "$ref": "#/$defs/WaterCallKind" }
+      }
+    },
+    "Library": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["families", "houses", "scenarios", "stops"],
+      "properties": {
+        "families": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["id", "label"],
+          "properties": { "id": { "$ref": "#/$defs/ScenarioFamily" }, "label": { "type": "string" } } } },
+        "houses": { "type": "array", "items": { "$ref": "#/$defs/HouseType" } },
+        "scenarios": { "type": "array", "items": { "$ref": "#/$defs/ScenarioSummary" } },
+        "stops": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["id", "label"],
+          "properties": { "id": { "$ref": "#/$defs/SafetyStop" }, "label": { "type": "string" } } } }
+      }
+    },
+    "StopsCall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["called", "required", "missed", "extra", "correct", "why"],
+      "properties": {
+        "called": { "type": "array", "items": { "$ref": "#/$defs/SafetyStop" } },
+        "required": { "type": "array", "items": { "$ref": "#/$defs/SafetyStop" } },
+        "missed": { "type": "array", "items": { "$ref": "#/$defs/SafetyStop" } },
+        "extra": { "type": "array", "items": { "$ref": "#/$defs/SafetyStop" } },
+        "correct": { "type": "boolean" },
+        "why": { "type": "string" }
+      }
+    },
+    "WaterCall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["category", "waterClass", "acceptedCategories", "acceptedClasses", "correct", "why"],
+      "properties": {
+        "category": { "$ref": "#/$defs/WaterCategory" },
+        "waterClass": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/WaterClass" }] },
+        "acceptedCategories": { "type": "array", "items": { "$ref": "#/$defs/WaterCategory" } },
+        "acceptedClasses": { "oneOf": [{ "type": "null" }, { "type": "array", "items": { "$ref": "#/$defs/WaterClass" } }] },
+        "correct": { "type": "boolean" },
+        "why": { "type": "string" }
+      }
+    },
+    "DecisionCall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["optionId", "rightOptionId", "correct", "why", "source"],
+      "properties": {
+        "optionId": { "type": "string" },
+        "rightOptionId": { "type": "string" },
+        "correct": { "type": "boolean" },
+        "why": { "type": "string" },
+        "source": { "type": "string" }
+      }
+    },
+    "JobDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "prompt", "options", "call"],
+      "properties": {
+        "id": { "type": "string" },
+        "prompt": { "type": "string" },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "label"],
+            "properties": { "id": { "type": "string" }, "label": { "type": "string" } }
+          }
+        },
+        "call": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/DecisionCall" }] }
+      }
+    },
+    "LibraryJob": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scenarioId", "houseType", "title", "family", "stage", "briefing", "needsWaterCall", "callsClass", "stopsCall", "waterCall", "decisions", "keyDecisions", "evidenceLevel", "investigation"],
+      "properties": {
+        "scenarioId": { "$ref": "#/$defs/ScenarioId" },
+        "houseType": { "$ref": "#/$defs/HouseTypeId" },
+        "title": { "type": "string" },
+        "family": { "$ref": "#/$defs/ScenarioFamily" },
+        "stage": { "$ref": "#/$defs/JobStage" },
+        "briefing": { "type": "array", "items": { "type": "string" } },
+        "needsWaterCall": { "type": "boolean" },
+        "callsClass": { "type": "boolean" },
+        "stopsCall": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/StopsCall" }] },
+        "waterCall": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/WaterCall" }] },
+        "decisions": { "type": "array", "items": { "$ref": "#/$defs/JobDecision" } },
+        "keyDecisions": { "type": ["string", "null"] },
+        "evidenceLevel": { "const": "indicative" },
+        "investigation": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/JobInvestigation" }] }
+      }
+    },
+    "InvestigationCause": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label"],
+      "properties": { "id": { "type": "string" }, "label": { "type": "string" } }
+    },
+    "InvestigationOption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label"],
+      "properties": { "id": { "type": "string" }, "label": { "type": "string" } }
+    },
+    "StepCall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["optionId", "finding", "rulesOut", "points", "unsafe", "why", "source"],
+      "properties": {
+        "optionId": { "type": "string" },
+        "finding": { "type": "string" },
+        "rulesOut": { "type": "array", "items": { "type": "string" } },
+        "points": { "type": "integer" },
+        "unsafe": { "type": "boolean" },
+        "why": { "type": "string" },
+        "source": { "type": "string" }
+      }
+    },
+    "InvestigationStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "prompt", "options", "call"],
+      "properties": {
+        "id": { "type": "string" },
+        "prompt": { "type": "string" },
+        "options": { "type": "array", "items": { "$ref": "#/$defs/InvestigationOption" } },
+        "call": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/StepCall" }] }
+      }
+    },
+    "CauseCall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["causeId", "correct", "acceptedCauses", "stillOpen", "why"],
+      "properties": {
+        "causeId": { "type": "string" },
+        "correct": { "type": "boolean" },
+        "acceptedCauses": { "type": "array", "items": { "type": "string" } },
+        "stillOpen": { "type": "array", "items": { "type": "string" } },
+        "why": { "type": "string" }
+      }
+    },
+    "JobInvestigation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["causes", "open", "steps", "causeCall", "score", "simulated"],
+      "properties": {
+        "causes": { "type": "array", "items": { "$ref": "#/$defs/InvestigationCause" } },
+        "open": { "type": "array", "items": { "type": "string" } },
+        "steps": { "type": "array", "items": { "$ref": "#/$defs/InvestigationStep" } },
+        "causeCall": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/CauseCall" }] },
+        "score": { "type": ["integer", "null"] },
+        "simulated": { "const": true }
+      }
+    },
+    "Claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "site", "lossType", "tier", "technician", "feeAud", "stage", "zones", "options", "chosenOptionId", "consequence", "learningOutcome", "evidenceLevel", "setup", "siteNotes", "categoryCall"],
+      "properties": {
+        "id": { "const": "l2-water-loss" },
+        "title": { "type": "string" },
+        "site": { "type": "string" },
+        "lossType": { "const": "water" },
+        "tier": { "const": "beginner" },
+        "technician": { "type": "string" },
+        "feeAud": { "type": "integer" },
+        "stage": { "$ref": "#/$defs/ClaimStage" },
+        "zones": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "label", "surface", "wetAreaPercent", "dryingProgressPercent"],
+            "properties": {
+              "id": { "$ref": "#/$defs/ZoneId" },
+              "label": { "type": "string" },
+              "surface": { "$ref": "#/$defs/ZoneSurface" },
+              "wetAreaPercent": { "type": "integer", "minimum": 0, "maximum": 100 },
+              "dryingProgressPercent": { "type": "integer", "minimum": 0, "maximum": 100 }
+            }
+          }
+        },
+        "options": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "label", "effects", "simulationBoundary", "shownConsequence"],
+            "properties": {
+              "id": { "$ref": "#/$defs/OptionId" },
+              "label": { "type": "string" },
+              "effects": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["dryingTimeHours", "costAud", "clientSatisfaction", "reputation"],
+                "properties": {
+                  "dryingTimeHours": { "type": "integer" },
+                  "costAud": { "type": "integer" },
+                  "clientSatisfaction": { "type": "integer" },
+                  "reputation": { "type": "integer" }
+                }
+              },
+              "simulationBoundary": { "type": "boolean" },
+              "shownConsequence": { "oneOf": [{ "type": "null" }, { "type": "string" }] }
+            }
+          }
+        },
+        "chosenOptionId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/OptionId" }] },
+        "consequence": { "oneOf": [{ "type": "null" }, { "type": "string" }] },
+        "learningOutcome": { "type": "string" },
+        "evidenceLevel": { "const": "simulated" },
+        "setup": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/JobSetup" }] },
+        "siteNotes": { "type": "array", "items": { "type": "string" } },
+        "categoryCall": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["called", "actual", "accepted", "correct", "why"],
+              "properties": {
+                "called": { "$ref": "#/$defs/WaterCategory" },
+                "actual": { "$ref": "#/$defs/WaterCategory" },
+                "accepted": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/WaterCategory" } },
+                "correct": { "type": "boolean" },
+                "why": { "type": "string" }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "Business": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "address", "currency", "timeZone", "stats", "people", "vacancy"],
+      "properties": {
+        "name": { "type": "string" },
+        "address": { "$ref": "#/$defs/Address" },
+        "currency": { "$ref": "#/$defs/Currency" },
+        "timeZone": { "type": "string" },
+        "stats": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["reputation", "businessCredits"],
+          "properties": {
+            "reputation": { "type": "integer" },
+            "businessCredits": { "type": "integer" }
+          }
+        },
+        "people": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/PersonEntry" } },
+        "vacancy": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/Vacancy" }] }
+      }
+    },
+    "Progression": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stats", "credentials", "hours"],
+      "properties": {
+        "stats": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["capability", "industryContribution", "reputation"],
+          "properties": {
+            "capability": { "type": "integer" },
+            "industryContribution": { "type": "integer" },
+            "reputation": { "type": "integer" }
+          }
+        },
+        "credentials": { "type": "array", "items": { "type": "string" } },
+        "hours": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "PersonEntry": {
+      "description": "L3: one person in the business. progression is null only for the player, whose progression is the world's person record.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "roles", "progression"],
+      "properties": {
+        "id": { "$ref": "#/$defs/PersonId" },
+        "name": { "type": "string" },
+        "roles": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/Role" } },
+        "progression": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/Progression" }] }
+      }
+    },
+    "Candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "summary"],
+      "properties": {
+        "id": { "$ref": "#/$defs/PersonId" },
+        "name": { "type": "string" },
+        "summary": { "type": "string" }
+      }
+    },
+    "Vacancy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "role", "status", "candidates", "hiredId"],
+      "properties": {
+        "id": { "type": "string" },
+        "role": { "$ref": "#/$defs/StaffRole" },
+        "status": { "$ref": "#/$defs/VacancyStatus" },
+        "candidates": { "type": "array", "items": { "$ref": "#/$defs/Candidate" } },
+        "hiredId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/PersonId" }] }
+      }
+    },
+    "EmploymentRecord": {
+      "description": "L3: restricted. Never in the world state; returned by GET /people/<id>/record to a role the permission table allows.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["personId", "name", "roles", "startDate", "payLevel"],
+      "properties": {
+        "personId": { "$ref": "#/$defs/PersonId" },
+        "name": { "type": "string" },
+        "roles": { "type": "array", "items": { "$ref": "#/$defs/Role" } },
+        "startDate": { "type": "string" },
+        "payLevel": { "type": "string" }
+      }
+    },
+    "BusinessTenure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "startRevision", "endRevision"],
+      "properties": {
+        "name": { "type": "string" },
+        "startRevision": { "type": "integer" },
+        "endRevision": { "type": "null" }
+      }
+    },
+    "Person": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stats", "credentials", "hours", "businesses"],
+      "properties": {
+        "stats": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["capability", "industryContribution", "reputation"],
+          "properties": {
+            "capability": { "const": 0 },
+            "industryContribution": { "const": 0 },
+            "reputation": { "type": "integer" }
+          }
+        },
+        "credentials": { "type": "array", "maxItems": 0 },
+        "hours": { "const": 0 },
+        "businesses": { "type": "array", "items": { "$ref": "#/$defs/BusinessTenure" } }
+      }
+    },
+    "HomeBase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["areas", "jobBuilder", "library"],
+      "properties": {
+        "areas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "label"],
+            "properties": { "id": { "$ref": "#/$defs/AreaId" }, "label": { "type": "string" } }
+          }
+        },
+        "jobBuilder": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["waterSources", "timesBeforeArrival"],
+          "properties": {
+            "waterSources": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "label"],
+                "properties": { "id": { "$ref": "#/$defs/WaterSource" }, "label": { "type": "string" } }
+              }
+            },
+            "timesBeforeArrival": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "label"],
+                "properties": { "id": { "$ref": "#/$defs/TimeBeforeArrival" }, "label": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "library": { "$ref": "#/$defs/Library" }
+      }
+    },
+    "WorldState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "scenarioVersion", "source", "role", "stage", "revision", "warehouse", "consequence", "progression", "professionalEvidence", "business", "person", "homeBase", "claim", "job", "history"],
+      "properties": {
+        "schemaVersion": { "const": 9 },
+        "scenarioVersion": { "const": "capacity-pressure-v1" },
+        "source": { "const": "simulation" },
+        "role": { "const": "technician" },
+        "stage": { "$ref": "#/$defs/Stage" },
+        "revision": { "type": "integer", "minimum": 0 },
+        "warehouse": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "availableCapacity"],
+          "properties": { "name": { "type": "string" }, "availableCapacity": { "type": "integer" } }
+        },
+        "consequence": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "summary"],
+              "properties": { "kind": { "$ref": "#/$defs/ConsequenceKind" }, "summary": { "type": "string" } }
+            }
+          ]
+        },
+        "progression": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["reflections", "completedScenarios"],
+          "properties": { "reflections": { "enum": [0, 1] }, "completedScenarios": { "enum": [0, 1] } }
+        },
+        "professionalEvidence": { "const": "not-assessed" },
+        "business": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/Business" }] },
+        "person": { "$ref": "#/$defs/Person" },
+        "homeBase": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/HomeBase" }] },
+        "claim": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/Claim" }] },
+        "job": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/LibraryJob" }] },
+        "history": { "type": "array", "items": { "$ref": "#/$defs/WorldCommand" } }
+      }
+    }
+  }
+}

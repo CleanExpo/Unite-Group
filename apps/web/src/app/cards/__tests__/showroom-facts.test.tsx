@@ -5,8 +5,12 @@ import { describe, expect, it, vi } from 'vitest'
 import CardsShowroomPage from '../page'
 import { CARD_TIERS } from '../order/order-view'
 import { CARD_ORDER_TERMS } from '../terms/terms-content'
+import { CARD_EXTRA_BUSINESS } from '../order/order-view'
 import {
   EXCLUSION_FACTS,
+  STAFF_CARD_FACTS,
+  TIER_INCLUDES,
+  staffCardPricedLine,
   FAQ_FACTS,
   HOSTING_FACTS,
   PRICE_NOTE,
@@ -64,6 +68,31 @@ describe('/cards showroom facts', () => {
       expect(text).toContain(f.question)
       for (const s of f.answer) expect(text).toContain(s)
     }
+  })
+
+  it('says what each tier includes and what costs extra, every line from the terms (UNI-3321)', () => {
+    const tierBlock = (id: string) => {
+      const start = html.indexOf(`data-tier="${id}"`)
+      return html.slice(start, html.indexOf('</ul>', html.indexOf('</ul>', start) + 1)).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
+    }
+    for (const id of ['ready', 'custom'] as const) {
+      const block = tierBlock(id)
+      expect(TIER_INCLUDES[id].length).toBeGreaterThan(1)
+      for (const s of TIER_INCLUDES[id]) expect(block).toContain(s)
+    }
+    const priced = staffCardPricedLine(CARD_EXTRA_BUSINESS.priceAud)
+    expect(CARD_ORDER_TERMS).toContain(priced)
+    expect(text).toContain('What costs extra')
+    expect(text).toContain([priced, ...STAFF_CARD_FACTS].join(' '))
+    expect(text).toContain('More rounds than included are quoted before we do them.')
+  })
+
+  it('shows no staff-card price while online ordering is off', () => {
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', '')
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', '')
+    const closed = renderToStaticMarkup(createElement(CardsShowroomPage)).replace(/<[^>]+>/g, ' ')
+    vi.unstubAllEnvs()
+    expect(closed).not.toContain('staff cards to a Business Pack order')
   })
 
   it('links to the order terms and the order page', () => {

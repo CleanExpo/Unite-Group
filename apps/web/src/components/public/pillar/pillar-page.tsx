@@ -1,4 +1,5 @@
-import { PILLARS, SHIPPED_PILLAR, lowestCardPrice, pillarPath, type Pillar } from '@/lib/public-site'
+import { serializeJsonLd } from '@/app/grow/packages'
+import { PILLARS, isPillarLive, lowestCardPrice, pillarPath, type Pillar } from '@/lib/public-site'
 import { PILLAR_EXTRA } from '@/lib/pillar-extra'
 
 import { PILLAR_CHAPTER } from './pillar-page-copy'
@@ -12,14 +13,27 @@ export function PillarPage({ slug }: { slug: Pillar['slug'] }) {
   const pillar = PILLARS.find((p) => p.slug === slug)
   if (!pillar) throw new Error(`Unknown pillar ${slug}`)
   const extra = PILLAR_EXTRA[slug]
-  const live = slug === SHIPPED_PILLAR
+  const live = isPillarLive(slug)
+  // A Coming pillar describes what it will do, so every promise section says so in its heading (UNI-3320).
+  const scoped = (title: string) => (live ? title : `${title} when this layer ships`)
   const from = lowestCardPrice()
   const copy = PILLAR_CHAPTER[slug]
   const sisters = PILLARS.filter((p) => p.slug !== slug)
   const faqAll = [...pillar.faq, ...extra.extraFaq]
+  // Same array as the visible FAQ below, so the markup and the page cannot drift apart.
+  const faqJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqAll.map((item) => ({
+      '@type': 'Question',
+      name: item.q,
+      acceptedAnswer: { '@type': 'Answer', text: item.a },
+    })),
+  }
 
   return (
     <PublicPageShell>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqJsonLd) }} />
       <SiteNav />
       <main id="main" className={pp.page} data-pillar={slug}>
         <PillarSection tone="hero" labelledBy="pillar-title">
@@ -46,7 +60,7 @@ export function PillarPage({ slug }: { slug: Pillar['slug'] }) {
               <a href="/#contact" className={pp.btnPrimary} data-track="cta" data-track-label={`pillar-${slug}-contact`}>
                 Ask a question
               </a>
-              <a href={live ? '/cards/order' : '/pricing'} className={pp.btnGhost}>
+              <a href={live ? '/cards/order' : '/pricing'} data-track="cta" data-track-label={`pillar-${slug}-order`} className={pp.btnGhost}>
                 {live ? 'Order a card' : 'View pricing'}
               </a>
             </div>
@@ -131,7 +145,7 @@ export function PillarPage({ slug }: { slug: Pillar['slug'] }) {
             <PillarHeading
               id="pillar-process"
               label="Process"
-              title="How it works when this layer ships"
+              title={scoped('How it works')}
               lead={extra.processLead}
             />
             <ol className={pp.stepFlow}>
@@ -188,7 +202,7 @@ export function PillarPage({ slug }: { slug: Pillar['slug'] }) {
 
         <PillarSection tone="alt" labelledBy="pillar-deliverables">
           <div className={pp.wrap}>
-            <PillarHeading id="pillar-deliverables" label="Deliverables" title="What you receive" />
+            <PillarHeading id="pillar-deliverables" label="Deliverables" title={scoped('What you receive')} />
             <ul className={pp.packageList}>
               {extra.deliverablesRich.map((item) => (
                 <li key={item.title}>
@@ -214,7 +228,7 @@ export function PillarPage({ slug }: { slug: Pillar['slug'] }) {
             <PillarHeading
               id="pillar-checks"
               label="Quality"
-              title="How we verify the work"
+              title={scoped('How we verify the work')}
               lead="Checks we run before we call a pass, and metrics we only report when they inform a decision."
             />
             <dl className={pp.proofList}>
@@ -264,10 +278,10 @@ export function PillarPage({ slug }: { slug: Pillar['slug'] }) {
                 }
               />
               <div className={pp.actions}>
-                <a href="/cards" className={pp.btnPrimary} data-track="cta" data-track-label="pillar-conversion-showroom">
+                <a href="/cards" className={pp.btnPrimary} data-track="cta" data-track-label={`pillar-${slug}-showroom`}>
                   See the showroom
                 </a>
-                <a href="/cards/order" className={pp.btnGhost}>
+                <a href="/cards/order" data-track="cta" data-track-label="pillar-conversion-order" className={pp.btnGhost}>
                   Order a card
                 </a>
               </div>

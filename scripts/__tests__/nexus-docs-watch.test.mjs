@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdtemp, readFile, readdir } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
@@ -719,6 +719,35 @@ test('--write-content persists normalised snapshots while the report stays body-
   assert.equal(result.report.sources[0].normalisedSha256, sha256('Release 1'))
 })
 
+// The automation workflow reads "report.json exists" as "the watcher finished every write". So report.json is the
+// completion marker, written alone after every other output: a run that dies on any other write leaves no report.
+test('report.json is written only after every other output, so any failed write leaves no report', async () => {
+  const fetchImpl = async () => new Response('<main>Release 1</main>', {
+    headers: { 'content-type': 'text/html' },
+  })
+  // Each case blocks one output path; a directory or file already sitting there makes that write fail.
+  const blocked = [
+    ['the page text', async (root) => writeFile(path.join(root, 'content'), 'a file where the content directory goes\n')],
+    ['report.md (Codex round 1)', async (root) => mkdir(path.join(root, 'out', 'report.md'), { recursive: true })],
+    ['baseline.candidate.json', async (root) => mkdir(path.join(root, 'out', 'baseline.candidate.json'), { recursive: true })],
+  ]
+  for (const [label, block] of blocked) {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'nexus-doc-watch-order-'))
+    await block(root)
+    await assert.rejects(runWatcher({
+      registry: registry([source()]),
+      root,
+      outputDir: 'out',
+      contentDir: 'content',
+      now: '2026-07-12T00:00:00.000Z',
+      fetchImpl,
+      resolveHost: publicResolver,
+    }), `a failed write of ${label} must fail the run`)
+    const written = await readdir(path.join(root, 'out')).catch(() => [])
+    assert.ok(!written.includes('report.json'), `no report after a failed write of ${label} (found: ${written.join(', ')})`)
+  }
+})
+
 test('root scripts and the weekly workflow stay read-only and artifact-only', async () => {
   const packageJson = JSON.parse(await readFile(
     new URL('../../package.json', import.meta.url),
@@ -784,6 +813,13 @@ test('pull-request CI enforces watcher tests on the supported Node 24 runtime', 
   assert.match(job, /node-version:\s*\['24'\]/)
   assert.doesNotMatch(job, /node-version:\s*\[[^\]]*'22'/)
   assert.match(job, /npm run verify:docs-watch/)
+  // The review and automation-workflow tests run on every pull request too, not only inside the weekly job.
+  assert.match(job, /npm run verify:docs-review/)
+  const packageJson = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8'))
+  assert.equal(
+    packageJson.scripts['verify:docs-review'],
+    'node --test scripts/__tests__/nexus-docs-review.test.mjs scripts/__tests__/nexus-docs-automation.test.mjs',
+  )
   assert.match(job, /actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1/)
   assert.match(job, /actions\/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1/)
 })
@@ -862,4 +898,106 @@ test('content capture sends no conditional headers and refuses a 304', async () 
     resolveHost: publicResolver,
     fetchImpl: async () => new Response(null, { status: 304 }),
   }), /304/)
+})
+
+// The approved weekly evidence workflow, byte for byte. Any edit to the workflow (a flag, an env, a shell, an `if:`,
+// `continue-on-error:`, another step) fails the test below until this text is changed in the same reviewed diff.
+// Changed pages are reviewed by nexus-official-docs-automation.yml against the committed snapshots, so this job runs
+// the watcher without the material gate and goes red only when a source cannot be fetched (UNI-3418).
+const APPROVED_WEEKLY_WORKFLOW = [
+  'name: Nexus official-docs weekly evidence',
+  '',
+  'on:',
+  '  schedule:',
+  '    # 02:17 Sunday Australia/Brisbane (AEST, UTC+10; no daylight saving).',
+  '    - cron: \'17 16 * * 6\'',
+  '  workflow_dispatch:',
+  '',
+  'permissions:',
+  '  contents: read',
+  '',
+  'concurrency:',
+  '  group: nexus-official-docs-weekly',
+  '  cancel-in-progress: false',
+  '',
+  'jobs:',
+  '  evidence:',
+  '    name: Fetch and fingerprint official documentation',
+  '    runs-on: ubuntu-latest',
+  '    timeout-minutes: 10',
+  '    steps:',
+  '      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1',
+  '        with:',
+  '          persist-credentials: false',
+  '',
+  '      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0',
+  '        with:',
+  '          node-version: \'24\'',
+  '',
+  '      - name: Test the watcher without external source requests',
+  '        run: npm run verify:docs-watch',
+  '',
+  '      - name: Capture read-only official-source evidence',
+  '        # The artifact includes a candidate baseline; replacing the committed baseline requires review.',
+  '        # Changed pages are recorded in the artifact and reviewed by nexus-official-docs-automation.yml, which',
+  '        # compares them with the committed snapshots and proposes a PR. So this job does not gate on material',
+  '        # changes and goes red only when a source cannot be fetched (UNI-3418):',
+  '        #   exit 0  every source fetched (changed pages included)',
+  '        #   exit 1  a non-critical source failed',
+  '        #   exit 2  a critical source failed',
+  '        run: |',
+  '          node scripts/nexus-docs-watch.mjs \\',
+  '            --root . \\',
+  '            --config config/nexus-official-sources.json \\',
+  '            --baseline config/nexus-official-sources.baseline.json \\',
+  '            --write .artifacts/nexus-official-docs',
+  '',
+  '      - name: Upload deterministic evidence',
+  '        if: always()',
+  '        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2',
+  '        with:',
+  '          name: nexus-official-docs-${{ github.run_id }}',
+  '          path: .artifacts/nexus-official-docs/',
+  '          if-no-files-found: warn',
+  '          retention-days: 30',
+  '',
+].join('\n')
+
+test('the weekly evidence job goes red only when a source fails, not on routine page changes', async () => {
+  const workflow = await readFile(
+    new URL('../../.github/workflows/nexus-official-docs-weekly.yml', import.meta.url),
+    'utf8',
+  )
+  assert.equal(workflow, APPROVED_WEEKLY_WORKFLOW, 'the weekly workflow matches the approved text byte for byte')
+
+  // The watcher words come from the approved text, which is literal: no expressions, quotes or shell expansion.
+  const command = APPROVED_WEEKLY_WORKFLOW.split('node scripts/nexus-docs-watch.mjs')[1].split('\n\n')[0]
+  const words = command.replace(/\\\n/g, ' ').split(/\s+/).filter(Boolean)
+  for (const word of words) assert.match(word, /^[A-Za-z0-9_./:,=-]+$/, `literal watcher word: ${word}`)
+
+  // Run the real command-line path (runCli, which main() only prints) with those words, in a temporary root whose
+  // config and baseline sit at the paths the workflow names. Two gated sources: one normal, one critical.
+  const root = await mkdtemp(path.join(os.tmpdir(), 'nexus-doc-watch-weekly-'))
+  const normal = source({ id: 'example.normal', gateOnChange: true })
+  const critical = source({ id: 'example.critical', url: 'https://docs.example.com/critical', critical: true, gateOnChange: true })
+  const input = registry([normal, critical])
+  const page = (body, status = 200) => async () => new Response(body, { status, headers: { 'content-type': 'text/plain' } })
+  // requestImpl stands in for requestPinnedHttps, the production transport; runCli accepts no other transport.
+  const serve = (bodies) => async ({ url }) => (bodies[String(url)] ?? page('Release 1'))()
+  const first = await runWatcher({ registry: input, root, now: '2026-11-16T00:00:00.000Z', requestImpl: serve({}), resolveHost: publicResolver })
+  await mkdir(path.join(root, 'config'), { recursive: true })
+  await writeFile(path.join(root, 'config', 'nexus-official-sources.json'), renderJson(input))
+  await writeFile(path.join(root, 'config', 'nexus-official-sources.baseline.json'), first.baselineCandidateJson)
+
+  const run = (bodies) => watcherModule.runCli(words, { cwd: root, now: '2026-11-16T00:00:00.000Z', requestImpl: serve(bodies), resolveHost: publicResolver })
+  const changed = await run({ [normal.url]: page('Release 2'), [critical.url]: page('Release 2') })
+  assert.deepEqual(changed.report.sources.map((s) => s.change), ['changed', 'changed'])
+  assert.equal(changed.exitCode, 0, 'changed gated pages do not turn the weekly job red')
+  assert.deepEqual(
+    (await readdir(path.join(root, '.artifacts', 'nexus-official-docs'))).sort(),
+    ['baseline.candidate.json', 'report.json', 'report.md'],
+    'the weekly job still writes its evidence',
+  )
+  assert.equal((await run({ [normal.url]: page('down', 503) })).exitCode, 1, 'a failed normal source exits 1')
+  assert.equal((await run({ [critical.url]: page('down', 503) })).exitCode, 2, 'a failed critical source exits 2')
 })

@@ -8,10 +8,14 @@
 import { useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { SITE_EVENT_LIMITS, isTrackedPath, type SiteEventType } from '@/lib/analytics/site-events'
+import { assignVariant, cardsAbEnabled, tagLabel, type CardsVariant } from '@/lib/experiments/cards-ab'
 
 const ENDPOINT = '/api/events'
 const SESSION_KEY = 'ug_sid'
 const FLUSH_DELAY_MS = 2000
+const ARM_KEY = 'ug_cards_ab'
+// The pages the /cards experiment measures: the showroom and the order page it leads to (UNI-3293).
+const EXPERIMENT_PATHS: readonly string[] = ['/cards', '/cards/order']
 
 type QueuedEvent = {
   event_type: SiteEventType
@@ -97,9 +101,52 @@ function flush() {
   while (queue.length > 0) send(queue.splice(0, SITE_EVENT_LIMITS.maxBatch))
 }
 
+// Kept beside the stored arm for tabs where sessionStorage refuses writes. Keyed by the session id it was
+// derived from, so it can only ever answer for that participant.
+let memoryArm: { sid: string; arm: CardsVariant } | null = null
+
+/** The arm this tab was assigned, or null when the experiment is off or nothing has been assigned. */
+function storedArm(): CardsVariant | null {
+  if (!cardsAbEnabled()) return null
+  try {
+    const v = window.sessionStorage.getItem(ARM_KEY)
+    if (v === 'A' || v === 'B') return v
+  } catch {
+    // storage unreadable: fall through to the page-load copy
+  }
+  return memoryArm && memoryArm.sid === sessionId() ? memoryArm.arm : null
+}
+
+/**
+ * The /cards experiment (UNI-3293). Returns the arm for this tab and remembers it for the tab, so /cards and
+ * /cards/order agree. Control ('A') with nothing stored when the flag is off or the visitor opted out
+ * (Do Not Track, Global Privacy Control): no assignment, no id, no event.
+ */
+export function assignCardsVariant(): CardsVariant {
+  if (typeof window === 'undefined' || !cardsAbEnabled() || trackingOptedOut()) return 'A'
+  const existing = storedArm()
+  if (existing) return existing
+  const sid = sessionId()
+  const arm = assignVariant(sid)
+  memoryArm = { sid, arm }
+  try {
+    window.sessionStorage.setItem(ARM_KEY, arm)
+  } catch {
+    // memoryArm keeps the assignment for this page load
+  }
+  return arm
+}
+
+/** One exposure for the page view that rendered the gate; the caller guards against repeats. */
+export function trackCardsExposure(): void {
+  if (typeof window === 'undefined' || !storedArm()) return
+  track({ event_type: 'card_view', path: '/cards', label: 'cards_ab_exposure' })
+}
+
 function track(event: Omit<QueuedEvent, 'session_id'>) {
   if (trackingOptedOut()) return
-  queue.push({ ...event, session_id: sessionId() })
+  const arm = EXPERIMENT_PATHS.includes(event.path) ? storedArm() : null
+  queue.push({ ...event, label: arm ? tagLabel(event.label ?? '', arm) : event.label, session_id: sessionId() })
   if (queue.length >= SITE_EVENT_LIMITS.maxBatch) flush()
   else if (!timer) timer = setTimeout(flush, FLUSH_DELAY_MS)
 }
@@ -170,6 +217,8 @@ export function SiteTracker() {
       if (!el || !el.matches('video[data-track="video"]') || !isTrackedPath(here())) return null
       // Looping videos (the hero loop is script-started, not user-initiated) are decoration, not engagement.
       if ((el as HTMLVideoElement).loop) return null
+      // A play the page started itself on scroll (data-track-autoplay) is not engagement either (UNI-3293).
+      if (el.getAttribute('data-track-autoplay') === 'true') return null
       return el as HTMLVideoElement
     }
     const onPlay = (e: Event) => {

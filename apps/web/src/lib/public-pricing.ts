@@ -4,8 +4,13 @@
 import { CARD_TIERS } from '@/app/cards/order/order-view'
 import { stripePaymentLink } from '@/app/grow/packages'
 
-/** Plan and add-on prices are shown excluding GST. The /grow packages are GST included (Phill, 03/11/2026). */
-export const PLUS_GST = 'plus GST'
+/**
+ * Every public plan and add-on price is the full price the customer pays, GST included
+ * (Phill, 02/11/2026; confirmed 23/11/2026, UNI-3175). The /grow packages and the card prices
+ * are GST included too. Every page, llms.txt line and JSON-LD offer that names a plan or
+ * add-on price uses this wording; never write it by hand.
+ */
+export const GST_INCLUDED = 'GST included'
 
 export const STARTER_PLAN = {
   name: 'Starter',

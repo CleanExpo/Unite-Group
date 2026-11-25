@@ -1,5 +1,5 @@
 import { formatAud } from '@/app/grow/packages'
-import { PLUS_GST, SIGNATURE_ADDON, STARTER_PLAN, liveCardTiers } from '@/lib/public-pricing'
+import { GST_INCLUDED, SIGNATURE_ADDON, STARTER_PLAN, liveCardTiers } from '@/lib/public-pricing'
 import { CONTACT_EMAIL, PRICE_NOTE } from '@/lib/public-site'
 
 /** FAQ copy for the home page #answers section. */
@@ -15,7 +15,7 @@ export function homeFaqItems() {
     },
     {
       q: 'What does it cost?',
-      a: `${card} The card has no monthly fee. Our Starter plan is a separate monthly service, ${formatAud(STARTER_PLAN.priceAud)} a month, with email signatures at ${formatAud(SIGNATURE_ADDON.priceAud)} each, both ${PLUS_GST}, on our pricing page.`,
+      a: `${card} The card has no monthly fee. Our Starter plan is a separate monthly service, ${formatAud(STARTER_PLAN.priceAud)} a month, with email signatures at ${formatAud(SIGNATURE_ADDON.priceAud)} each, both ${GST_INCLUDED}, on our pricing page.`,
     },
     {
       q: 'Is the film made with AI?',

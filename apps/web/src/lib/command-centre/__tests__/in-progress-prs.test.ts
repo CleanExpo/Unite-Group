@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { listInProgressPRs } from '@/lib/command-centre/in-progress-prs'
 
 const NOW = () => new Date('2026-07-08T12:00:00.000Z')
@@ -20,13 +20,37 @@ function okJson(body: unknown) {
 }
 
 describe('listInProgressPRs (UNI-2340 — GitHub API, serverless-safe)', () => {
-  it('no token → honest unavailable result, no fetch attempted', async () => {
+  // UNI-2521: listInProgressPRs falls back to process.env.GITHUB_TOKEN when
+  // deps.token is undefined. Never inherit the machine's value: every case
+  // starts with the variable stubbed empty, and a case that wants it sets it.
+  beforeEach(() => {
+    vi.stubEnv('GITHUB_TOKEN', '')
+  })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('no token (ambient GITHUB_TOKEN stubbed empty) → honest unavailable result, no fetch attempted', async () => {
     const fetchFn = vi.fn()
     const r = await listInProgressPRs({ token: undefined, fetchFn, repos: ['a/b'], now: NOW })
     expect(r.available).toBe(false)
     expect(r.entries).toEqual([])
     expect(r.read_error).toMatch(/GITHUB_TOKEN not configured/)
     expect(fetchFn).not.toHaveBeenCalled()
+  })
+
+  it('token from GITHUB_TOKEN env (no deps.token) → fetch path taken with that token', async () => {
+    vi.stubEnv('GITHUB_TOKEN', 'env-token-value')
+    const fetchFn = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
+      okJson([pull(4, 'a/b', '2026-07-07T00:00:00Z')]),
+    )
+    const r = await listInProgressPRs({ token: undefined, fetchFn, repos: ['a/b'], now: NOW })
+    expect(fetchFn).toHaveBeenCalledTimes(1)
+    const headers = fetchFn.mock.calls[0][1]?.headers as Record<string, string>
+    expect(headers.authorization).toBe('Bearer env-token-value')
+    expect(r.available).toBe(true)
+    expect(r.read_error).toBeNull()
+    expect(r.entries.map((e) => `${e.repo}#${e.number}`)).toEqual(['a/b#4'])
   })
 
   it('aggregates open PRs across repos, newest first, with repo attribution', async () => {
