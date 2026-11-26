@@ -41,11 +41,14 @@ begin
     select id into v_founder from auth.users order by created_at asc limit 1;
   end if;
 
-  -- Fail loudly. A silently skipped seed means Phill opens the Coaching Clinic,
-  -- finds it empty, and has no signal why — the exact fake-as-real failure the
-  -- house rules exist to prevent.
+  -- No founder means an empty database (a fresh local or CI replay), where this
+  -- seed has nothing to attach to. Skip with a NOTICE so the history still
+  -- replays; nothing is written, so nothing fake looks real. Production already
+  -- applied this version with a founder present (UNI-2757 replay rule, enforced
+  -- by scripts/db/migration-drift.mjs --lint).
   if v_founder is null then
-    raise exception 'coaching seed: no founder user found in crm_contacts or auth.users';
+    raise notice 'coaching seed: no founder user found in crm_contacts or auth.users; skipped, nothing written';
+    return;
   end if;
 
   -- Contact first — coaching_engagements.client_id references crm_contacts.

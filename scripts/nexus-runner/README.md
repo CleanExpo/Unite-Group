@@ -62,8 +62,13 @@ The `bin/rm` shim blocks recursive delete outside the scratch dir. Both hold eve
 ## Founder arming steps (one sitting, order matters — grill Q7)
 
 1. Flip F1 (identity gate fail-closed).
-2. Apply the migrations on prod via `supabase db push` (founder-gated):
-   `20260715050000_cc_agent_events.sql` + `20260716010000_cc_tasks_claim.sql`.
+2. Confirm the migrations reached prod (UNI-2757): `20260715050000_cc_agent_events.sql` +
+   `20260716010000_cc_tasks_claim.sql` were applied by hand under other ledger versions (the drift
+   check knows this). Prod migrations now apply from the `Database migrations` workflow in the
+   `production-db` environment, not by hand. One-time founder setup, exactly: (a) create the GitHub
+   environment `production-db` with required reviewers; (b) add secrets `SUPABASE_ACCESS_TOKEN` and
+   `SUPABASE_DB_PASSWORD` to it; (c) run `scripts/db/repair-plan.sh <ledger-file>` once and run the
+   printed ledger repairs; (d) set `"armed": true` in `scripts/db/production-apply.json` and merge it. Full steps: `docs/runbooks/db-migrations.md`.
 3. `vercel env add AGENT_EVENTS_SECRET` (generate: `openssl rand -hex 32`) + redeploy
    (UNCHECK build cache).
 4. Create `~/.claude/nexus-runner.env`:

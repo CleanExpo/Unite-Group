@@ -1,0 +1,104 @@
+Connecting to local database...
+Linting schema: extensions
+Linting schema: gates
+Linting schema: public
+[
+  {
+    "function": "public.get_video_pipeline_stats",
+    "issues": [
+      {
+        "level": "error",
+        "message": "column \"cnt\" does not exist",
+        "statement": {
+          "lineNumber": "5",
+          "text": "SQL statement"
+        },
+        "query": {
+          "position": "98",
+          "text": "SELECT jsonb_build_object(\n    'total_jobs', COUNT(*),\n    'by_status', jsonb_object_agg(status, cnt),\n    'total_cost_cents', COALESCE(SUM(cost_cents), 0),\n    'avg_cost_cents', COALESCE(AVG(cost_cents), 0)::INT,\n    'published_this_week', COUNT(*) FILTER (WHERE status = 'published' AND published_at \u003e NOW() - INTERVAL '7 days'),\n    'failed_this_week', COUNT(*) FILTER (WHERE status = 'failed' AND updated_at \u003e NOW() - INTERVAL '7 days')\n  )\n                FROM video_jobs\n  WHERE founder_id = p_founder_id"
+        },
+        "sqlState": "42703"
+      }
+    ]
+  },
+  {
+    "function": "public.match_business_docs",
+    "issues": [
+      {
+        "level": "error",
+        "message": "column p.body does not exist",
+        "statement": {
+          "lineNumber": "3",
+          "text": "RETURN QUERY"
+        },
+        "query": {
+          "position": "35",
+          "text": "SELECT\n    p.id,\n    p.title,\n    p.body::text AS content,\n    1 - (p.embedding \u003c=\u003e query_embedding) AS similarity\n  FROM public.nexus_pages p\n  WHERE p.business_id = p_business_id::text\n    AND p.embedding IS NOT NULL\n    AND p.archived_at IS NULL\n  ORDER BY p.embedding \u003c=\u003e query_embedding\n  LIMIT match_count"
+        },
+        "sqlState": "42703"
+      }
+    ]
+  },
+  {
+    "function": "public.cc_idea_evidence_document_hash_v1",
+    "issues": [
+      {
+        "level": "warning",
+        "message": "routine is marked as IMMUTABLE, but expression is STABLE",
+        "statement": {
+          "lineNumber": "7",
+          "text": "RETURN"
+        },
+        "hint": "When you fix this issue, please, recheck other functions that uses this function.",
+        "detail": "there is a risk of unwanted behave",
+        "sqlState": "00000"
+      }
+    ]
+  },
+  {
+    "function": "public.cc_idea_evidence_persist_handoff_v1",
+    "issues": [
+      {
+        "level": "warning extra",
+        "message": "never read variable \"v_previous\"",
+        "sqlState": "00000"
+      }
+    ]
+  },
+  {
+    "function": "public.erase_lead_alert_data",
+    "issues": [
+      {
+        "level": "error",
+        "message": "relation \"public.agent_actions\" does not exist",
+        "statement": {
+          "lineNumber": "12",
+          "text": "SQL statement"
+        },
+        "query": {
+          "position": "13",
+          "text": "delete from public.agent_actions as action\n    where action.action_type like 'crm\\_timeline\\_%'\n      and action.payload -\u003e\u003e 'subjectId' = p_lead_id"
+        },
+        "sqlState": "42P01"
+      }
+    ]
+  },
+  {
+    "function": "public.erase_lead_alert_data_for_email",
+    "issues": [
+      {
+        "level": "error",
+        "message": "relation \"public.agent_actions\" does not exist",
+        "statement": {
+          "lineNumber": "39",
+          "text": "SQL statement"
+        },
+        "query": {
+          "position": "13",
+          "text": "delete from public.agent_actions as action\n    where action.action_type like 'crm\\_timeline\\_%'\n      and action.payload -\u003e\u003e 'subjectId' = any(lead_ids)"
+        },
+        "sqlState": "42P01"
+      }
+    ]
+  }
+]
