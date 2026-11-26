@@ -1,0 +1,23 @@
+---
+import Base from '../layouts/Base.astro';
+import { business } from '../site.mjs';
+---
+<Base title={`${business} | TODO(client): what you do and where`} description="TODO(client): one sentence a customer would search for.">
+  <section>
+    <h1>TODO(client): one clear promise to the customer</h1>
+    <p class="lead">TODO(client): who you help, with what, and where.</p>
+    <p><a class="button" href="/contact/">Get in touch</a></p>
+  </section>
+  <section class="section" aria-labelledby="services">
+    <h2 id="services">What we do</h2>
+    <div class="grid">
+      <div class="card"><h3>TODO(client): service one</h3><p>TODO(client): what the customer gets.</p></div>
+      <div class="card"><h3>TODO(client): service two</h3><p>TODO(client): what the customer gets.</p></div>
+      <div class="card"><h3>TODO(client): service three</h3><p>TODO(client): what the customer gets.</p></div>
+    </div>
+  </section>
+  <section class="section" aria-labelledby="proof">
+    <h2 id="proof">Why customers choose us</h2>
+    <p>TODO(client): real proof only (licences, years trading, named reviews with permission). Nothing invented.</p>
+  </section>
+</Base>

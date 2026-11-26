@@ -164,6 +164,24 @@ updates:
     ignore:
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+  # The client site template (scripts/website/template/astro). New client sites copy its
+  # package.json and lockfile, so security fixes land here first.
+  - package-ecosystem: "npm"
+    directory: "/scripts/website/template/astro"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Australia/Brisbane"
+    open-pull-requests-limit: 1
+    versioning-strategy: increase-if-necessary
+    labels:
+      - "dependencies"
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
   # All action bumps land as ONE weekly PR. Some tests pin workflow content
   # (sha256 of nexus-heartbeat.yml, action SHAs in nexus-docs-watch.test.mjs);
   # re-pin them in the same PR or it can never go green.
