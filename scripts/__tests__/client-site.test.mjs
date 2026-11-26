@@ -6,7 +6,7 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { run } from '../website/client-site.mjs';
 import {
@@ -15,7 +15,7 @@ import {
 import { findMetadata, ingest, stripMetadata } from '../website/lib/images.mjs';
 import { VERCEL_MAX_REDIRECTS, applyRedirects, wpExport } from '../website/lib/wordpress.mjs';
 import {
-  checkProject, draftEmail, liveCheck, newProject, note, offboard, status,
+  checkProject, draftEmail, jsStringLiteral, liveCheck, newProject, note, offboard, renderTokens, status,
 } from '../website/lib/workspace.mjs';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -941,3 +941,65 @@ test('live compares commits by ancestry: a later unrelated main commit passes, a
   }
 });
 
+
+// UNI-3433, review round 5: the tool's own output must be correct for ordinary input.
+test('a business name with quotes, a backslash or markup scaffolds source that reads back as the same name', async () => {
+  const names = ["O'Brien Plumbing", 'Back\\slash "Quote" & <b>Co</b>', 'Smith & Sons \u2028 ${x} `tick`'];
+  for (const [n, name] of names.entries()) {
+    const { ctx, cleanup } = sandbox();
+    try {
+      const slug = `quoted-${n}`;
+      const { site } = newProject(ctx, { slug, name, domain: 'quoted.com.au', host: 'vercel', now: NOW });
+      const mod = await import(`${pathToFileURL(join(site, 'src', 'site.mjs')).href}?n=${n}`);
+      assert.equal(mod.business, name);
+      for (const f of ['layouts/Base.astro', 'pages/index.astro', 'pages/404.astro', 'pages/about/index.astro', 'pages/contact/index.astro', 'pages/privacy/index.astro']) {
+        const text = readFileSync(join(site, 'src', f), 'utf8');
+        assert.ok(!text.includes(name), `${f} must not carry the raw name`);
+        assert.ok(!text.includes('{{'), `${f} has an unfilled token`);
+      }
+    } finally {
+      cleanup();
+    }
+  }
+});
+
+test('renderTokens refuses the raw business name in source code and any unknown token', () => {
+  const v = { name: "O'Brien", domain: 'a.com.au', slug: 'ob' };
+  assert.equal(renderTokens('# {{NAME}}', 'README.md', v), "# O'Brien");
+  assert.throws(() => renderTokens("const b = '{{NAME}}';", 'Base.astro', v), /use \{\{NAME_JS\}\}/);
+  assert.throws(() => renderTokens('{{SURPRISE}}', 'x.astro', v), /unknown token/);
+  assert.equal(renderTokens('{{NAME_JS}}', 'site.mjs', v), '"O\'Brien"');
+  assert.equal(jsStringLiteral('</script>'), '"\\u003c/script\\u003e"');
+});
+
+function animatedPng() {
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk('IHDR', Buffer.alloc(13)), chunk('acTL', Buffer.alloc(8)), chunk('fcTL', Buffer.alloc(26)), chunk('IDAT', Buffer.from([1, 2, 3])),
+    chunk('fcTL', Buffer.alloc(26)), chunk('fdAT', Buffer.from([0, 0, 0, 1, 4])), chunk('IEND'),
+  ]);
+}
+
+test('an animated PNG is refused by name, never published as a one-frame picture', () => {
+  const { ctx, cleanup } = sandbox();
+  try {
+    const { workspace, site } = scaffold(ctx);
+    writeFileSync(join(workspace, 'incoming', 'spinner.png'), animatedPng());
+    writeFileSync(join(workspace, 'incoming', 'logo.png'), pngWithText());
+    assert.throws(
+      () => ingest(ctx, { slug: 'sample-cafe', select: ['logo.png', 'spinner.png'], approvedBy: 'operator', now: NOW }),
+      (err) => err instanceof ToolError && /^spinner\.png: animated PNG/.test(err.message) && /still image/.test(err.message),
+    );
+    const assetDir = join(site, 'src', 'assets', 'client');
+    assert.deepEqual(existsSync(assetDir) ? readdirSync(assetDir).filter((f) => f !== 'manifest.json') : [], [], 'nothing from a refused batch is published');
+    assert.throws(() => stripMetadata(animatedPng(), '.png'), /animated PNG/);
+    assert.throws(() => findMetadata(animatedPng(), '.png'), /animated PNG/);
+    // A hand-placed animated PNG that is already in the public folder is reported, not crashed on.
+    mkdirSync(assetDir, { recursive: true });
+    writeFileSync(join(assetDir, 'img-000000000000.png'), animatedPng());
+    const problems = checkProject(ctx, { slug: 'sample-cafe' }).problems.join('\n');
+    assert.match(problems, /img-000000000000\.png/);
+  } finally {
+    cleanup();
+  }
+});

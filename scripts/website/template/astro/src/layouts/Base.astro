@@ -2,13 +2,13 @@
 // One layout for every page: semantic HTML first, visible navigation, skip link, canonical,
 // and truthful structured data (business name and address only; nothing invented).
 import '../styles/global.css';
+import { business } from '../site.mjs';
 
 interface Props {
   title: string;
   description: string;
 }
 const { title, description } = Astro.props;
-const business = '{{NAME}}';
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
 const nav = [
   { href: '/', label: 'Home' },

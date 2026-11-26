@@ -1,7 +1,8 @@
 ---
 import Base from '../../layouts/Base.astro';
+import { business } from '../../site.mjs';
 ---
-<Base title="Contact {{NAME}}" description="TODO(client): how to reach the business, and the hours.">
+<Base title={`Contact ${business}`} description="TODO(client): how to reach the business, and the hours.">
   <h1>Contact us</h1>
   <p class="lead">TODO(client): the best way to reach you and when.</p>
   <ul>

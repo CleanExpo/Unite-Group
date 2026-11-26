@@ -1,7 +1,8 @@
 ---
 import Base from '../../layouts/Base.astro';
+import { business } from '../../site.mjs';
 ---
-<Base title="Privacy policy | {{NAME}}" description="How {{NAME}} collects, uses and protects your personal information.">
+<Base title={`Privacy policy | ${business}`} description={`How ${business} collects, uses and protects your personal information.`}>
   <h1>Privacy policy</h1>
   <p>TODO(client): confirm this policy with the business owner before launch.</p>
   <h2>What we collect</h2>

@@ -1,7 +1,8 @@
 ---
 import Base from '../layouts/Base.astro';
+import { business } from '../site.mjs';
 ---
-<Base title="{{NAME}} | TODO(client): what you do and where" description="TODO(client): one sentence a customer would search for.">
+<Base title={`${business} | TODO(client): what you do and where`} description="TODO(client): one sentence a customer would search for.">
   <section>
     <h1>TODO(client): one clear promise to the customer</h1>
     <p class="lead">TODO(client): who you help, with what, and where.</p>

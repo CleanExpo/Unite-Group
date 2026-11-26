@@ -103,6 +103,9 @@ function classifyPng(buf) {
     const type = buf.toString('latin1', i + 4, i + 8);
     const end = i + 12 + len;
     if (end > buf.length) throw new ToolError('PNG chunk runs past the end of the file; re-export the image');
+    // An animated PNG keeps its extra frames in chunks the allow-list does not name; dropping them would
+    // publish a one-frame picture that looks valid. Refuse it instead, and say what to do.
+    if (type === 'acTL') throw new ToolError('animated PNG (APNG); animation is not supported, export a still image (one frame) as PNG or JPEG first');
     if (PNG_PIXEL_CHUNKS.has(type) || PNG_FIXED_CHUNKS.get(type) === len) kept.push(buf.subarray(i, end));
     else dropped.push(`PNG chunk ${type}`);
     i = end;
@@ -190,8 +193,15 @@ export function ingest(ctx, { slug, select = null, approvedBy = null, now = new 
     const ext = extname(rel).toLowerCase();
     if (REFUSED.has(ext)) throw new ToolError(`${rel}: ${ext} is not accepted; export it as JPEG or PNG first`);
     const original = readFileSync(join(incoming, rel));
-    const clean = stripMetadata(original, ext);
-    const left = findMetadata(clean, ext);
+    let clean;
+    let left;
+    try {
+      clean = stripMetadata(original, ext);
+      left = findMetadata(clean, ext);
+    } catch (err) {
+      if (err instanceof ToolError) throw new ToolError(`${rel}: ${err.message}`, err.code);
+      throw err;
+    }
     if (left.length) throw new ToolError(`${rel}: metadata remains after stripping (${left.join(', ')})`);
     if (clean.length > MAX_ASSET_BYTES) {
       throw new ToolError(`${rel} is ${(clean.length / 1048576).toFixed(1)} MB; resize to about 2400 px wide and under 1 MB first (macOS: sips -Z 2400 <file>)`);
@@ -306,7 +316,12 @@ export function auditClientAssets(sitesDir, slug) {
     }
     const buf = readFileSync(full);
     if (sha256(buf) !== rec.sha256) problems.push(`[asset] ${entry.name} does not match its manifest hash`);
-    for (const m of findMetadata(buf, extname(entry.name))) problems.push(`[asset] ${entry.name} still carries metadata: ${m}`);
+    try {
+      for (const m of findMetadata(buf, extname(entry.name))) problems.push(`[asset] ${entry.name} still carries metadata: ${m}`);
+    } catch (err) {
+      if (!(err instanceof ToolError)) throw err;
+      problems.push(`[asset] ${entry.name} cannot be published: ${err.message}`);
+    }
     if (statSync(full).size > MAX_ASSET_BYTES) problems.push(`[asset] ${entry.name} is over 1 MB`);
   }
   problems.push(...auditManifestShape(manifest));

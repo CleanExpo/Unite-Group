@@ -18,14 +18,37 @@ const TEXT_EXT = /\.(astro|mjs|js|json|md|txt|css|svg|html|xml|npmrc|gitignore)$
 const PRIVATE_NAMES = new Set(['incoming', 'outgoing', 'NOTES.md', 'project.json', 'live-checks.json']);
 const SKIP_DIRS = new Set(['node_modules', 'dist', '.astro', '.vercel']);
 
-function fillTokens(dir, tokens) {
+// The one owner of "put a client-supplied value into a generated file". A value is written only through
+// the form its token names, so no generator hand-escapes anything:
+//   {{NAME_JS}}  a JavaScript string literal (quotes, backslashes, line breaks and "<" escaped)
+//   {{NAME}}     the raw name, allowed in Markdown only (never inside source code)
+//   {{DOMAIN}}, {{SLUG}}, {{BUSINESS_KEY}}  values already limited to letters, digits, dots and hyphens
+export function jsStringLiteral(value) {
+  return JSON.stringify(String(value)).replace(/[<>&\u2028\u2029]/g, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`);
+}
+
+export function renderTokens(text, fileName, { name, domain, slug }) {
+  const raw = { NAME: name, DOMAIN: domain, SLUG: slug, BUSINESS_KEY: slug };
+  const isMarkdown = /\.md$/.test(fileName);
+  return text.replace(/\{\{([A-Z_]+)\}\}/g, (whole, token) => {
+    if (token === 'NAME_JS') return jsStringLiteral(name);
+    if (token === 'NAME') {
+      if (!isMarkdown) throw new ToolError(`template ${fileName} puts the raw business name in source code; use {{NAME_JS}}`);
+      return name;
+    }
+    if (token in raw) return raw[token];
+    throw new ToolError(`template ${fileName} has an unknown token ${whole}`);
+  });
+}
+
+function fillTokens(dir, values) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name);
-    if (entry.isDirectory()) fillTokens(full, tokens);
+    if (entry.isDirectory()) fillTokens(full, values);
     else if (TEXT_EXT.test(entry.name)) {
-      let text = readFileSync(full, 'utf8');
-      for (const [k, v] of Object.entries(tokens)) text = text.split(`{{${k}}}`).join(v);
-      writeFileSync(full, text);
+      const text = readFileSync(full, 'utf8');
+      const out = renderTokens(text, entry.name, values);
+      if (out !== text) writeFileSync(full, out);
     }
   }
 }
@@ -69,7 +92,7 @@ export function newProject(ctx, { slug, name, domain, host = 'vercel', contactNa
     writeFileSync(join(tmpWs, 'project.json'), `${JSON.stringify(project, null, 2)}\n`);
     writeFileSync(join(tmpWs, 'NOTES.md'), notesHeader(project));
     cpSync(TEMPLATE_DIR, tmpSite, { recursive: true, filter: (src) => !SKIP_DIRS.has(src.split(sep).pop()) });
-    fillTokens(tmpSite, { NAME: project.name, DOMAIN: domain, SLUG: slug, BUSINESS_KEY: slug });
+    fillTokens(tmpSite, { name: project.name, domain, slug });
     renameSync(tmpWs, ws);
     wsPlaced = true;
     renameSync(tmpSite, site);
