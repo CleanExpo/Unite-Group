@@ -177,3 +177,36 @@ describe('LiveAgentOperationsMap hub map wiring', () => {
     expect(container.querySelector('[data-testid="lao-hub-map"]')).toBeNull()
   })
 })
+
+describe('LiveAgentOperationsMap agent card dates', () => {
+  afterEach(() => {
+    cleanup()
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+  })
+
+  // The card date is the newest change to the agent's OPEN TASKS, not an agent check-in.
+  // "updated 105d ago" under an agent's name read as the agent itself reporting (26/11/2026).
+  it('names the date as the last task change and flags an agent whose tasks have sat a week', async () => {
+    const day = 86_400_000
+    const now = Date.now()
+    const data = payload(2)
+    data.nodes = [
+      node(0, { label: 'Stale Agent', lastUpdatedAt: new Date(now - 105 * day).toISOString() }),
+      node(1, { label: 'Fresh Agent', lastUpdatedAt: new Date(now - 2 * 3_600_000).toISOString() }),
+    ]
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => data }))
+
+    const { container } = render(<LiveAgentOperationsMap />)
+    await waitFor(() => expect(container.textContent).toContain('Stale Agent'))
+
+    const cards = Array.from(container.querySelectorAll('[data-agent-card]'))
+    const stale = cards.find((c) => c.textContent?.includes('Stale Agent'))
+    const fresh = cards.find((c) => c.textContent?.includes('Fresh Agent'))
+    expect(stale?.textContent).toMatch(/last task change 105d ago/i)
+    expect(stale?.querySelector('[data-stale-tasks="true"]')?.textContent).toMatch(/no task change in 7\+ days/i)
+    expect(fresh?.textContent).toMatch(/last task change 2h ago/i)
+    expect(fresh?.querySelector('[data-stale-tasks="true"]')).toBeNull()
+    expect(container.textContent).not.toMatch(/updated \d+[smhd] ago/i)
+  })
+})
